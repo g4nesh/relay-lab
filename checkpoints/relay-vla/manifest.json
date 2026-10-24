@@ -1,0 +1,21 @@
+{
+  "checkpoint_sha256": "7b13dbba5c0e64b491d5a8f3e63984b0e2d458cb2ea08714eb91a1f5c5b19c38",
+  "dataset_sha256": "4f1d3619a4b97291eef5c2fdbdff84f7f679ad47a0ec59aaa8b683eb2b25de51",
+  "checkpoint_bytes": 152589,
+  "dataset_bytes": 2686667,
+  "training": {
+    "seed": 17,
+    "dataset": "datasets/relay-vla/original.npz",
+    "scene_seed_start": 2000,
+    "scenes": 400,
+    "pixel_steps": 1500,
+    "control_steps": 10000,
+    "teacher": "original synthetic RGB segmentation/calibration and reactive expert action labels; no demonstration dataset downloaded",
+    "language_training_accuracy": 1.0,
+    "calibration_mean_error_metres": [
+      0.006118074142056644,
+      0.027313729539890665
+    ],
+    "training_seconds": 20.544692875118926
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "seed": 7,
+  "max_steps": 600,
+  "communication": true,
+  "message_latency": 1,
+  "policy": "relay-vla",
+  "video": true,
+  "picker_url": null,
+  "packer_url": null,
+  "device": "auto",
+  "action_horizon": 5,
+  "denoising_steps": 10,
+  "transport": "local",
+  "task_id": "fb3a7c60-2df7-44ef-b330-2ffa51346dec",
+  "order": null,
+  "feedback": true,
+  "coordination": "spacetime",
+  "planner": "llm",
+  "checkpoint": null,
+  "llm_python": null
+}

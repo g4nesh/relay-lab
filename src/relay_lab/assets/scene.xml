@@ -1,0 +1,159 @@
+<mujoco model="Relay Lab · Dual Cartesian Workcell">
+  <compiler angle="degree"/>
+  <option timestep="0.002" gravity="0 0 -9.81" integrator="implicitfast"/>
+  <visual>
+    <global offwidth="1280" offheight="960"/>
+    <quality shadowsize="4096" offsamples="8" numslices="32" numstacks="16"/>
+    <headlight ambient="0.28 0.29 0.3" diffuse="0.14 0.14 0.14" specular="0.15 0.15 0.15"/>
+    <rgba haze="0.88 0.9 0.91 1"/>
+    <map znear="0.01" shadowclip="4"/>
+  </visual>
+  <default>
+    <geom friction="1 0.01 0.001" solref="0.01 1" solimp="0.95 0.99 0.001"/>
+    <default class="visual"><geom contype="0" conaffinity="0" group="0"/></default>
+    <default class="cube"><geom type="box" size="0.03 0.03 0.03" mass="0.08" group="1" material="parcel"/></default>
+  </default>
+  <asset>
+    <texture name="sky" type="skybox" builtin="gradient" rgb1="0.79 0.83 0.86" rgb2="0.95 0.96 0.97" width="256" height="1536"/>
+    <texture name="floor_texture" type="2d" builtin="checker" rgb1="0.74 0.77 0.79" rgb2="0.73 0.76 0.78" width="512" height="512"/>
+    <material name="floor" texture="floor_texture" texrepeat="3 3" reflectance="0" specular="0" shininess="0.1"/>
+    <material name="table" rgba="0.83 0.86 0.87 1" specular="0.3" shininess="0.4"/>
+    <material name="shell" rgba="0.92 0.94 0.94 1" specular="0.38" shininess="0.5"/>
+    <material name="aluminum" rgba="0.59 0.64 0.68 1" specular="0.8" shininess="0.7"/>
+    <material name="steel" rgba="0.27 0.32 0.36 1" specular="0.8" shininess="0.7"/>
+    <material name="graphite" rgba="0.11 0.16 0.2 1" specular="0.28" shininess="0.35"/>
+    <material name="rubber" rgba="0.075 0.095 0.11 1" specular="0.08" shininess="0.1"/>
+    <material name="teal" rgba="0.025 0.45 0.51 1" specular="0.45" shininess="0.45"/>
+    <material name="amber" rgba="0.94 0.5 0.1 1" specular="0.45" shininess="0.45"/>
+    <material name="source_pad" rgba="0.62 0.75 0.76 1" specular="0.1" shininess="0.1"/>
+    <material name="pack_pad" rgba="0.77 0.76 0.7 1" specular="0.1" shininess="0.1"/>
+    <material name="parcel" specular="0.3" shininess="0.25"/>
+  </asset>
+  <worldbody>
+    <light name="key" pos="-1.5 -1.4 3" dir="0.35 0.2 -1" diffuse="0.43 0.42 0.4" specular="0.2 0.2 0.2" directional="true" castshadow="true"/>
+    <light name="fill" pos="1.6 -0.4 2.2" dir="-0.6 0 -1" diffuse="0.14 0.16 0.18" directional="true" castshadow="false"/>
+    <light name="rim" pos="0 1.7 2.5" dir="0 -0.4 -1" diffuse="0.12 0.12 0.12" directional="true" castshadow="false"/>
+    <camera name="overview" pos="1.18 -1.95 1.38" xyaxes="0.856 0.518 0 -0.201 0.332 0.921" fovy="46"/>
+    <camera name="picker" pos="-0.34 -1.15 1.17" xyaxes="1 0 0 0 0.67 0.74" fovy="47"/>
+    <camera name="packer" pos="0.34 -1.15 1.17" xyaxes="1 0 0 0 0.67 0.74" fovy="47"/>
+    <geom type="plane" size="100 100 0.1" pos="0 0 -0.75" material="floor"/>
+    <!-- The top and cubes retain the starter task's original collision geometry. -->
+    <geom name="table" type="box" size="0.84 0.46 0.04" pos="0 0 -0.04" material="table"/>
+    <geom class="visual" type="box" size="0.85 0.47 0.012" pos="0 0 -0.084" material="steel"/>
+    <geom class="visual" type="box" size="0.84 0.46 0.055" pos="0 0 -0.15" material="shell"/>
+    <geom class="visual" type="box" size="0.82 0.004 0.01" pos="0 -0.465 -0.112" material="graphite"/>
+    <geom class="visual" type="box" size="0.18 0.005 0.008" pos="-0.55 -0.47 -0.15" material="teal"/>
+    <geom class="visual" type="box" size="0.18 0.005 0.008" pos="0.55 -0.47 -0.15" material="amber"/>
+    <geom class="visual" type="box" size="0.035 0.035 0.26" pos="-0.74 -0.36 -0.46" material="aluminum"/>
+    <geom class="visual" type="box" size="0.035 0.035 0.26" pos="0.74 -0.36 -0.46" material="aluminum"/>
+    <geom class="visual" type="box" size="0.035 0.035 0.26" pos="-0.74 0.36 -0.46" material="aluminum"/>
+    <geom class="visual" type="box" size="0.035 0.035 0.26" pos="0.74 0.36 -0.46" material="aluminum"/>
+    <geom class="visual" type="box" size="0.025 0.025 0.25" pos="-0.74 -0.398 -0.46" material="graphite"/>
+    <geom class="visual" type="box" size="0.025 0.025 0.25" pos="0.74 -0.398 -0.46" material="graphite"/>
+    <geom class="visual" type="box" size="0.74 0.025 0.025" pos="0 0.36 -0.57" material="aluminum"/>
+    <geom class="visual" type="box" size="0.025 0.36 0.025" pos="-0.74 0 -0.57" material="aluminum"/>
+    <geom class="visual" type="box" size="0.025 0.36 0.025" pos="0.74 0 -0.57" material="aluminum"/>
+    <geom class="visual" type="cylinder" size="0.055 0.015" pos="-0.74 -0.36 -0.73" material="rubber"/>
+    <geom class="visual" type="cylinder" size="0.055 0.015" pos="0.74 -0.36 -0.73" material="rubber"/>
+    <geom class="visual" type="cylinder" size="0.055 0.015" pos="-0.74 0.36 -0.73" material="rubber"/>
+    <geom class="visual" type="cylinder" size="0.055 0.015" pos="0.74 0.36 -0.73" material="rubber"/>
+    <!-- Task markings are flush visual overlays, never extra contact surfaces. -->
+    <geom class="visual" type="box" size="0.185 0.35 0.0005" pos="-0.52 0 0.0005" material="source_pad"/>
+    <geom class="visual" type="box" size="0.165 0.35 0.0005" pos="0.48 0 0.0005" material="pack_pad"/>
+    <geom class="visual" type="box" size="0.004 0.35 0.0006" pos="-0.709 0 0.0007" material="teal"/>
+    <geom class="visual" type="box" size="0.004 0.35 0.0006" pos="0.649 0 0.0007" material="amber"/>
+    <geom class="visual" type="cylinder" size="0.096 0.001" pos="0 0 0.001" material="steel"/>
+    <geom class="visual" type="cylinder" size="0.088 0.001" pos="0 0 0.003" material="shell"/>
+    <geom class="visual" type="cylinder" size="0.076 0.001" pos="0 0 0.005" rgba="0.69 0.77 0.79 1"/>
+    <geom class="visual" type="box" size="0.002 0.046 0.0005" pos="0 0 0.0065" material="teal"/>
+    <geom class="visual" type="box" size="0.046 0.002 0.0005" pos="0 0 0.0065" material="teal"/>
+    <geom class="visual" type="box" size="0.068 0.068 0.001" pos="0.48 -0.22 0.002" material="steel"/>
+    <geom class="visual" type="box" size="0.063 0.063 0.001" pos="0.48 -0.22 0.004" material="shell"/>
+    <geom class="visual" type="box" size="0.068 0.068 0.001" pos="0.48 0 0.002" material="steel"/>
+    <geom class="visual" type="box" size="0.063 0.063 0.001" pos="0.48 0 0.004" material="shell"/>
+    <geom class="visual" type="box" size="0.068 0.068 0.001" pos="0.48 0.22 0.002" material="steel"/>
+    <geom class="visual" type="box" size="0.063 0.063 0.001" pos="0.48 0.22 0.004" material="shell"/>
+    <geom class="visual" type="box" size="0.003 0.012 0.0008" pos="0.58 -0.22 0.003" material="graphite"/>
+    <geom class="visual" type="box" size="0.003 0.012 0.0008" pos="0.575 0 0.003" material="graphite"/>
+    <geom class="visual" type="box" size="0.003 0.012 0.0008" pos="0.587 0 0.003" material="graphite"/>
+    <geom class="visual" type="box" size="0.003 0.012 0.0008" pos="0.569 0.22 0.003" material="graphite"/>
+    <geom class="visual" type="box" size="0.003 0.012 0.0008" pos="0.581 0.22 0.003" material="graphite"/>
+    <geom class="visual" type="box" size="0.003 0.012 0.0008" pos="0.593 0.22 0.003" material="graphite"/>
+    <geom class="visual" type="capsule" fromto="-0.25 -0.38 0.002 -0.25 0.38 0.002" size="0.0008" rgba="0.56 0.62 0.64 1"/>
+    <geom class="visual" type="capsule" fromto="0.25 -0.38 0.002 0.25 0.38 0.002" size="0.0008" rgba="0.56 0.62 0.64 1"/>
+    <!-- Shared precision X rail; two independent cantilever Y bridges. -->
+    <geom class="visual" type="box" size="0.04 0.045 0.35" pos="-0.79 0.43 0.35" material="shell"/>
+    <geom class="visual" type="box" size="0.04 0.045 0.35" pos="0.79 0.43 0.35" material="shell"/>
+    <geom class="visual" type="box" size="0.023 0.004 0.315" pos="-0.79 0.381 0.35" material="graphite"/>
+    <geom class="visual" type="box" size="0.023 0.004 0.315" pos="0.79 0.381 0.35" material="graphite"/>
+    <geom class="visual" type="box" size="0.07 0.07 0.012" pos="-0.77 0.41 0.012" material="steel"/>
+    <geom class="visual" type="box" size="0.07 0.07 0.012" pos="0.77 0.41 0.012" material="steel"/>
+    <geom class="visual" type="box" size="0.84 0.045 0.044" pos="0 0.43 0.7" material="shell"/>
+    <geom class="visual" type="box" size="0.8 0.01 0.024" pos="0 0.38 0.7" material="graphite"/>
+    <geom class="visual" type="capsule" fromto="-0.79 0.365 0.684 0.79 0.365 0.684" size="0.007" material="aluminum"/>
+    <geom class="visual" type="capsule" fromto="-0.79 0.365 0.716 0.79 0.365 0.716" size="0.007" material="aluminum"/>
+    <geom class="visual" type="box" size="0.035 0.055 0.055" pos="-0.84 0.43 0.7" material="teal"/>
+    <geom class="visual" type="box" size="0.035 0.055 0.055" pos="0.84 0.43 0.7" material="amber"/>
+    <body name="picker_bridge" mocap="true" pos="-0.54 0 0.7">
+      <geom class="visual" type="box" size="0.061 0.056 0.05" pos="0 0.35 0" material="teal"/>
+      <geom class="visual" type="box" size="0.029 0.422 0.025" pos="0 -0.02 0" material="aluminum"/>
+      <geom class="visual" type="box" size="0.018 0.41 0.006" pos="0 -0.02 0.031" material="graphite"/>
+      <geom class="visual" type="box" size="0.033 0.018 0.029" pos="0 -0.44 0" material="teal"/>
+    </body>
+    <body name="packer_bridge" mocap="true" pos="0.48 0 0.7">
+      <geom class="visual" type="box" size="0.061 0.056 0.05" pos="0 0.35 0" material="amber"/>
+      <geom class="visual" type="box" size="0.029 0.422 0.025" pos="0 -0.02 0" material="aluminum"/>
+      <geom class="visual" type="box" size="0.018 0.41 0.006" pos="0 -0.02 0.031" material="graphite"/>
+      <geom class="visual" type="box" size="0.033 0.018 0.029" pos="0 -0.44 0" material="amber"/>
+    </body>
+    <body name="picker_carriage" mocap="true" pos="-0.54 0 0.7">
+      <geom class="visual" type="box" size="0.05 0.057 0.045" material="shell"/>
+      <geom class="visual" type="box" size="0.051 0.014 0.025" pos="0 -0.055 0" material="teal"/>
+      <geom class="visual" type="cylinder" size="0.025 0.027" pos="0 0 0.07" material="graphite"/>
+    </body>
+    <body name="packer_carriage" mocap="true" pos="0.48 0 0.7">
+      <geom class="visual" type="box" size="0.05 0.057 0.045" material="shell"/>
+      <geom class="visual" type="box" size="0.051 0.014 0.025" pos="0 -0.055 0" material="amber"/>
+      <geom class="visual" type="cylinder" size="0.025 0.027" pos="0 0 0.07" material="graphite"/>
+    </body>
+    <body name="picker_column" mocap="true" pos="-0.54 0 0.54">
+      <geom name="picker_column_geom" class="visual" type="box" size="0.018 0.018 0.14" material="steel"/>
+    </body>
+    <body name="packer_column" mocap="true" pos="0.48 0 0.54">
+      <geom name="packer_column_geom" class="visual" type="box" size="0.018 0.018 0.14" material="steel"/>
+    </body>
+    <body name="picker_gripper" mocap="true" pos="-0.54 0 0.3">
+      <camera name="picker_wrist" pos="0 -0.08 0.12" xyaxes="1 0 0 0 1 0" fovy="80"/>
+      <geom class="visual" type="cylinder" size="0.031 0.019" pos="0 0 0.123" material="aluminum"/>
+      <geom class="visual" type="box" size="0.067 0.044 0.023" pos="0 0 0.088" material="shell"/>
+      <geom class="visual" type="box" size="0.068 0.008 0.015" pos="0 -0.044 0.089" material="teal"/>
+      <geom class="visual" type="box" size="0.058 0.033 0.006" pos="0 0 0.059" material="graphite"/>
+      <geom name="picker_finger_l" class="visual" type="box" size="0.009 0.026 0.045" pos="-0.052 0 0.035" material="steel"/>
+      <geom name="picker_finger_r" class="visual" type="box" size="0.009 0.026 0.045" pos="0.052 0 0.035" material="steel"/>
+      <site name="picker_ee" type="sphere" size="0.003" rgba="0.025 0.45 0.51 0"/>
+    </body>
+    <body name="packer_gripper" mocap="true" pos="0.48 0 0.3">
+      <camera name="packer_wrist" pos="0 -0.08 0.12" xyaxes="1 0 0 0 1 0" fovy="80"/>
+      <geom class="visual" type="cylinder" size="0.031 0.019" pos="0 0 0.123" material="aluminum"/>
+      <geom class="visual" type="box" size="0.067 0.044 0.023" pos="0 0 0.088" material="shell"/>
+      <geom class="visual" type="box" size="0.068 0.008 0.015" pos="0 -0.044 0.089" material="amber"/>
+      <geom class="visual" type="box" size="0.058 0.033 0.006" pos="0 0 0.059" material="graphite"/>
+      <geom name="packer_finger_l" class="visual" type="box" size="0.009 0.026 0.045" pos="-0.052 0 0.035" material="steel"/>
+      <geom name="packer_finger_r" class="visual" type="box" size="0.009 0.026 0.045" pos="0.052 0 0.035" material="steel"/>
+      <site name="packer_ee" type="sphere" size="0.003" rgba="0.94 0.5 0.1 0"/>
+    </body>
+    <!-- A recessed controller and status lamps add scale without obscuring the work area. -->
+    <geom class="visual" type="box" size="0.12 0.07 0.09" pos="0.61 0.52 0.1" material="shell"/>
+    <geom class="visual" type="box" size="0.083 0.002 0.049" pos="0.61 0.448 0.12" material="graphite"/>
+    <geom class="visual" type="box" size="0.054 0.003 0.003" pos="0.59 0.444 0.139" rgba="0.19 0.69 0.63 1"/>
+    <geom class="visual" type="box" size="0.036 0.003 0.003" pos="0.572 0.444 0.12" rgba="0.43 0.58 0.61 1"/>
+    <geom class="visual" type="box" size="0.047 0.003 0.003" pos="0.583 0.444 0.101" rgba="0.43 0.58 0.61 1"/>
+    <geom class="visual" type="cylinder" size="0.018 0.035" pos="-0.79 0.43 0.787" material="graphite"/>
+    <geom class="visual" type="cylinder" size="0.017 0.022" pos="-0.79 0.43 0.835" rgba="0.08 0.66 0.47 1"/>
+    <geom class="visual" type="cylinder" size="0.018 0.035" pos="0.79 0.43 0.787" material="graphite"/>
+    <geom class="visual" type="cylinder" size="0.017 0.022" pos="0.79 0.43 0.835" rgba="0.08 0.66 0.47 1"/>
+    <body name="coral" pos="-0.5 -0.23 0.035"><freejoint name="coral_joint"/><geom name="coral_geom" class="cube" rgba="0.97 0.39 0.35 1"/></body>
+    <body name="mint" pos="-0.58 0 0.035"><freejoint name="mint_joint"/><geom name="mint_geom" class="cube" rgba="0.29 0.82 0.65 1"/></body>
+    <body name="gold" pos="-0.5 0.23 0.035"><freejoint name="gold_joint"/><geom name="gold_geom" class="cube" rgba="0.98 0.75 0.24 1"/></body>
+  </worldbody>
+</mujoco>

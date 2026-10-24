@@ -1,0 +1,247 @@
+{
+  "schema": "relay-lab.mediator-validation.v1",
+  "audited_at": "2026-10-24T10:12:39.079710+00:00",
+  "read_only_database_audit": true,
+  "database": "relay-lab",
+  "server": "http://127.0.0.1:3000",
+  "all_passed": true,
+  "results": [
+    {
+      "run": "mediator-spacetime",
+      "task_id": "bff80138-c955-4e82-8dd6-b1bf5be11a06",
+      "seed": 7,
+      "passed": true,
+      "database_status": "succeeded",
+      "steps": 222,
+      "packed": [
+        "coral",
+        "gold",
+        "mint"
+      ],
+      "order": [
+        "coral",
+        "gold",
+        "mint"
+      ],
+      "database_rows": {
+        "assignment": 2,
+        "plan_frame": 222,
+        "action_frame": 222,
+        "feedback_frame": 222
+      },
+      "robot_actions_verified_against_neural_outputs": 444,
+      "robot_feedback_reports_exactly_matched": 444,
+      "qwen_decisions_exactly_matched_to_database": 15,
+      "qwen_generations": 15,
+      "qwen_model": "Qwen/Qwen3-1.7B-MLX-4bit",
+      "qwen_revision": "21457c6f51ed54a7c16e988c0844db973815c137",
+      "scripted_action_records": 0,
+      "planner_fallbacks": 0,
+      "workspace_clipped_actions": 11,
+      "critical_replan_flags": 11,
+      "duration_seconds": 33.191,
+      "llm_generation_seconds": 14.26967825111933,
+      "source_sha256": {
+        "summary.json": "1c245259d07d123f31ed92c37d593a1877342e8b669f1b4afa892e9799e7c77f",
+        "steps.jsonl": "b2395b74cfef8af4537a6edd91108a4dfecb4ba21fe678e559fcfd9c4400171f",
+        "mediator.jsonl": "c412a0b157391e17836bc8c1737349a4a2ce9631b54a55a3936718681d4dab17",
+        "action-feedback.jsonl": "ce56ce8f1f48d70f413c5078a060ce727fd630fd9a7903c14e3052f58b7f3ace"
+      },
+      "checks": [
+        "exact contiguous DB plan/action/feedback frames",
+        "same worker and task identity",
+        "plan <= action <= feedback timestamps",
+        "previous feedback committed before next plan",
+        "DB instructions and observations equal rollout",
+        "DB neural predictions and actions equal rollout",
+        "translation and gripper reconstructed from raw neural outputs",
+        "one neural action inference per robot per tick",
+        "DB grounded reports equal local feedback",
+        "post-action observation equals next observation",
+        "all recorded Qwen decisions and generations persisted",
+        "actual model JSON selects legal robot actions",
+        "assignment context matches final feedback",
+        "DB and simulator terminal success agree on requested order"
+      ]
+    },
+    {
+      "run": "mediator-seed-42",
+      "task_id": "7ec8d65a-a6d0-49f8-9493-d7b4a87f36e7",
+      "seed": 42,
+      "passed": true,
+      "database_status": "succeeded",
+      "steps": 224,
+      "packed": [
+        "gold",
+        "mint",
+        "coral"
+      ],
+      "order": [
+        "gold",
+        "mint",
+        "coral"
+      ],
+      "database_rows": {
+        "assignment": 2,
+        "plan_frame": 224,
+        "action_frame": 224,
+        "feedback_frame": 224
+      },
+      "robot_actions_verified_against_neural_outputs": 448,
+      "robot_feedback_reports_exactly_matched": 448,
+      "qwen_decisions_exactly_matched_to_database": 15,
+      "qwen_generations": 15,
+      "qwen_model": "Qwen/Qwen3-1.7B-MLX-4bit",
+      "qwen_revision": "21457c6f51ed54a7c16e988c0844db973815c137",
+      "scripted_action_records": 0,
+      "planner_fallbacks": 0,
+      "workspace_clipped_actions": 11,
+      "critical_replan_flags": 11,
+      "duration_seconds": 35.261,
+      "llm_generation_seconds": 15.196358876070008,
+      "source_sha256": {
+        "summary.json": "dc39e1c63476732976da3d8d904cd0df30c3a5201eb71ccf4649eb2d2768216c",
+        "steps.jsonl": "837afb291b1e0c2a12b995f71f5b6dc70979d03bd3d5792d68d87b813bbdbaca",
+        "mediator.jsonl": "047d90fe782d4b0c3541ec7b5075765024c39ea25bfbd23556f4bbe24cc51045",
+        "action-feedback.jsonl": "d71f34a83a3c471d0fee8600d256f92d367addce582316cde11527a7a869726b"
+      },
+      "checks": [
+        "exact contiguous DB plan/action/feedback frames",
+        "same worker and task identity",
+        "plan <= action <= feedback timestamps",
+        "previous feedback committed before next plan",
+        "DB instructions and observations equal rollout",
+        "DB neural predictions and actions equal rollout",
+        "translation and gripper reconstructed from raw neural outputs",
+        "one neural action inference per robot per tick",
+        "DB grounded reports equal local feedback",
+        "post-action observation equals next observation",
+        "all recorded Qwen decisions and generations persisted",
+        "actual model JSON selects legal robot actions",
+        "assignment context matches final feedback",
+        "DB and simulator terminal success agree on requested order"
+      ]
+    },
+    {
+      "run": "mediator-seed-101",
+      "task_id": "85d9efba-2fcf-424c-8223-7eaa9675a747",
+      "seed": 101,
+      "passed": true,
+      "database_status": "succeeded",
+      "steps": 224,
+      "packed": [
+        "mint",
+        "coral",
+        "gold"
+      ],
+      "order": [
+        "mint",
+        "coral",
+        "gold"
+      ],
+      "database_rows": {
+        "assignment": 2,
+        "plan_frame": 224,
+        "action_frame": 224,
+        "feedback_frame": 224
+      },
+      "robot_actions_verified_against_neural_outputs": 448,
+      "robot_feedback_reports_exactly_matched": 448,
+      "qwen_decisions_exactly_matched_to_database": 15,
+      "qwen_generations": 15,
+      "qwen_model": "Qwen/Qwen3-1.7B-MLX-4bit",
+      "qwen_revision": "21457c6f51ed54a7c16e988c0844db973815c137",
+      "scripted_action_records": 0,
+      "planner_fallbacks": 0,
+      "workspace_clipped_actions": 11,
+      "critical_replan_flags": 11,
+      "duration_seconds": 30.253,
+      "llm_generation_seconds": 13.50659458222799,
+      "source_sha256": {
+        "summary.json": "1b1722c911461816cc968e88c3ceb4a01638bac8a91bb01da587866a46fb0b39",
+        "steps.jsonl": "9c1fcccea102c5b84d2449977cdee6fad038aeefbe5eaa6d0cade7717543910c",
+        "mediator.jsonl": "503f90b464dd6f95bb9a8b4f847417da241f3129c85852c042ee65f84b4f0149",
+        "action-feedback.jsonl": "7f50fb884f752ef07d5769e8da6b3c13363a71d209d746815f95e3d548678350"
+      },
+      "checks": [
+        "exact contiguous DB plan/action/feedback frames",
+        "same worker and task identity",
+        "plan <= action <= feedback timestamps",
+        "previous feedback committed before next plan",
+        "DB instructions and observations equal rollout",
+        "DB neural predictions and actions equal rollout",
+        "translation and gripper reconstructed from raw neural outputs",
+        "one neural action inference per robot per tick",
+        "DB grounded reports equal local feedback",
+        "post-action observation equals next observation",
+        "all recorded Qwen decisions and generations persisted",
+        "actual model JSON selects legal robot actions",
+        "assignment context matches final feedback",
+        "DB and simulator terminal success agree on requested order"
+      ]
+    },
+    {
+      "run": "mediator-final",
+      "task_id": "fb3a7c60-2df7-44ef-b330-2ffa51346dec",
+      "seed": 7,
+      "passed": true,
+      "database_status": "succeeded",
+      "steps": 222,
+      "packed": [
+        "coral",
+        "gold",
+        "mint"
+      ],
+      "order": [
+        "coral",
+        "gold",
+        "mint"
+      ],
+      "database_rows": {
+        "assignment": 2,
+        "plan_frame": 222,
+        "action_frame": 222,
+        "feedback_frame": 222
+      },
+      "robot_actions_verified_against_neural_outputs": 444,
+      "robot_feedback_reports_exactly_matched": 444,
+      "qwen_decisions_exactly_matched_to_database": 15,
+      "qwen_generations": 15,
+      "qwen_model": "Qwen/Qwen3-1.7B-MLX-4bit",
+      "qwen_revision": "21457c6f51ed54a7c16e988c0844db973815c137",
+      "scripted_action_records": 0,
+      "planner_fallbacks": 0,
+      "workspace_clipped_actions": 11,
+      "critical_replan_flags": 11,
+      "duration_seconds": 30.062,
+      "llm_generation_seconds": 13.04426237475127,
+      "source_sha256": {
+        "summary.json": "6757d51fb960390fe7bbaa47b2a6f21a48d7e161472d31800dfeee7cdf54f22f",
+        "steps.jsonl": "7d8a3b5d8a12c113f4189aa7c8420d029a0345959893c6a914a7e18784413c20",
+        "mediator.jsonl": "9d88301198a192ba2d5886bd35f9955ea3cd94fc72fd1188511710d6f88e2f3f",
+        "action-feedback.jsonl": "d8dc2613026ce7a0a2dfcd152f990ddf0a0d519e5693506ec7adae555fe454e8"
+      },
+      "checks": [
+        "exact contiguous DB plan/action/feedback frames",
+        "same worker and task identity",
+        "plan <= action <= feedback timestamps",
+        "previous feedback committed before next plan",
+        "DB instructions and observations equal rollout",
+        "DB neural predictions and actions equal rollout",
+        "translation and gripper reconstructed from raw neural outputs",
+        "one neural action inference per robot per tick",
+        "DB grounded reports equal local feedback",
+        "post-action observation equals next observation",
+        "all recorded Qwen decisions and generations persisted",
+        "actual model JSON selects legal robot actions",
+        "assignment context matches final feedback",
+        "DB and simulator terminal success agree on requested order"
+      ]
+    }
+  ],
+  "limitations": [
+    "This verifies recorded model outputs and the local durable execution chain, not independent hardware telemetry.",
+    "Three successful held-out scenes are engineering validation, not a general robotics benchmark.",
+    "Success still uses the unchanged idealized MuJoCo grasp mechanics."
+  ]
+}

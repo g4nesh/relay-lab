@@ -1,0 +1,35 @@
+{
+  "policy": "relay-vla",
+  "model_id": "relay-lab/compact-vla-v1",
+  "checkpoint": "${PROJECT_ROOT}/checkpoints/relay-vla/policy.pt",
+  "checkpoint_sha256": "7b13dbba5c0e64b491d5a8f3e63984b0e2d458cb2ea08714eb91a1f5c5b19c38",
+  "parameters": 36532,
+  "device": "cpu",
+  "training": {
+    "seed": 17,
+    "dataset": "${PROJECT_ROOT}/datasets/relay-vla/original.npz",
+    "scene_seed_start": 2000,
+    "scenes": 400,
+    "pixel_steps": 1500,
+    "control_steps": 10000,
+    "teacher": "original synthetic RGB segmentation/calibration and reactive expert action labels; no demonstration dataset downloaded",
+    "language_training_accuracy": 1.0,
+    "calibration_mean_error_metres": [
+      0.006118074142056644,
+      0.027313729539890665
+    ],
+    "training_seconds": 20.544692875118926
+  },
+  "inference_calls": 444,
+  "total_inference_seconds": 0.10695050354115665,
+  "inputs": [
+    "local front RGB",
+    "end-effector position",
+    "instruction text"
+  ],
+  "limitations": [
+    "A task-specific learned controller, not SmolVLA or a general-purpose foundation VLA.",
+    "Vision is calibrated to Relay Lab's fixed cameras; a new scene requires retraining.",
+    "The visually estimated goal is retained for one instruction to avoid gripper occlusion."
+  ]
+}

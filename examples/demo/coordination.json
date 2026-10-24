@@ -1,0 +1,9 @@
+{
+  "backend": "spacetimedb",
+  "server": "http://127.0.0.1:3000",
+  "database": "relay-lab",
+  "protocol": "authenticated HTTP reducers and SQL readback",
+  "durability": "confirmed=true",
+  "task_id": "fb3a7c60-2df7-44ef-b330-2ffa51346dec",
+  "worker_id": "0b59ed51-1c46-4c3b-8474-97bbcda97a8c"
+}

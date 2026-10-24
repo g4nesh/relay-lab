@@ -1,0 +1,15 @@
+{
+  "seed": 17,
+  "dataset": "datasets/relay-vla/original.npz",
+  "scene_seed_start": 2000,
+  "scenes": 400,
+  "pixel_steps": 1500,
+  "control_steps": 10000,
+  "teacher": "original synthetic RGB segmentation/calibration and reactive expert action labels; no demonstration dataset downloaded",
+  "language_training_accuracy": 1.0,
+  "calibration_mean_error_metres": [
+    0.006118074142056644,
+    0.027313729539890665
+  ],
+  "training_seconds": 20.544692875118926
+}
