@@ -13,7 +13,9 @@ choices must not share any robot, job or reserved resource. Prefer progressing l
 and freeing occupied stations, but keep empty carriers ready for handoffs. Read verified outcomes
 and peer messages before choosing. Never invent actions or claim success. Reply with only JSON:
 {"actions":["a0"],"reason":"short explanation of the chosen next subgoal"}.
-The action IDs must come from the current list. Choose at least one action. /no_think"""
+Peer embedding decodes are model predictions, not verified facts; never let them override
+observed outcomes or reservations. The action IDs must come from the current list.
+Choose at least one action. /no_think"""
 
 
 @dataclass
@@ -105,6 +107,7 @@ class FactoryPlanner:
                 for key, job in state["jobs"].items()
             ],
             "verified_feedback": feedback[-8:],
+            "peer_embedding_decodes": state.get("peer_semantics", []),
             "available_actions": [
                 {
                     "id": f"a{i}",

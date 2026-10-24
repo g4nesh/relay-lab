@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import gzip
 import json
 import math
 import mimetypes
@@ -19,7 +20,7 @@ WEB = Path(__file__).parent / "web"
 
 
 class FactorySession:
-    def __init__(self, coordination="spacetime"):
+    def __init__(self, coordination="spacetime", replay=None):
         self.coordination = coordination
         self._run = None
         self._worker = None
@@ -29,6 +30,9 @@ class FactorySession:
         self._lock = threading.RLock()
         self._closed = False
         self.speed = 4.0
+        self.replay_path = Path(replay).resolve() if replay else None
+        if self.replay_path and not self.replay_path.is_file():
+            raise ValueError("Recorded factory replay does not exist")
         self._idle = self._preview()
 
     @staticmethod
@@ -36,6 +40,8 @@ class FactorySession:
         world = FactoryWorld()
         try:
             state = world.snapshot()
+            for robot in state["robots"]:
+                robot["control_kind"] = "Awaiting policy initialization"
             return {
                 **state,
                 "status": "ready",
@@ -56,6 +62,8 @@ class FactorySession:
                     "reason": "Start a production order",
                 },
                 "coordination": {"backend": "spacetime", "connected": False},
+                "policy": {"policy": "factory-vla", "loaded": False},
+                "embeddings": {"enabled": True, "dimension": 32, "published": 0},
                 "error": None,
             }
         finally:
@@ -66,10 +74,11 @@ class FactorySession:
             value = self._run.view() if self._run else deepcopy(self._idle)
             value["speed"] = self.speed
             value["pause_requested"] = self._pause.is_set()
+            value["replay_available"] = self.replay_path is not None
             return value
 
     def start(self, options):
-        unknown = set(options) - {"seed", "orders", "planner"}
+        unknown = set(options) - {"seed", "orders", "planner", "policy", "embeddings"}
         if unknown:
             raise ValueError("Unknown start options")
         seed, orders, planner = (
@@ -86,6 +95,10 @@ class FactorySession:
             raise ValueError("Orders must be 1–6; seed must be a nonnegative 32-bit integer")
         if planner not in ("llm", "rules"):
             raise ValueError("Unknown planner")
+        policy = options.get("policy", "factory-vla")
+        embeddings = options.get("embeddings", True)
+        if policy not in ("factory-vla", "model-based") or type(embeddings) is not bool:
+            raise ValueError("Invalid policy or embedding option")
         with self._lock:
             if self._closed:
                 raise ValueError("Factory session is closed")
@@ -94,7 +107,12 @@ class FactorySession:
             self._stop.clear()
             self._pause.clear()
             self._run = FactoryRun(
-                seed=seed, orders=orders, planner=planner, coordination=self.coordination
+                seed=seed,
+                orders=orders,
+                planner=planner,
+                coordination=self.coordination,
+                policy=policy,
+                embeddings=embeddings,
             )
             self._run.status = "starting"
             self._run._refresh()
@@ -128,6 +146,10 @@ class FactorySession:
                 run.fail(error)
         finally:
             run.close(cancelled=self._stop.is_set())
+            replay = run.output / "replay.json"
+            if replay.is_file() and (run.status == "succeeded" or self.replay_path is None):
+                with self._lock:
+                    self.replay_path = replay
             if self._stop.is_set():
                 with self._lock:
                     if self._run is run:
@@ -138,6 +160,20 @@ class FactorySession:
         self._pause.set()
         self._wake.set()
         return self.view()
+
+    def sensor_image(self, robot_id):
+        with self._lock:
+            return self._run.sensor_image(robot_id) if self._run else None
+
+    def replay(self):
+        with self._lock:
+            path = self.replay_path
+        if path is None:
+            raise ValueError("No completed factory recording is available")
+        if path.suffix == ".gz":
+            with gzip.open(path, "rt") as stream:
+                return json.load(stream)
+        return json.loads(path.read_text())
 
     def resume(self):
         self._pause.clear()
@@ -207,6 +243,25 @@ class FactoryHandler(BaseHTTPRequestHandler):
         if path == "/api/factory/state":
             self._json(self.server.session.view())
             return
+        if path == "/api/factory/replay":
+            try:
+                self._json(self.server.session.replay())
+            except ValueError as error:
+                self._json({"error": str(error)}, 404)
+            return
+        if path.startswith("/api/factory/sensor/"):
+            robot_id = path.removeprefix("/api/factory/sensor/")
+            body = self.server.session.sensor_image(robot_id)
+            if body is None:
+                self.send_error(404, "No learned-policy camera observation yet")
+                return
+            self.send_response(200)
+            self.send_header("Content-Type", "image/png")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(body)
+            return
         filename = (WEB / ("index.html" if path == "/" else path.lstrip("/"))).resolve()
         if (
             not filename.is_relative_to(WEB.resolve())
@@ -263,8 +318,8 @@ class FactoryHandler(BaseHTTPRequestHandler):
             super().log_message(format, *args)
 
 
-def serve_factory(port=8767, coordination="spacetime"):
-    session = FactorySession(coordination)
+def serve_factory(port=8767, coordination="spacetime", replay=None):
+    session = FactorySession(coordination, replay=replay)
     server = ThreadingHTTPServer(("127.0.0.1", port), FactoryHandler)
     server.session = session
     print(f"Factory dashboard: http://127.0.0.1:{port}", flush=True)

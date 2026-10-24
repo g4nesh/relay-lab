@@ -24,11 +24,15 @@ class FactoryRun:
         orders=3,
         planner="llm",
         coordination="spacetime",
-        max_ticks=6000,
+        max_ticks=10000,
         output=None,
         world=None,
         coordinator=None,
         model=None,
+        policy="factory-vla",
+        checkpoint=None,
+        embeddings=True,
+        pose_jitter=0.02,
     ):
         if type(orders) is not int or not 1 <= orders <= 6:
             raise ValueError("Orders must be an integer from 1 to 6")
@@ -38,7 +42,27 @@ class FactoryRun:
             raise ValueError("Invalid tick budget")
         if coordination not in ("spacetime", "memory"):
             raise ValueError("Unknown coordination backend")
-        self.world = world or FactoryWorld(seed=seed, batch_size=orders)
+        if policy not in ("factory-vla", "model-based"):
+            raise ValueError("Policy must be factory-vla or model-based")
+        if type(embeddings) is not bool:
+            raise ValueError("Embeddings must be enabled or disabled explicitly")
+        if world is None:
+            motor = None
+            if policy == "factory-vla":
+                from .vla import FactoryVLABackend
+
+                motor = (
+                    FactoryVLABackend(checkpoint=checkpoint) if checkpoint else FactoryVLABackend()
+                )
+            world = FactoryWorld(
+                seed=seed,
+                batch_size=orders,
+                motor_policy=motor,
+                pose_jitter=pose_jitter if motor else 0,
+            )
+        self.world = world
+        self.motor = getattr(world, "motor_policy", None)
+        self.policy_name = "factory-vla" if self.motor is not None else "model-based"
         self.planner = model or FactoryPlanner(planner)
         if coordinator is None:
             if coordination == "spacetime":
@@ -70,6 +94,18 @@ class FactoryRun:
         self._poisoned = False
         self._closed = False
         self.no_progress_ticks = 0
+        self.exchange = None
+        self._sensor_images = {}
+        if self.motor is not None:
+            from .exchange import LatentExchange
+
+            self.exchange = LatentExchange(
+                self.world,
+                self.coordinator,
+                self.run_id,
+                self.motor.model_info["checkpoint_sha256"],
+                enabled=embeddings,
+            )
         self._view = {}
         self._refresh()
 
@@ -101,8 +137,15 @@ class FactoryRun:
         self.status = "running"
         self._write(
             "created",
-            {"scene": self.scene, "state": self.state, "backend": self.coordinator.backend_info},
+            {
+                "scene": self.scene,
+                "state": self.state,
+                "backend": self.coordinator.backend_info,
+                "policy": self.motor.model_info if self.motor else {"policy": "model-based"},
+            },
         )
+        if self.exchange:
+            self.exchange.initialize()
         self._refresh()
 
     def _message(self, sender, recipient, kind, payload, *, correlation=None, priority=5):
@@ -232,7 +275,13 @@ class FactoryRun:
                     }
                     for m in pending[:6]
                 ]
-                decision = self.planner.choose(self.state, candidates, feedback)
+                planning_state = {
+                    **self.state,
+                    "peer_semantics": self.exchange.semantics(self.state["tick"])
+                    if self.exchange
+                    else [],
+                }
+                decision = self.planner.choose(planning_state, candidates, feedback)
                 self.reason = decision.reason
                 self._write(
                     "decision",
@@ -244,6 +293,8 @@ class FactoryRun:
                     outgoing.extend(messages)
             self.status = "running"
             revision = self.authority["revision"]
+            if self.exchange:
+                self.exchange.deliver(self.state["tick"])
             commands = self.coordinator.prepare(revision, list(self.active.values()), outgoing)
             result = self.world.step(commands)  # Exactly once; no retry of physical work.
             state, outcomes = result["snapshot"], result["outcomes"]
@@ -256,6 +307,7 @@ class FactoryRun:
                     "state": state,
                     "outcomes": outcomes,
                     "events": result["events"],
+                    "motor_actions": result.get("motor_actions", []),
                 },
             )
             messages = []
@@ -278,8 +330,23 @@ class FactoryRun:
                         priority=7,
                     )
                 )
-            authority = self.coordinator.commit(revision, state, outcomes, messages)
+            latent_records = (
+                self.exchange.collect(state, terminal=bool(terminal)) if self.exchange else []
+            )
+            if latent_records:
+                authority = self.coordinator.commit(
+                    revision, state, outcomes, messages, embeddings=latent_records
+                )
+            else:
+                authority = self.coordinator.commit(revision, state, outcomes, messages)
             self.state, self.authority = state, authority
+            if self.exchange:
+                self.exchange.confirmed(latent_records, state["tick"])
+            if self.motor and (latent_records or state["tick"] % 10 == 0):
+                # Rendering stays on the simulation thread; HTTP only reads cached bytes.
+                images = {robot: self.world.sensor_png(robot) for robot in CAPABILITIES}
+                with self.lock:
+                    self._sensor_images.update(images)
             self._remember(outgoing, state["tick"] - 1)
             self._remember(messages, state["tick"])
             self.events.extend(result["events"])
@@ -299,6 +366,8 @@ class FactoryRun:
                     "outcomes": outcomes,
                     "messages": outgoing + messages,
                     "events": result["events"],
+                    "motor_actions": result.get("motor_actions", []),
+                    "embeddings": latent_records,
                 },
             )
             if self.failed_commands:
@@ -343,7 +412,16 @@ class FactoryRun:
             "messages": list(self.messages),
             "events": list(self.events),
             "error": self.error,
-            "planner": {**self.planner.info, "reason": self.reason},
+            "planner": {
+                **self.planner.info,
+                "reason": self.reason,
+                "learned_motor_control": self.motor is not None,
+                "control": self.policy_name,
+            },
+            "policy": self.motor.model_info
+            if self.motor
+            else {"policy": "model-based", "learned": False},
+            "embeddings": self.exchange.view() if self.exchange else {"enabled": False},
             "coordination": {
                 **self.coordinator.backend_info,
                 "connected": self.authority is not None and not self._poisoned,
@@ -364,6 +442,10 @@ class FactoryRun:
         with self.lock:
             return deepcopy(self._view)
 
+    def sensor_image(self, robot_id):
+        with self.lock:
+            return self._sensor_images.get(robot_id)
+
     def close(self, cancelled=False):
         if self._closed:
             return
@@ -376,10 +458,22 @@ class FactoryRun:
                 except Exception as abort_error:  # noqa: BLE001 - cancellation cannot restart physics
                     self._write("abort_unconfirmed", {"error": str(abort_error)})
         self._refresh()
-        (self.output / "summary.json").write_text(json.dumps(self.view(), indent=2))
-        self.log.close()
-        self.planner.close()
-        self.world.close()
+        try:
+            summary = self.view()
+            (self.output / "summary.json").write_text(json.dumps(summary, indent=2))
+            self.log.close()
+            if self.authority is not None:
+                from .replay import export_factory_replay
+
+                export_factory_replay(
+                    self.output / "events.jsonl", self.output / "replay.json", summary
+                )
+        finally:
+            self.log.close()
+            try:
+                self.planner.close()
+            finally:
+                self.world.close()
 
 
 def run_factory(**kwargs):

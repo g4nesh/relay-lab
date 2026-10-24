@@ -19,7 +19,7 @@ def test_pause_resume_reset_do_not_create_parallel_workers(tmp_path, monkeypatch
     monkeypatch.chdir(tmp_path)
     session = FactorySession(coordination="memory")
     try:
-        session.start({"planner": "rules", "orders": 1})
+        session.start({"planner": "rules", "orders": 1, "policy": "model-based"})
         until(lambda: session.view()["tick"] >= 2)
         with pytest.raises(ValueError, match="already active"):
             session.start({"planner": "rules"})
@@ -77,7 +77,7 @@ def test_overlapping_reset_and_start_preserve_the_new_worker(tmp_path, monkeypat
 
     def start():
         try:
-            session.start({"planner": "rules", "orders": 1})
+            session.start({"planner": "rules", "orders": 1, "policy": "model-based"})
             captured.append((session._run, session._worker))
         except Exception as error:  # noqa: BLE001 - return worker failures to the test thread
             failures.append(error)
@@ -125,6 +125,23 @@ def test_closed_session_cannot_start_an_untracked_worker(tmp_path, monkeypatch):
     session = FactorySession(coordination="memory")
     session.close()
     with pytest.raises((RuntimeError, ValueError), match="closed"):
-        session.start({"planner": "rules", "orders": 1})
+        session.start({"planner": "rules", "orders": 1, "policy": "model-based"})
     assert session._run is None
     assert session._worker is None
+
+
+def test_portable_compressed_recording_is_available_without_starting_world(tmp_path):
+    import gzip
+    import json
+
+    path = tmp_path / "replay.json.gz"
+    recording = {"schema": "relay.factory.replay.v1", "frames": [{"tick": 7}]}
+    with gzip.open(path, "wt") as stream:
+        json.dump(recording, stream)
+    session = FactorySession(replay=path)
+    try:
+        assert session.replay() == recording
+        assert session.view()["replay_available"]
+        assert session._worker is None
+    finally:
+        session.close()

@@ -1,0 +1,59 @@
+{
+  "purpose": "Synthetic bounded embedding transport and retrieval measurement",
+  "results": [
+    {
+      "backend": "memory",
+      "run_id": "embedding-bench-31900aedd350402d",
+      "synthetic_vectors": true,
+      "iterations": 100,
+      "elapsed_seconds": 0.1253308339510113,
+      "metrics": {
+        "index": "Spacetime B-tree run/robot + bounded client exact cosine; latest per peer",
+        "db_refresh": {
+          "p50_ms": 0.0,
+          "p95_ms": 0.0
+        },
+        "client_cosine": {
+          "p50_ms": 0.04820781759917736,
+          "p95_ms": 0.07220800034701824
+        },
+        "transport_bytes": 0,
+        "embedding_payload_write_bytes": 112047,
+        "refreshes": 100,
+        "retrievals": 500,
+        "cache_tick": 20,
+        "cache_age_ticks": 0,
+        "stale_drops": 0,
+        "cached_records": 80,
+        "record_limit": 80
+      }
+    },
+    {
+      "backend": "spacetime",
+      "run_id": "embedding-bench-68dec9bf2370496b",
+      "synthetic_vectors": true,
+      "iterations": 100,
+      "elapsed_seconds": 0.5805791669990867,
+      "metrics": {
+        "index": "Spacetime B-tree run/robot + bounded client exact cosine; latest per peer",
+        "db_refresh": {
+          "p50_ms": 3.939415793865919,
+          "p95_ms": 5.10183279402554
+        },
+        "client_cosine": {
+          "p50_ms": 0.05087512545287609,
+          "p95_ms": 0.07004104554653168
+        },
+        "transport_bytes": 9431986,
+        "embedding_payload_write_bytes": 112047,
+        "refreshes": 100,
+        "retrievals": 500,
+        "cache_tick": 20,
+        "cache_age_ticks": 0,
+        "stale_drops": 0,
+        "cached_records": 80,
+        "record_limit": 80
+      }
+    }
+  ]
+}

@@ -1,15 +1,18 @@
 """Bounded factory skills over a shared, observed contact world.
 
-The five embodiments use model-based navigation and manipulation. No claim is
-made that the existing tabletop VLA generalizes to these bodies. Payloads are
-MuJoCo rigid bodies while unowned; a grasp is an explicit, proximity-checked
-idealized attachment. All ownership changes and task successes are measured
-here, never inferred from planner text or a viewer animation.
+The five embodiments support a task-trained RGB/language/action motor policy
+and an explicitly selected model-based reference. Learned execution never
+calls the reference trajectory generator or receives numeric simulator goals.
+Payloads are MuJoCo rigid bodies while unowned; a grasp is a model-commanded,
+proximity-checked idealized attachment. All ownership changes and task successes
+are measured here, never inferred from planner text or a viewer animation.
 """
 
 from __future__ import annotations
 
+import io
 import math
+import threading
 from copy import deepcopy
 from dataclasses import asdict, dataclass, field, is_dataclass
 from typing import Any
@@ -40,6 +43,7 @@ class Robot:
     speed: float = 0.0
     velocity: np.ndarray = field(default_factory=lambda: np.zeros(3))
     holding: str | None = None
+    gripper_opening: float = 1.0
     state: str = "idle"
     command: dict | None = None
     phase: str = "idle"
@@ -77,12 +81,30 @@ class FactoryWorld:
         dt: float = 0.1,
         batch_size: int = 3,
         cargo_ids: list[str] | None = None,
+        motor_policy: Any | None = None,
+        pose_jitter: float = 0.0,
     ):
         if not math.isfinite(dt) or dt < 0.01 or dt > 0.2:
             raise ValueError("dt must be between 0.01 and 0.2 seconds")
         if not 1 <= batch_size <= 6:
             raise ValueError("batch_size must be between one and six")
+        if not math.isfinite(pose_jitter) or not 0 <= pose_jitter <= 0.04:
+            raise ValueError("pose_jitter must be between zero and 0.04 metres")
         self.seed, self.dt = int(seed), float(dt)
+        self.motor_policy = motor_policy
+        self._motor_actions: list[dict] = []
+        self._motor_stats = {
+            "inferences": 0,
+            "safety_edits": 0,
+            "grasp_attempts": 0,
+            "release_attempts": 0,
+        }
+        self._peer_embeddings: dict[str, list[dict]] = {}
+        self._sensor_lock = threading.Lock()
+        self._sensor_pngs: dict[str, bytes] = {}
+        self._camera_cache: dict[str, dict] = {}
+        self._embedding_records: dict[str, dict] = {}
+        self._last_commands: dict[str, dict] = {}
         self.cargo_ids = cargo_ids or [f"part-{index + 1:03}" for index in range(batch_size)]
         if len(self.cargo_ids) != batch_size or len(set(self.cargo_ids)) != batch_size:
             raise ValueError("cargo IDs must be unique and match batch_size")
@@ -125,6 +147,13 @@ class FactoryWorld:
             for key, value in ROBOT_SPECS.items()
             if value["kind"] == "amr"
         }
+        if pose_jitter:
+            rng = np.random.default_rng(self.seed)
+            for cargo_id in self.cargo_ids:
+                address = self._qpos[cargo_id]
+                self.data.qpos[address : address + 2] += rng.uniform(
+                    -pose_jitter, pose_jitter, size=2
+                )
         for _ in range(40):
             mujoco.mj_step(self.model, self.data)
         for robot in self.robots.values():
@@ -146,7 +175,13 @@ class FactoryWorld:
         )
 
     def scene(self) -> dict:
-        return scene_spec()
+        scene = scene_spec()
+        if self.motor_policy is not None:
+            scene["physics"]["robots"] = (
+                "learned RGB/language motor actions through bounded kinematic actuators"
+            )
+            scene["physics"]["learned_control"] = True
+        return scene
 
     def snapshot(self) -> dict:
         robot_states = []
@@ -163,6 +198,7 @@ class FactoryWorld:
                     "velocity": self._vec(robot.velocity),
                     "speed": round(robot.speed, 5),
                     "holding": robot.holding,
+                    "gripper_opening": robot.gripper_opening,
                     "state": robot.state,
                     "status": robot.state,
                     "phase": robot.phase,
@@ -171,7 +207,11 @@ class FactoryWorld:
                     "progress": round(robot.progress, 4),
                     "joints": deepcopy(robot.joints),
                     "joint_points": deepcopy(robot.joint_points),
-                    "controller": ROBOT_SPECS[robot.id]["controller"],
+                    "controller": (
+                        "learned vision-language-action motor policy"
+                        if self.motor_policy is not None
+                        else ROBOT_SPECS[robot.id]["controller"]
+                    ),
                 }
             )
         cargo_states = []
@@ -206,11 +246,18 @@ class FactoryWorld:
             "completed": sum(item["delivered"] for item in self.cargo.values()),
             "total": len(self.cargo),
             "interlocks": {"aisle-main": self._lane_owner},
+            "motor_policy": {
+                "mode": "vla" if self.motor_policy is not None else "reference",
+                "metrics": deepcopy(self._motor_stats),
+                "model": deepcopy(getattr(self.motor_policy, "model_info", None)),
+            },
             "physics": {
                 "engine": "MuJoCo",
-                "controller": "model-based skills",
+                "controller": "learned vision-language-action"
+                if self.motor_policy is not None
+                else "model-based skills",
                 "grasp": "proximity-checked idealized attachment",
-                "learned": False,
+                "learned": self.motor_policy is not None,
             },
         }
 
@@ -376,6 +423,7 @@ class FactoryWorld:
 
     def step(self, commands: list[dict] | dict | None = None) -> dict:
         self._events = []
+        self._motor_actions = []
         submitted = []
         if commands:
             if isinstance(commands, dict):
@@ -414,6 +462,7 @@ class FactoryWorld:
             "state": snapshot,
             "events": deepcopy(self._events),
             "outcomes": outcomes,
+            "motor_actions": deepcopy(self._motor_actions),
         }
 
     def _event(self, kind: str, robot: Robot | None = None, **payload: Any) -> None:
@@ -485,6 +534,7 @@ class FactoryWorld:
         # a physical skill twice, including after an observed failure.
         self._commands[command_id] = deepcopy(command)
         robot.command = command
+        self._last_commands[robot.id] = deepcopy(command)
         robot.state, robot.phase = "working", "starting"
         robot.elapsed = robot.progress = robot.blocked_elapsed = 0.0
         robot.speed = 0.0
@@ -531,13 +581,20 @@ class FactoryWorld:
                 robot.phase = "waiting_for_aisle"
             else:
                 self._reserve_lane(robot)
-            y = NAVIGATION["spine_y"]
-            points = [np.array([robot.position[0], y, 0.0]), np.array([target[0], y, 0.0]), target]
-            robot.waypoints = [
-                point for point in points if np.linalg.norm(point - robot.position) > 0.001
-            ]
-            if not robot.waypoints:
-                robot.waypoints = [target]
+            if self.motor_policy is None:
+                y = NAVIGATION["spine_y"]
+                points = [
+                    np.array([robot.position[0], y, 0.0]),
+                    np.array([target[0], y, 0.0]),
+                    target,
+                ]
+                robot.waypoints = [
+                    point for point in points if np.linalg.norm(point - robot.position) > 0.001
+                ]
+                if not robot.waypoints:
+                    robot.waypoints = [target]
+            else:
+                robot.waypoints = []
         elif kind == "wait":
             robot.phase = "waiting"
         elif kind in ("pick", "transfer"):
@@ -561,14 +618,18 @@ class FactoryWorld:
                 target = self._placement_target(robot, command)
                 self._check_reach(robot, target)
             robot.phase = "approach_pick"
-            robot.waypoints = self._lifted_path(robot.ee, source, robot.kind)
+            robot.waypoints = (
+                self._lifted_path(robot.ee, source, robot.kind) if self.motor_policy is None else []
+            )
         elif kind == "place":
             if robot.holding != cargo_id:
                 raise ValueError("robot does not hold this cargo")
             target = self._placement_target(robot, command)
             self._check_reach(robot, target)
             robot.phase = "approach_place"
-            robot.waypoints = self._lifted_path(robot.ee, target, robot.kind)
+            robot.waypoints = (
+                self._lifted_path(robot.ee, target, robot.kind) if self.motor_policy is None else []
+            )
         elif kind == "process":
             item = self.cargo[cargo_id]
             if item["owner"] is not None or item["location"] != "fixture":
@@ -584,9 +645,14 @@ class FactoryWorld:
                 raise ValueError("cargo is already processed")
             target = self._cargo_position(cargo_id) + np.array([0.0, 0.0, 0.30])
             robot.phase = "approach_process"
-            robot.waypoints = self._lifted_path(robot.ee, target, robot.kind)
+            robot.waypoints = (
+                self._lifted_path(robot.ee, target, robot.kind) if self.motor_policy is None else []
+            )
 
     def _advance(self, robot: Robot) -> None:
+        if self.motor_policy is not None:
+            self._advance_learned(robot)
+            return
         if not robot.command:
             robot.velocity[:] = 0
             return
@@ -656,6 +722,360 @@ class FactoryWorld:
             robot.phase = "processing"
             robot.blocked_elapsed = 0.0
             self._event("process_started", robot, cargo_id=robot.command["cargo_id"])
+
+    def set_peer_embeddings(self, records_by_robot: dict[str, list[dict]]) -> None:
+        """Replace per-receiver peer context with already-committed DB records.
+
+        Embeddings never confer control authority. Expired/future/self records
+        cannot influence the next neural action, even if supplied by a caller.
+        """
+        checked = {}
+        for receiver, records in records_by_robot.items():
+            if receiver not in self.robots or not isinstance(records, list):
+                raise ValueError("Peer embeddings require a known receiver and a list")
+            eligible = []
+            for record in records[:4]:
+                vector = np.asarray(record.get("vector"), dtype=float)
+                if vector.shape != (32,) or not np.isfinite(vector).all():
+                    raise ValueError("Peer vector must contain 32 finite values")
+                if not 0.998 <= float(np.dot(vector, vector)) <= 1.002:
+                    raise ValueError("Peer vector must be unit normalized")
+                if (
+                    record.get("robot_id") == receiver
+                    or record.get("robot_id") not in self.robots
+                    or record.get("tick", self.tick + 1) > self.tick
+                    or record.get("expires_tick", 0) <= self.tick
+                ):
+                    continue
+                eligible.append(deepcopy(record))
+            checked[receiver] = eligible
+        self._peer_embeddings = checked
+
+    def _motor_observation(self, robot: Robot) -> dict:
+        from PIL import Image
+
+        from .vision import make_observation
+
+        records = [
+            record
+            for record in self._peer_embeddings.get(robot.id, [])
+            if record["expires_tick"] > self.tick and record["tick"] <= self.tick
+        ]
+        command = robot.command or {}
+        intended_peer = (
+            command.get("target_id")
+            if robot.phase == "approach_place"
+            else command.get("source_id")
+        )
+        matching = [record for record in records if record["robot_id"] == intended_peer]
+        peer = matching[0] if matching else records[0] if records else None
+        cache = self._camera_cache.get(robot.id)
+        camera_key = (command.get("command_id"), robot.phase)
+        refresh = (
+            cache is None
+            or cache["key"] != camera_key
+            or (robot.command is not None and self.tick - cache["tick"] >= 5)
+        )
+        observation = make_observation(
+            self.snapshot(),
+            robot.id,
+            robot.command,
+            robot.phase,
+            rgb=None if refresh else cache["rgb"],
+            peer_embedding=deepcopy(peer),
+        )
+        if refresh:
+            self._camera_cache[robot.id] = {
+                "key": camera_key,
+                "tick": self.tick,
+                "rgb": observation["rgb"].copy(),
+            }
+        # The camera builder owns scene geometry. The actor receives only RGB,
+        # own proprioception, language and bounded committed peer latents.
+        allowed = {
+            "robot_id",
+            "kind",
+            "rgb",
+            "instruction",
+            "phase",
+            "proprio",
+            "tick",
+            "dt",
+            "peer_embedding",
+            "command_id",
+        }
+        if set(observation) - allowed:
+            raise ValueError("Visual policy observation leaked undeclared scene state")
+        observation["command_id"] = command.get("command_id")
+        observation["peer_record_ids"] = [peer["embedding_id"]] if peer else []
+        observation["rgb_tick"] = self._camera_cache[robot.id]["tick"]
+        observation["proprio"]["gripper_opening"] = robot.gripper_opening
+        rgb = np.asarray(observation["rgb"])
+        if rgb.ndim != 3 or rgb.shape[-1] != 3 or rgb.dtype != np.uint8:
+            raise ValueError("Motor camera must provide uint8 RGB")
+        if refresh:
+            buffer = io.BytesIO()
+            Image.fromarray(rgb).save(buffer, format="PNG")
+            with self._sensor_lock:
+                self._sensor_pngs[robot.id] = buffer.getvalue()
+        return observation
+
+    def sensor_png(self, robot_id: str) -> bytes | None:
+        """Read the producer's last RGB frame; HTTP threads never render GL."""
+        if robot_id not in self.robots:
+            raise ValueError("Unknown robot camera")
+        with self._sensor_lock:
+            return self._sensor_pngs.get(robot_id)
+
+    def embedding_observations(self) -> list[dict]:
+        """Encode current post-step observations for durable peer publication."""
+        if self.motor_policy is None:
+            return []
+        records = []
+        for robot in self.robots.values():
+            observation = self._motor_observation(robot)
+            encoded = self.motor_policy.embed(observation)
+            vector = np.asarray(encoded["embedding"], dtype=float)
+            if vector.shape != (32,) or not np.isfinite(vector).all():
+                raise ValueError("Learned encoder returned invalid latent")
+            if not 0.998 <= float(np.dot(vector, vector)) <= 1.002:
+                raise ValueError("Learned encoder returned a non-unit latent")
+            space_id = encoded.get("space_id", encoded.get("latent_space"))
+            if not isinstance(space_id, str) or not space_id.strip():
+                raise ValueError("Learned encoder must identify its latent space")
+            if (
+                "latent_space" in encoded
+                and "space_id" in encoded
+                and encoded["latent_space"] != encoded["space_id"]
+            ):
+                raise ValueError("Learned encoder returned conflicting latent spaces")
+            command = robot.command
+            decoder = encoded.get("decoded", {})
+            if not isinstance(decoder, dict) or not {"text", "confidence", "version"} <= set(
+                decoder
+            ):
+                raise ValueError("Learned decoder must report text, confidence and version")
+            record = {
+                "robot_id": robot.id,
+                "tick": self.tick,
+                "command_id": command.get("command_id") if command else None,
+                "job_id": command.get("job_id") if command else None,
+                "vector": vector.tolist(),
+                "dimension": 32,
+                "space_id": space_id,
+                "checkpoint_sha256": encoded["checkpoint_sha256"],
+                "decoder": {
+                    key: deepcopy(decoder[key]) for key in ("text", "confidence", "version")
+                },
+            }
+            records.append(record)
+            self._embedding_records[robot.id] = deepcopy(record)
+        return records
+
+    def _advance_learned(self, robot: Robot) -> None:
+        """Apply only actual network motor proposals; task logic merely judges."""
+        if robot.command is None:
+            robot.velocity[:] = 0
+            robot.speed = 0.0
+            return
+        robot.elapsed += self.dt
+        robot.progress = min(0.95, robot.elapsed / 30.0)
+        if robot.elapsed > float(robot.command.get("timeout", self.COMMAND_TIMEOUT)):
+            self._finish(robot, False, "learned motor skill execution timeout")
+            return
+        if robot.phase == "waiting_for_aisle":
+            if self._lane_owner not in (None, robot.id):
+                robot.state = "waiting"
+                robot.velocity[:] = 0
+                return
+            self._reserve_lane(robot)
+        observation = self._motor_observation(robot)
+        prediction = self.motor_policy.act(observation)
+        self._motor_stats["inferences"] += 1
+        raw_delta = np.asarray(prediction.get("delta"), dtype=float)
+        yaw_delta = prediction.get("yaw_delta", 0.0)
+        gripper = prediction.get("gripper", 0.0)
+        if (
+            raw_delta.shape != (3,)
+            or not np.isfinite(raw_delta).all()
+            or not isinstance(yaw_delta, (int, float))
+            or not math.isfinite(yaw_delta)
+            or not isinstance(gripper, (int, float))
+            or not math.isfinite(gripper)
+        ):
+            raise ValueError("VLA returned an invalid motor action")
+        before = robot.position.copy() if robot.kind == "amr" else robot.ee.copy()
+        before_yaw = robot.yaw
+        command_id = robot.command["command_id"]
+        phase = robot.phase
+        edits = self._apply_learned_motion(robot, raw_delta, float(yaw_delta))
+        robot.gripper_opening = (
+            0.0 if gripper < -0.5 else 1.0 if gripper > 0.5 else robot.gripper_opening
+        )
+        cargo_id = robot.command.get("cargo_id") if robot.command else None
+        if robot.command and phase == "approach_pick" and gripper < -0.5:
+            self._motor_stats["grasp_attempts"] += 1
+            if np.linalg.norm(self._cargo_position(cargo_id) - robot.ee) <= self.GRASP_TOLERANCE:
+                self._grasp(robot)
+            else:
+                edits.append("grasp_outside_contact_tolerance")
+        elif robot.command and phase == "approach_place" and gripper > 0.5:
+            self._motor_stats["release_attempts"] += 1
+            try:
+                target = self._placement_target(robot, robot.command)
+                if np.linalg.norm(robot.ee - target) <= self.GRASP_TOLERANCE:
+                    self._release(robot)
+                else:
+                    edits.append("release_outside_contact_tolerance")
+            except ValueError as error:
+                self._finish(robot, False, str(error))
+        after = robot.position.copy() if robot.kind == "amr" else robot.ee.copy()
+        self._motor_stats["safety_edits"] += bool(edits)
+        self._motor_actions.append(
+            {
+                "robot_id": robot.id,
+                "command_id": command_id,
+                "tick": self.tick,
+                "phase": phase,
+                "instruction": observation["instruction"],
+                "peer_record_ids": observation["peer_record_ids"],
+                "raw_action": {
+                    "delta": raw_delta.tolist(),
+                    "yaw_delta": float(yaw_delta),
+                    "gripper": float(gripper),
+                },
+                "applied_action": {
+                    "delta": self._vec(after - before),
+                    "yaw_delta": round(robot.yaw - before_yaw, 7),
+                    "gripper_opening": robot.gripper_opening,
+                },
+                "safety_edits": edits,
+                "provenance": deepcopy(prediction.get("provenance", {})),
+            }
+        )
+        if robot.command is None:
+            return
+        if robot.phase == "navigating":
+            target = self._navigation_target(robot.command["target_id"], robot)
+            if (
+                np.linalg.norm(robot.position[:2] - target[:2]) <= self.DOCK_TOLERANCE
+                and robot.speed < 0.06
+            ):
+                self._event(
+                    "docked",
+                    robot,
+                    target_id=robot.command["target_id"],
+                    position=self._vec(robot.position),
+                )
+                self._finish(robot, True)
+        elif robot.phase == "approach_process":
+            target = self._cargo_position(cargo_id) + np.array([0, 0, 0.30])
+            if np.linalg.norm(robot.ee - target) <= 0.08 and robot.speed < 0.08:
+                robot.phase = "processing"
+                robot.blocked_elapsed = 0.0
+                self._event("process_started", robot, cargo_id=cargo_id)
+        elif robot.phase == "processing":
+            item = self.cargo[cargo_id]
+            target = self._cargo_position(cargo_id) + np.array([0, 0, 0.30])
+            if item["owner"] or item["location"] != "fixture":
+                self._finish(robot, False, "cargo moved during learned processing")
+            elif np.linalg.norm(robot.ee - target) > 0.08 or robot.speed > 0.08:
+                robot.blocked_elapsed = 0.0
+            else:
+                robot.blocked_elapsed += self.dt
+                if robot.blocked_elapsed >= self.PROCESS_SECONDS:
+                    item["processed"] = True
+                    self._event(
+                        "process_verified",
+                        robot,
+                        cargo_id=cargo_id,
+                        dwell_seconds=robot.blocked_elapsed,
+                    )
+                    self._finish(robot, True)
+        elif robot.phase == "settling":
+            robot.blocked_elapsed += self.dt
+            if robot.blocked_elapsed >= 0.35 and self._settled_at_target(robot):
+                self._finish(robot, True)
+            elif robot.blocked_elapsed > 3:
+                self._finish(robot, False, "learned release did not settle at target")
+        elif robot.phase == "waiting" and robot.elapsed >= float(
+            robot.command.get("duration", self.dt)
+        ):
+            self._finish(robot, True)
+
+    def _apply_learned_motion(
+        self, robot: Robot, requested_delta: np.ndarray, yaw_delta: float
+    ) -> list[str]:
+        """Actuator/geometry limits only; no target tracking or waypoint actions."""
+        edits = []
+        spec = ROBOT_SPECS[robot.id]
+        velocity = requested_delta / self.dt
+        if robot.kind == "amr" and abs(velocity[2]) > 1e-9:
+            velocity[2] = 0.0
+            edits.append("planar_drive")
+        speed = float(np.linalg.norm(velocity))
+        if speed > spec["max_speed"]:
+            velocity *= spec["max_speed"] / speed
+            edits.append("speed_limit")
+        change = velocity - robot.velocity
+        change_norm = float(np.linalg.norm(change))
+        max_change = spec["max_acceleration"] * self.dt
+        if change_norm > max_change:
+            velocity = robot.velocity + change * (max_change / change_norm)
+            edits.append("acceleration_limit")
+        current = robot.position if robot.kind == "amr" else robot.ee
+        proposed = current + velocity * self.dt
+        if robot.kind == "amr":
+            collision = self._navigation_collision(robot, current, proposed)
+        else:
+            collision = None
+            try:
+                self._check_reach(robot, proposed)
+            except ValueError:
+                collision = "workspace_envelope"
+            if not 0.25 <= proposed[2] <= 3.1:
+                collision = "vertical_envelope"
+            if not collision:
+                for obstacle in OBSTACLES:
+                    padding = (
+                        np.array(CARGO_SIZE[:2]) / 2 if robot.holding else np.array([0.025, 0.025])
+                    )
+                    low = np.array(obstacle["center"]) - np.array(obstacle["half_size"]) - padding
+                    high = np.array(obstacle["center"]) + np.array(obstacle["half_size"]) + padding
+                    clearance = 0.12 if robot.holding else 0.025
+                    if (
+                        self._segment_aabb(current[:2], proposed[:2], low, high)
+                        and min(current[2], proposed[2]) - clearance < obstacle["height"] - 0.008
+                    ):
+                        collision = obstacle["id"]
+                        break
+        if collision:
+            velocity[:] = 0
+            proposed = current.copy()
+            edits.append(f"collision_stop:{collision}")
+            robot.state = "blocked"
+            robot.blocked_elapsed += self.dt
+            if robot.blocked_elapsed >= self.BLOCKED_TIMEOUT:
+                self._finish(robot, False, f"learned motion blocked: {collision}")
+        else:
+            robot.state = "working"
+            # Processing and settling use this counter for measured dwell.
+            if robot.phase not in ("processing", "settling"):
+                robot.blocked_elapsed = 0.0
+        if robot.kind == "amr":
+            robot.position[:] = proposed
+            robot.ee[:] = proposed + np.array([0, 0, 0.62])
+            applied_yaw = float(np.clip(yaw_delta, -1.2 * self.dt, 1.2 * self.dt))
+            if abs(applied_yaw - yaw_delta) > 1e-9:
+                edits.append("turn_rate_limit")
+            robot.yaw += applied_yaw
+        else:
+            robot.ee[:] = proposed
+            if abs(yaw_delta) > 1e-9:
+                edits.append("end_effector_orientation_fixed")
+        robot.velocity = velocity
+        robot.speed = float(np.linalg.norm(velocity))
+        return edits
 
     def _move(self, robot: Robot) -> bool:
         target = robot.waypoints[0]
@@ -760,7 +1180,11 @@ class FactoryWorld:
             try:
                 target = self._placement_target(robot, robot.command)
                 robot.phase = "approach_place"
-                robot.waypoints = self._lifted_path(robot.ee, target, robot.kind)
+                robot.waypoints = (
+                    self._lifted_path(robot.ee, target, robot.kind)
+                    if self.motor_policy is None
+                    else []
+                )
                 robot.speed = 0.0
             except ValueError as exc:
                 self._finish(robot, False, str(exc))
@@ -1059,7 +1483,9 @@ class FactoryWorld:
                 "bridge_x": round(robot.ee[0], 5),
                 "trolley_y": round(robot.ee[1], 5),
                 "hoist": round(3.65 - robot.ee[2], 5),
-                "gripper": 0.0 if robot.holding else 1.0,
+                "gripper": robot.gripper_opening
+                if self.motor_policy is not None
+                else (0.0 if robot.holding else 1.0),
             }
             robot.joint_points = [self._vec([robot.ee[0], robot.ee[1], 3.65]), self._vec(robot.ee)]
             return
@@ -1092,7 +1518,9 @@ class FactoryWorld:
             "shoulder": round(shoulder_angle, 5),
             "elbow": round(-elbow, 5),
             "wrist": round(elbow - shoulder_angle, 5),
-            "gripper": 0.0 if robot.holding else 1.0,
+            "gripper": robot.gripper_opening
+            if self.motor_policy is not None
+            else (0.0 if robot.holding else 1.0),
         }
         robot.joint_points = [self._vec(shoulder), self._vec(elbow_point), self._vec(robot.ee)]
 
@@ -1101,4 +1529,11 @@ class FactoryWorld:
         return [round(float(component), 6) for component in value]
 
     def close(self) -> None:
-        """No renderer or background processes are owned by this world."""
+        """Release learned-camera GL resources on the producer's owning thread."""
+        if self.motor_policy is not None:
+            from .vision import close_renderers
+
+            close_renderers()
+            close = getattr(self.motor_policy, "close", None)
+            if close is not None:
+                close()

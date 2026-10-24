@@ -1,0 +1,172 @@
+{
+  "schema": "relay.factory.validation.v1",
+  "created_at": "2026-10-24T12:15:44.561011+00:00",
+  "checkpoint_sha256": "a31f6dd477c03ae6848f1a96fd79004582d02bfbcdef84f1fb8825f2e99e1f5b",
+  "planner": "rules",
+  "coordination": "memory",
+  "dt_seconds": 0.1,
+  "comparison": "Three-job seed31 paired communication OFF/ON uses the same checkpoint, physical criteria, pose jitter and 6000-tick budget. Both finish. ON takes11 more simulation ticks; this is causal integration evidence, not evidence of performance improvement.",
+  "limitations": [
+    "Task-specific behavior cloning with calibrated fixed cameras and physical color fiducials; not a foundation VLA.",
+    "Six-job seed42 exceeded the original6000-tick run budget with5/6 jobs completed and zero failed skills, then completed at6505ticks with explicit10000-tick budget. Per-command timeouts, grasp thresholds and collision checks were unchanged.",
+    "Wall times were measured under concurrent local workloads and must not be treated as an isolated latency comparison."
+  ],
+  "runs": [
+    {
+      "orders": 3,
+      "seed": 31,
+      "embeddings": false,
+      "status": "succeeded",
+      "tick": 3242,
+      "seconds": 13.59507599985227,
+      "calls": {
+        "amr-01": 1415,
+        "humanoid-01": 295,
+        "amr-02": 1491,
+        "arm-01": 764,
+        "gantry-01": 413
+      },
+      "edits": {
+        "planar_drive": 2906,
+        "acceleration_limit": 2320,
+        "end_effector_orientation_fixed": 1472,
+        "speed_limit": 268
+      },
+      "peer_fusion_calls": 0,
+      "output": "runs/factory-vla-validation/3-seed31-embeddings-False-556e4920",
+      "hash": "a31f6dd477c03ae6848f1a96fd79004582d02bfbcdef84f1fb8825f2e99e1f5b",
+      "error": null,
+      "max_ticks": 6000,
+      "pose_jitter_m": 0.02,
+      "wall_time_scope": "observational under concurrent local training/inference/DB/test workloads; not an isolated latency benchmark",
+      "controller": "actual trained RGB+instruction+local proprioception neural motor policy; no reference fallback",
+      "physical_controller": "velocity/acceleration limited kinematic effectors and holonomic AMRs; MuJoCo cargo contact with idealized measured proximity attachment",
+      "metrics": {
+        "commands": 27,
+        "completed_commands": 27,
+        "failed_commands": 0,
+        "messages": 78,
+        "wall_seconds": 13.6
+      },
+      "completed": 3,
+      "total": 3
+    },
+    {
+      "orders": 3,
+      "seed": 31,
+      "embeddings": true,
+      "status": "succeeded",
+      "tick": 3253,
+      "seconds": 23.810618916992098,
+      "calls": {
+        "amr-01": 1409,
+        "humanoid-01": 295,
+        "amr-02": 1509,
+        "arm-01": 764,
+        "gantry-01": 412
+      },
+      "edits": {
+        "planar_drive": 2918,
+        "acceleration_limit": 2344,
+        "end_effector_orientation_fixed": 1471,
+        "speed_limit": 264
+      },
+      "peer_fusion_calls": 337,
+      "output": "runs/factory-vla-validation/3-seed31-embeddings-True-4f0bea79",
+      "hash": "a31f6dd477c03ae6848f1a96fd79004582d02bfbcdef84f1fb8825f2e99e1f5b",
+      "error": null,
+      "max_ticks": 6000,
+      "pose_jitter_m": 0.02,
+      "wall_time_scope": "observational under concurrent local training/inference/DB/test workloads; not an isolated latency benchmark",
+      "controller": "actual trained RGB+instruction+local proprioception neural motor policy; no reference fallback",
+      "physical_controller": "velocity/acceleration limited kinematic effectors and holonomic AMRs; MuJoCo cargo contact with idealized measured proximity attachment",
+      "metrics": {
+        "commands": 27,
+        "completed_commands": 27,
+        "failed_commands": 0,
+        "messages": 78,
+        "wall_seconds": 23.83
+      },
+      "completed": 3,
+      "total": 3
+    },
+    {
+      "orders": 6,
+      "seed": 42,
+      "embeddings": true,
+      "status": "exhausted",
+      "tick": 6000,
+      "seconds": 47.1252189159859,
+      "calls": {
+        "amr-01": 3055,
+        "humanoid-01": 660,
+        "amr-02": 2828,
+        "arm-01": 1498,
+        "gantry-01": 689
+      },
+      "edits": {
+        "planar_drive": 5883,
+        "acceleration_limit": 4692,
+        "end_effector_orientation_fixed": 2847,
+        "speed_limit": 625
+      },
+      "peer_fusion_calls": 637,
+      "output": "runs/factory-vla-validation/6-seed42-embeddings-True-a2a2d118",
+      "hash": "a31f6dd477c03ae6848f1a96fd79004582d02bfbcdef84f1fb8825f2e99e1f5b",
+      "error": null,
+      "max_ticks": 6000,
+      "pose_jitter_m": 0.02,
+      "wall_time_scope": "observational under concurrent local training/inference/DB/test workloads; not an isolated latency benchmark",
+      "controller": "actual trained RGB+instruction+local proprioception neural motor policy; no reference fallback",
+      "physical_controller": "velocity/acceleration limited kinematic effectors and holonomic AMRs; MuJoCo cargo contact with idealized measured proximity attachment",
+      "metrics": {
+        "commands": 51,
+        "completed_commands": 50,
+        "failed_commands": 0,
+        "messages": 145,
+        "wall_seconds": 47.15
+      },
+      "completed": 5,
+      "total": 6
+    },
+    {
+      "orders": 6,
+      "seed": 42,
+      "embeddings": true,
+      "max_ticks": 10000,
+      "status": "succeeded",
+      "tick": 6505,
+      "seconds": 60.94652983290143,
+      "calls": {
+        "amr-01": 3055,
+        "humanoid-01": 660,
+        "amr-02": 3130,
+        "arm-01": 1568,
+        "gantry-01": 822
+      },
+      "edits": {
+        "planar_drive": 6185,
+        "acceleration_limit": 4958,
+        "end_effector_orientation_fixed": 3050,
+        "speed_limit": 644
+      },
+      "peer_fusion_calls": 698,
+      "output": "runs/factory-vla-validation/6-seed42-embeddings-True-budget10000-19aa5459",
+      "hash": "a31f6dd477c03ae6848f1a96fd79004582d02bfbcdef84f1fb8825f2e99e1f5b",
+      "error": null,
+      "metrics": {
+        "commands": 54,
+        "completed_commands": 54,
+        "failed_commands": 0,
+        "messages": 156,
+        "wall_seconds": 60.95
+      },
+      "pose_jitter_m": 0.02,
+      "wall_time_scope": "observational under concurrent local training/inference/DB/test workloads; not an isolated latency benchmark",
+      "controller": "actual trained RGB+instruction+local proprioception neural motor policy; no reference fallback",
+      "physical_controller": "velocity/acceleration limited kinematic effectors and holonomic AMRs; MuJoCo cargo contact with idealized measured proximity attachment",
+      "completed": 6,
+      "total": 6
+    }
+  ]
+}

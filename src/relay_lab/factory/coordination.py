@@ -15,6 +15,8 @@ from typing import Any
 
 from relay_lab.spacetime import SpacetimeConflict
 
+from .embeddings import EmbeddingIndex, space_config
+
 STAGES = (
     "queued",
     "loaded",
@@ -156,6 +158,7 @@ class MemoryCoordinator:
         self.commands: dict[str, dict] = {}
         self.resources: dict[str, dict] = {}
         self.queue: MessageQueue | None = None
+        self.embedding_index: EmbeddingIndex | None = None
 
     def create(
         self,
@@ -247,6 +250,8 @@ class MemoryCoordinator:
             clone.batches[revision] = copy.deepcopy(clone.batches[revision])
         clone.commands = {key: value.copy() for key, value in self.commands.items()}
         clone.resources = copy.deepcopy(self.resources)
+        if self.embedding_index is not None:
+            clone.embedding_index = self.embedding_index.fork()
         if self.queue is not None:
             clone.queue = copy.copy(self.queue)
             clone.queue.events = self.queue.events.copy()
@@ -388,18 +393,30 @@ class MemoryCoordinator:
         return copy.deepcopy(commands)
 
     def commit(
-        self, revision: int, state: dict, outcomes: list[dict], messages: list[dict] | None = None
+        self,
+        revision: int,
+        state: dict,
+        outcomes: list[dict],
+        messages: list[dict] | None = None,
+        embeddings: list[dict] | None = None,
     ) -> dict:
         clone = self._transaction_copy(revision)
-        clone._commit(revision, state, outcomes, messages or [])
+        clone._commit(revision, state, outcomes, messages or [], embeddings)
         self.__dict__.update(clone.__dict__)
         return self.snapshot()
 
     def _commit(
-        self, revision: int, state: dict, outcomes: list[dict], messages: list[dict]
+        self,
+        revision: int,
+        state: dict,
+        outcomes: list[dict],
+        messages: list[dict],
+        embeddings: list[dict] | None = None,
     ) -> None:
         require(self.run is not None and self.queue is not None, "Run not created")
         body = {"state": state, "outcomes": outcomes, "messages": messages}
+        if embeddings is not None:
+            body["embeddings"] = embeddings
         canonical(body)
         batch = self.batches.get(revision)
         require(batch is not None, "No authorized batch")
@@ -494,6 +511,10 @@ class MemoryCoordinator:
         )
         for message in messages:
             self.queue.publish(message, state["tick"])
+        if embeddings:
+            require(self.embedding_index is not None, "Embedding space not configured")
+        if self.embedding_index is not None:
+            self.embedding_index.commit(embeddings or [], state["tick"], commands, state)
         batch["result"] = copy.deepcopy(body)
         status = (
             "succeeded"
@@ -509,6 +530,40 @@ class MemoryCoordinator:
             status=status,
             phase="ready" if status == "running" else "terminal",
         )
+
+    def configure_embedding_space(self, space_id, checkpoint_sha256):
+        require(self.run is not None, "Run not created")
+        config = space_config(space_id, checkpoint_sha256)
+        if self.embedding_index is not None:
+            require(self.embedding_index.config == config, "Embedding space is immutable")
+            return config
+        require(
+            self.run["revision"] == 0 and self.run["phase"] == "ready",
+            "Configure embeddings before execution",
+        )
+        self.embedding_index = EmbeddingIndex(
+            self.run["run_id"], [r["robot_id"] for r in self.run["spec"]["robots"]], config
+        )
+        return config
+
+    def refresh_embeddings(self, tick, *, force=False):
+        require(
+            self.embedding_index is not None and tick == self.run["tick"],
+            "Embedding refresh tick mismatch",
+        )
+        self.embedding_index.refresh(list(self.embedding_index.records.values()), tick)
+        return self.embedding_index.metrics
+
+    def retrieve_embeddings(self, robot_id, query_vector, tick, relevant_peers=None, limit=4):
+        require(
+            self.embedding_index is not None and tick <= self.run["tick"],
+            "Uncommitted embedding retrieval tick",
+        )
+        return self.embedding_index.retrieve(robot_id, query_vector, tick, relevant_peers, limit)
+
+    @property
+    def embedding_metrics(self):
+        return self.embedding_index.metrics if self.embedding_index else {"enabled": False}
 
     def abort(self, reason: str) -> dict:
         require(self.run is not None, "Run not created")

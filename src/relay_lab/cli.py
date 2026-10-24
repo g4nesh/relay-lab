@@ -73,13 +73,20 @@ def parser() -> argparse.ArgumentParser:
     factory = commands.add_parser("factory", help="Open the live five-robot factory dashboard")
     factory.add_argument("--port", type=int, default=8767)
     factory.add_argument("--coordination", choices=("spacetime", "memory"), default="spacetime")
+    factory.add_argument("--replay", type=Path, help="Completed factory replay to make viewable")
     factory_run = commands.add_parser("factory-run", help="Run and record a full factory workflow")
     factory_run.add_argument("--seed", type=int, default=7)
     factory_run.add_argument("--orders", type=int, default=3)
     factory_run.add_argument("--planner", choices=("llm", "rules"), default="llm")
     factory_run.add_argument("--coordination", choices=("spacetime", "memory"), default="spacetime")
-    factory_run.add_argument("--max-ticks", type=int, default=6000)
+    factory_run.add_argument("--max-ticks", type=int, default=10000)
     factory_run.add_argument("--output", type=Path)
+    factory_run.add_argument(
+        "--policy", choices=("factory-vla", "model-based"), default="factory-vla"
+    )
+    factory_run.add_argument("--checkpoint", type=Path)
+    factory_run.add_argument("--embeddings", choices=("on", "off"), default="on")
+    factory_run.add_argument("--pose-jitter", type=float, default=0.02)
     return result
 
 
@@ -94,7 +101,7 @@ def main() -> None:
         if args.command == "factory":
             from .factory.server import serve_factory
 
-            serve_factory(args.port, args.coordination)
+            serve_factory(args.port, args.coordination, replay=args.replay)
             return
         if args.command == "factory-run":
             from .factory.runtime import run_factory
@@ -106,6 +113,10 @@ def main() -> None:
                 coordination=args.coordination,
                 max_ticks=args.max_ticks,
                 output=args.output,
+                policy=args.policy,
+                checkpoint=args.checkpoint,
+                embeddings=args.embeddings == "on",
+                pose_jitter=args.pose_jitter,
             )
             print(
                 f"{summary['status'].upper()} · {summary['mission']['completed']}/{args.orders} workpieces · {summary['tick']} ticks"

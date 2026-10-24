@@ -69,7 +69,18 @@ const factory_event = table({ public: false }, {
   expires_tick: t.u32(), priority: t.u8(), acknowledged: t.bool(), payload_json: t.string(),
 });
 
-const spacetime = schema({ module_owner, task, assignment, plan_frame, action_frame, feedback_frame, factory_run, factory_robot, factory_batch, factory_command, factory_resource, factory_event });
+const factory_embedding_space = table({ public: false }, {
+  run_id: t.string().primaryKey(), space_id: t.string(), checkpoint_sha256: t.string(),
+  config_json: t.string(),
+});
+const factory_embedding = table({ public: false }, {
+  key: t.string().primaryKey(), run_id: t.string().index('btree'), robot_scope: t.string().index('btree'),
+  embedding_id: t.string(), robot_id: t.string(), tick: t.u32(), expires_tick: t.u32(),
+  space_id: t.string(), checkpoint_sha256: t.string(), dimension: t.u8(), modality: t.string(),
+  command_id: t.string(), job_id: t.string(), vector: t.array(t.f32()), record_json: t.string(),
+});
+
+const spacetime = schema({ module_owner, task, assignment, plan_frame, action_frame, feedback_frame, factory_run, factory_robot, factory_batch, factory_command, factory_resource, factory_event, factory_embedding_space, factory_embedding });
 export default spacetime;
 type Ctx = ReducerCtx<typeof spacetime.schemaType>;
 type Json = Record<string, unknown>;
@@ -549,6 +560,7 @@ export const commit_factory_batch = spacetime.reducer({
   }
   const success = Object.values(jobs).every(item => object(item, 'job').stage === 'completed');
   require(state.success === success, 'Factory success disagrees with observed job stages');
+  storeFactoryEmbeddings(ctx, run, result.embeddings ?? [], state, byId);
   factoryMessages(ctx, args.run_id, result.messages ?? [], state.tick as number);
   ctx.db.factory_batch.key.update({ ...batch, result_json: args.result_json });
   const status = success ? 'succeeded' : (state.tick as number) >= run.max_ticks ? 'exhausted' : 'running';
@@ -574,3 +586,70 @@ export const abort_factory_run = spacetime.reducer({
   ctx.db.factory_run.run_id.update({ ...run, status: 'failed', phase: 'terminal',
     state_json: JSON.stringify({ ...state, abort_reason: args.reason }), updated_at: ctx.timestamp });
 });
+
+
+// Learned embeddings are a typed, bounded mailbox, not authoritative task facts.
+// Native indexes are B-trees. The client computes exact cosine after selecting
+// the newest eligible record from each peer (not ANN or historical-pose search).
+export const configure_factory_embeddings = spacetime.reducer({
+  run_id: t.string(), worker_id: t.string(), config_json: t.string(),
+}, (ctx, args) => {
+  const run = factoryRun(ctx, args.run_id, args.worker_id), config = parse(args.config_json, 'embedding config');
+  require(config.schema === 'relay.factory.embedding.v1' && config.dimension === 32 && config.modality === 'vla-hidden' && config.max_per_robot === 16, 'Unsupported embedding schema');
+  text(config.space_id, 'embedding space', 128); identifier(config.space_id, 'embedding space');
+  text(config.checkpoint_sha256, 'checkpoint SHA256', 64);
+  require(/^[a-f0-9]{64}$/.test(config.checkpoint_sha256), 'Invalid checkpoint SHA256');
+  const prior = ctx.db.factory_embedding_space.run_id.find(args.run_id);
+  if (prior) { require(prior.config_json === args.config_json, 'Embedding space is immutable'); return; }
+  require(run.revision === 0 && run.phase === 'ready', 'Configure embedding space before execution');
+  ctx.db.factory_embedding_space.insert({ run_id: args.run_id, config_json: args.config_json, space_id: config.space_id, checkpoint_sha256: config.checkpoint_sha256 });
+});
+
+function storeFactoryEmbeddings(ctx: Ctx, run: ReturnType<typeof factoryRun>, records: unknown,
+  state: Json, commands: Map<unknown, Json>) {
+  const config = ctx.db.factory_embedding_space.run_id.find(run.run_id);
+  const batch = array(records, 'embedding batch', 32);
+  require(config || batch.length === 0, 'Embedding space not configured');
+  if (!config) return;
+  const tick = state.tick as number;
+  const robotIds = array(parse(run.spec_json, 'factory spec').robots, 'robots').map(r => object(r, 'robot').robot_id as string);
+  const seen = new Set<string>();
+  for (const item of batch) {
+    const record = object(item, 'embedding'), record_json = JSON.stringify(record);
+    require(record_json.length <= 4096, 'Embedding record too large');
+    require(record.schema === 'relay.factory.embedding.v1' && record.dimension === 32 && record.modality === 'vla-hidden', 'Embedding schema mismatch');
+    require(record.space_id === config.space_id && record.checkpoint_sha256 === config.checkpoint_sha256, 'Embedding model or space mismatch');
+    require(record.run_id === run.run_id, 'Cross-run embedding');
+    text(record.robot_id, 'embedding robot', 128);
+    require(robotIds.includes(record.robot_id) && !seen.has(record.robot_id), 'Unknown or duplicate embedding robot'); seen.add(record.robot_id);
+    require(record.tick === tick && record.embedding_id === `${record.robot_id}-${tick}`, 'Stale/future embedding or inconsistent identity');
+    integer(record.expires_tick, 'embedding expiry', tick + 1, tick + 64);
+    const vector = array(record.vector, 'embedding vector', 32); require(vector.length === 32, 'Embedding dimension mismatch');
+    vector.forEach(v => number(v, 'embedding component'));
+    require(Math.abs((vector as number[]).reduce((sum, x) => sum + x*x, 0) - 1) <= 0.002, 'Embedding must be unit normalized');
+    const decoder = object(record.decoder, 'semantic decoder');
+    text(decoder.text, 'decoded text', 512, true); text(decoder.version, 'decoder version', 128); number(decoder.confidence, 'decoder confidence');
+    require(decoder.confidence >= 0 && decoder.confidence <= 1, 'Invalid decoder confidence');
+    const observed = array(state.robots, 'observed robots', 32).map(r => object(r, 'robot')).find(r => (r.id ?? r.robot_id) === record.robot_id);
+    require(observed, 'Embedding has no observed robot');
+    if (record.command_id === null) {
+      require(record.job_id === null && !observed.active_command, 'Idle embedding claims active robot');
+    } else {
+      const command = commands.get(record.command_id);
+      require(command && command.robot_id === record.robot_id && command.job_id === record.job_id, 'Embedding command or job scope mismatch');
+      require(!observed.active_command || observed.active_command === record.command_id, 'Embedding differs from observed active command');
+    }
+    const key = `${run.run_id}:${record.embedding_id}`, prior = ctx.db.factory_embedding.key.find(key);
+    if (prior) { require(prior.record_json === record_json, 'Conflicting duplicate embedding'); continue; }
+    ctx.db.factory_embedding.insert({ key, run_id: run.run_id, robot_scope: `${run.run_id}:${record.robot_id}`,
+      embedding_id: record.embedding_id as string, robot_id: record.robot_id, tick, expires_tick: record.expires_tick,
+      space_id: config.space_id, checkpoint_sha256: config.checkpoint_sha256, dimension: 32, modality: 'vla-hidden',
+      command_id: (record.command_id ?? '') as string, job_id: (record.job_id ?? '') as string,
+      vector: vector as number[], record_json });
+  }
+  for (const row of ctx.db.factory_embedding.run_id.filter(run.run_id)) if (row.expires_tick <= tick) ctx.db.factory_embedding.key.delete(row.key);
+  for (const robot of robotIds) {
+    const rows = [...ctx.db.factory_embedding.robot_scope.filter(`${run.run_id}:${robot}`)].sort((a,b) => b.tick-a.tick);
+    for (const row of rows.slice(16)) ctx.db.factory_embedding.key.delete(row.key);
+  }
+}

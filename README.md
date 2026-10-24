@@ -13,14 +13,27 @@ job progress, and acknowledged handoffs. After the setup below, run:
 
 ```bash
 python3 scripts/spacetime.py publish
-uv run relay-lab factory
+uv run --extra learned relay-lab factory
 ```
 
-Open <http://127.0.0.1:8767>. Qwen chooses macro skills; the new embodiments use
-explicit model-based motion adapters. The original learned VLA stays calibrated
-to the tabletop workcell. See [the architecture and limitations](docs/factory.md)
-for the distinction, and [the verified factory run](examples/factory/README.md)
-for screenshots and complete execution evidence.
+Open <http://127.0.0.1:8767>. Qwen chooses macro skills; all five factory robots
+use an original compact RGB/language/action network for motor and gripper output.
+A shared learned 32D embedding space carries fresh peer state through SpacetimeDB
+back into learned action inference. The dashboard exposes actual sensor images,
+latent records, model provenance and measured retrieval timings.
+
+See [Factory VLA and embedding exchange](docs/factory-vla.md) for the calibrated
+camera assumptions, training and limits. `--policy model-based` retains the earlier
+motion reference explicitly. The [earlier factory recording](examples/factory/README.md)
+uses that reference; it is not evidence of the new learned controller.
+
+The [verified learned factory recording](examples/factory-vla/README.md) completes
+3/3 workpieces with 4,390 neural actions and 338 peer-fusion actions. All 3,257
+commits match SpacetimeDB. A six-workpiece learned run also completes. **379 tests
+pass**, including real database failure checks. The paired embedding comparison
+shows actual use, but no demonstrated speed or success-rate benefit.
+
+![Completed learned factory task](examples/factory-vla/completed.png)
 
 ## Original learned-VLA workcell
 

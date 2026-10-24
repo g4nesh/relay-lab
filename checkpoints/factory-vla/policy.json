@@ -1,0 +1,55 @@
+{
+  "model_id": "relay-lab/factory-vla-v1",
+  "checkpoint_sha256": "a31f6dd477c03ae6848f1a96fd79004582d02bfbcdef84f1fb8825f2e99e1f5b",
+  "sensor_signature": "b64eb4c32efd60ed5b3b0bb91444582d7415c18eb92aa6267c19c3078f5f2842",
+  "parameters": 87182,
+  "training": {
+    "codec_validation": {
+      "seed": 1008,
+      "samples": 12000,
+      "mean_m": 0.02108481526374817,
+      "p95_m": 0.0497165210545063,
+      "within_65mm": 0.9746666666666667
+    },
+    "seed": 91,
+    "rendered_scenes": 800,
+    "render_seed": 8123,
+    "dataset_sha256": "8f59d63c8a47ddb551e94fa70e2f63544ab9b65c9ead45e5d14cc7c66720ef46",
+    "source": "original MuJoCo tagged factory RGB and original behavior-cloning teacher",
+    "pixel_steps": 3000,
+    "control_steps": 24000,
+    "codec_steps": 5000,
+    "teacher_examples": 18432000,
+    "seconds": 137.86977099999785,
+    "source_sha256": "f5c6ee292043eac41f9ade1f355fbfd5aa3950335150a27b3829ed6f066363c8",
+    "modalities": [
+      "RGB",
+      "instruction",
+      "proprioception",
+      "compatible peer latent"
+    ],
+    "peer_fusion": "learned least-squares camera/peer fusion; typed same-checkpoint carrier identity required",
+    "refinements": [
+      {
+        "seed": 919,
+        "steps": 6000,
+        "examples": 6144000,
+        "parent_checkpoint_sha256": "c8d95b340930344c20fc7d15bb059036eb7cf3aed881308a8d864072ba035abe",
+        "source_sha256": "f5c6ee292043eac41f9ade1f355fbfd5aa3950335150a27b3829ed6f066363c8",
+        "seconds": 38.64606783282943
+      }
+    ],
+    "sensor_refinements": [
+      {
+        "parent_checkpoint_sha256": "27e16a9518a0faa6421c1fb0a4b28952c0c2d27b414fa553bb6052a5d44d2c09",
+        "sensor_signature": "b64eb4c32efd60ed5b3b0bb91444582d7415c18eb92aa6267c19c3078f5f2842",
+        "rendered_scenes": 800,
+        "dataset_sha256": "ffc44e2afcaa6be7ce4d0ea4db0670f8db99b7e7c70a13ab3ad412dd26700b81",
+        "changed_parameters": [
+          "target_offsets"
+        ],
+        "reason": "Distinct physical manipulator tag mounts prevent dock-tag interpenetration after placement"
+      }
+    ]
+  }
+}

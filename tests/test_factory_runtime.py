@@ -158,3 +158,26 @@ def test_missing_backend_records_failure_without_advancing_world(tmp_path):
         assert not run.view()["coordination"]["connected"]
     finally:
         run.close()
+
+
+def test_embedding_configuration_failure_preserves_initialization_and_closes(tmp_path):
+    class EncoderIdentity:
+        @property
+        def model_info(self):
+            return {"policy": "factory-vla", "checkpoint_sha256": "a" * 64}
+
+    class RejectSpace(MemoryCoordinator):
+        def configure_embedding_space(self, *args):
+            raise CoordinationError("Embedding configuration unavailable")
+
+    world = CountingWorld()
+    world.motor_policy = EncoderIdentity()
+    run = make_run(tmp_path, world=world, coordinator=RejectSpace())
+    with pytest.raises(CoordinationError, match="configuration unavailable"):
+        run.tick()
+    run.close()
+    assert world.physical_steps == 0
+    replay = json.loads((run.output / "replay.json").read_text())
+    assert replay["frames"][-1]["tick"] == 0
+    assert replay["frames"][-1]["recorded_status"] == "failed"
+    assert "configuration unavailable" in replay["summary"]["error"]

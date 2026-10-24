@@ -7,6 +7,7 @@ readback both succeed. Retrying a database request never retries physical work.
 from __future__ import annotations
 
 import json
+import time
 from typing import Any
 
 from relay_lab.spacetime import (
@@ -18,11 +19,26 @@ from relay_lab.spacetime import (
 )
 
 from .coordination import canonical
+from .embeddings import EmbeddingIndex, space_config
+
+
+class _MeasuredClient(SpacetimeClient):
+    def __init__(self, config):
+        super().__init__(config)
+        self.body_bytes = 0
+
+    def _request(self, endpoint, body, *, content_type):
+        self.body_bytes += len(body)
+        response = super()._request(endpoint, body, content_type=content_type)
+        self.body_bytes += len(response)
+        return response
 
 
 class SpacetimeCoordinator:
     def __init__(self, config: SpacetimeConfig | None = None):
-        self.client = SpacetimeClient(config or SpacetimeConfig.from_env())
+        self.client = _MeasuredClient(config or SpacetimeConfig.from_env())
+        self.embedding_index = None
+        self._committed_tick = 0
         self.run_id: str | None = None
         self.worker_id: str | None = None
 
@@ -99,22 +115,35 @@ class SpacetimeCoordinator:
         return json.loads(row["prepare_json"])["commands"]
 
     def commit(
-        self, revision: int, state: dict, outcomes: list[dict], messages: list[dict] | None = None
+        self,
+        revision: int,
+        state: dict,
+        outcomes: list[dict],
+        messages: list[dict] | None = None,
+        embeddings: list[dict] | None = None,
     ) -> dict:
         self.client._tick(revision)
-        encoded = canonical({"state": state, "outcomes": outcomes, "messages": messages or []})
+        payload = {"state": state, "outcomes": outcomes, "messages": messages or []}
+        if embeddings is not None:
+            payload["embeddings"] = embeddings
+        encoded = canonical(payload)
         self.client._mutate(
             "commit_factory_batch",
             [self.run_id, self.worker_id, revision, encoded],
             lambda: self._batch(revision),
             {"result_json": encoded},
         )
+        if embeddings and self.embedding_index:
+            self.embedding_index.write_bytes += sum(
+                len(canonical(record).encode()) for record in embeddings
+            )
         return self.snapshot()
 
     def snapshot(self) -> dict:
         row = self._run()
         if row is None:
             raise SpacetimeError("Factory run not found")
+        self._committed_tick = row["tick"]
         locks = self.client._sql(f"SELECT * FROM factory_resource WHERE run_id = '{self.run_id}'")
         return {
             "run_id": row["run_id"],
@@ -134,6 +163,55 @@ class SpacetimeCoordinator:
                 for lock in locks
             },
         }
+
+    def configure_embedding_space(self, space_id, checkpoint_sha256):
+        config = space_config(space_id, checkpoint_sha256)
+        encoded = canonical(config)
+
+        def readback():
+            rows = self.client._sql(
+                f"SELECT * FROM factory_embedding_space WHERE run_id = '{self.run_id}'"
+            )
+            return rows[0] if len(rows) == 1 else None
+
+        self.client._mutate(
+            "configure_factory_embeddings",
+            [self.run_id, self.worker_id, encoded],
+            readback,
+            {"config_json": encoded},
+        )
+        snapshot = self.snapshot()
+        self.embedding_index = EmbeddingIndex(
+            self.run_id, [r["robot_id"] for r in snapshot["spec"]["robots"]], config
+        )
+        return config
+
+    def refresh_embeddings(self, tick, *, force=False):
+        if self.embedding_index is None or tick != self._committed_tick:
+            raise SpacetimeConflict("Embedding refresh requires current committed tick")
+        if not force and self.embedding_index.refreshes and self.embedding_index.cache_tick == tick:
+            return self.embedding_index.metrics
+        started, before = time.perf_counter(), self.client.body_bytes
+        rows = self.client._sql(
+            f"SELECT record_json FROM factory_embedding WHERE run_id = '{self.run_id}'"
+        )
+        elapsed = (time.perf_counter() - started) * 1000
+        self.embedding_index.refresh(
+            [json.loads(row["record_json"]) for row in rows],
+            tick,
+            db_ms=elapsed,
+            transport_bytes=self.client.body_bytes - before,
+        )
+        return self.embedding_index.metrics
+
+    def retrieve_embeddings(self, robot_id, query_vector, tick, relevant_peers=None, limit=4):
+        if self.embedding_index is None or tick > self._committed_tick:
+            raise SpacetimeConflict("Embedding retrieval requires committed time")
+        return self.embedding_index.retrieve(robot_id, query_vector, tick, relevant_peers, limit)
+
+    @property
+    def embedding_metrics(self):
+        return self.embedding_index.metrics if self.embedding_index else {"enabled": False}
 
     def abort(self, reason: str) -> dict:
         if not isinstance(reason, str) or not 0 < len(reason.strip()) <= 2048:
