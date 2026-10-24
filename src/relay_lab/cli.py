@@ -74,6 +74,7 @@ def parser() -> argparse.ArgumentParser:
     factory.add_argument("--port", type=int, default=8767)
     factory.add_argument("--coordination", choices=("spacetime", "memory"), default="spacetime")
     factory.add_argument("--replay", type=Path, help="Completed factory replay to make viewable")
+    factory.add_argument("--comparison", type=Path, help="Measured communication benchmark results")
     factory_run = commands.add_parser("factory-run", help="Run and record a full factory workflow")
     factory_run.add_argument("--seed", type=int, default=7)
     factory_run.add_argument("--orders", type=int, default=3)
@@ -87,6 +88,10 @@ def parser() -> argparse.ArgumentParser:
     factory_run.add_argument("--checkpoint", type=Path)
     factory_run.add_argument("--embeddings", choices=("on", "off"), default="on")
     factory_run.add_argument("--pose-jitter", type=float, default=0.02)
+    factory_run.add_argument("--task", choices=("standard", "dispatch-routing"), default="standard")
+    factory_run.add_argument(
+        "--communication", choices=("embeddings", "text", "none"), default="embeddings"
+    )
     return result
 
 
@@ -101,7 +106,9 @@ def main() -> None:
         if args.command == "factory":
             from .factory.server import serve_factory
 
-            serve_factory(args.port, args.coordination, replay=args.replay)
+            serve_factory(
+                args.port, args.coordination, replay=args.replay, comparison=args.comparison
+            )
             return
         if args.command == "factory-run":
             from .factory.runtime import run_factory
@@ -117,6 +124,8 @@ def main() -> None:
                 checkpoint=args.checkpoint,
                 embeddings=args.embeddings == "on",
                 pose_jitter=args.pose_jitter,
+                task=args.task,
+                communication=args.communication,
             )
             print(
                 f"{summary['status'].upper()} · {summary['mission']['completed']}/{args.orders} workpieces · {summary['tick']} ticks"

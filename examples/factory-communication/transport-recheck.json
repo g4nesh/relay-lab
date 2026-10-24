@@ -1,0 +1,12 @@
+{
+  "run_id": "factory-7cf8c52fb2f742a1",
+  "status": "succeeded",
+  "seed": 103,
+  "mode": "embeddings",
+  "correct_routes": 3,
+  "ticks": 3212,
+  "included_in_comparison": false,
+  "same_models": true,
+  "same_private_images": true,
+  "reason": "One diagnostic repeat of the interrupted condition, with unchanged seed, models and 5000-tick budget. Original failure remains in the matrix."
+}

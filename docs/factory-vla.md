@@ -5,6 +5,11 @@ original task-specific neural network. Qwen remains the event-driven macro
 planner. SpacetimeDB authorizes every physical tick and commits measured outcomes.
 Neither is replaced by the action policy or by embedding similarity.
 
+For the newer **partial-observation embedding/text/no-communication comparison**,
+see [private dispatch coordination](factory-communication.md). It uses a separate
+learned visual cue representation and disables the pose channel described below
+in all experimental modes, so the channels do not leak information between arms.
+
 ## Run
 
 Use the Python, Qwen and Spacetime setup from the root README, including

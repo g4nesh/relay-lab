@@ -145,3 +145,34 @@ def test_portable_compressed_recording_is_available_without_starting_world(tmp_p
         assert session._worker is None
     finally:
         session.close()
+
+
+def test_rejected_routing_run_replaces_previous_success_recording(tmp_path):
+    """Watch recording must not hide the latest fully executed incorrect task."""
+    old = tmp_path / "earlier-success.json"
+    old.write_text('{"result":"earlier success"}')
+    output = tmp_path / "new-routing-run"
+    output.mkdir()
+    current = output / "replay.json"
+    current.write_text('{"result":"latest rejected routing"}')
+
+    class CompletedRoutingRun:
+        status = "rejected"
+
+        def __init__(self):
+            self.output = output
+
+        def initialize(self):
+            pass
+
+        def close(self, cancelled=False):
+            assert not cancelled
+
+    session = FactorySession(coordination="memory", replay=old)
+    try:
+        session._run = CompletedRoutingRun()
+        session._loop()
+        assert session.replay_path == current
+        assert session.replay() == {"result": "latest rejected routing"}
+    finally:
+        session.close()

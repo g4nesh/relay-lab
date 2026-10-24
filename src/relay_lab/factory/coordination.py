@@ -15,6 +15,7 @@ from typing import Any
 
 from relay_lab.spacetime import SpacetimeConflict
 
+from .communication import SemanticIndex, channel_config
 from .embeddings import EmbeddingIndex, space_config
 
 STAGES = (
@@ -159,6 +160,7 @@ class MemoryCoordinator:
         self.resources: dict[str, dict] = {}
         self.queue: MessageQueue | None = None
         self.embedding_index: EmbeddingIndex | None = None
+        self.semantic_index: SemanticIndex | None = None
 
     def create(
         self,
@@ -218,6 +220,12 @@ class MemoryCoordinator:
             "jobs": {j["job_id"]: dict(j) for j in jobs},
             "success": False,
         }
+        if initial.get("task") == "dispatch-routing":
+            require(len(jobs) <= 3, "Routing supports one to three jobs")
+            require(
+                all(j.get("routing_correct") is None for j in initial["jobs"].values()),
+                "Initial route correctness cannot be prefilled",
+            )
         self.run = {
             "run_id": run_id,
             "worker_id": worker_id,
@@ -252,6 +260,8 @@ class MemoryCoordinator:
         clone.resources = copy.deepcopy(self.resources)
         if self.embedding_index is not None:
             clone.embedding_index = self.embedding_index.fork()
+        if self.semantic_index is not None:
+            clone.semantic_index = self.semantic_index.fork()
         if self.queue is not None:
             clone.queue = copy.copy(self.queue)
             clone.queue.events = self.queue.events.copy()
@@ -399,9 +409,10 @@ class MemoryCoordinator:
         outcomes: list[dict],
         messages: list[dict] | None = None,
         embeddings: list[dict] | None = None,
+        semantic_packets: list[dict] | None = None,
     ) -> dict:
         clone = self._transaction_copy(revision)
-        clone._commit(revision, state, outcomes, messages or [], embeddings)
+        clone._commit(revision, state, outcomes, messages or [], embeddings, semantic_packets)
         self.__dict__.update(clone.__dict__)
         return self.snapshot()
 
@@ -412,11 +423,14 @@ class MemoryCoordinator:
         outcomes: list[dict],
         messages: list[dict],
         embeddings: list[dict] | None = None,
+        semantic_packets: list[dict] | None = None,
     ) -> None:
         require(self.run is not None and self.queue is not None, "Run not created")
         body = {"state": state, "outcomes": outcomes, "messages": messages}
         if embeddings is not None:
             body["embeddings"] = embeddings
+        if semantic_packets is not None:
+            body["semantic_packets"] = semantic_packets
         canonical(body)
         batch = self.batches.get(revision)
         require(batch is not None, "No authorized batch")
@@ -428,6 +442,8 @@ class MemoryCoordinator:
             "Commit revision mismatch",
         )
         require(state.get("tick") == self.run["tick"] + 1, "Observed tick mismatch")
+        require(state.get("task") == self.run["state"].get("task"), "Factory task is immutable")
+        routing = state.get("task") == "dispatch-routing"
         commands = {c["command_id"]: c for c in batch["prepare"]["commands"]}
         require(len(outcomes) == len(commands), "Missing command results")
         seen = set()
@@ -451,6 +467,30 @@ class MemoryCoordinator:
         for jid, job in state["jobs"].items():
             prior = self.run["state"]["jobs"][jid]
             associated = [r for r in outcomes if commands[r["command_id"]].get("job_id") == jid]
+            if routing:
+                if job["stage"] == "completed":
+                    require(
+                        type(job.get("routing_correct")) is bool,
+                        "Completed routing job requires measured correctness",
+                    )
+                    if prior["stage"] == "completed":
+                        require(
+                            job["routing_correct"] == prior["routing_correct"],
+                            "Completed routing correctness is immutable",
+                        )
+                    else:
+                        require(
+                            len(associated) == 1
+                            and associated[0]["status"] == "completed"
+                            and associated[0]["observed"].get("routing_correct")
+                            is job["routing_correct"],
+                            "Routing correctness disagrees with terminal evidence",
+                        )
+                else:
+                    require(
+                        job.get("routing_correct") is None,
+                        "Routing correctness is only observed after completion",
+                    )
             if job["stage"] != prior["stage"]:
                 require(
                     len(associated) == 1 and associated[0]["status"] == "completed",
@@ -505,7 +545,10 @@ class MemoryCoordinator:
                     ),
                     "Custody recipient is outside the authorized transfer",
                 )
-        success = all(j.get("stage") == "completed" for j in state["jobs"].values())
+        complete = all(j.get("stage") == "completed" for j in state["jobs"].values())
+        success = complete and (
+            not routing or all(j["routing_correct"] for j in state["jobs"].values())
+        )
         require(
             state.get("success") is success, "Claimed success disagrees with observed job stages"
         )
@@ -515,10 +558,18 @@ class MemoryCoordinator:
             require(self.embedding_index is not None, "Embedding space not configured")
         if self.embedding_index is not None:
             self.embedding_index.commit(embeddings or [], state["tick"], commands, state)
+        if semantic_packets:
+            require(self.semantic_index is not None, "Semantic channel not configured")
+        if self.semantic_index is not None:
+            self.semantic_index.commit(
+                semantic_packets or [], state["tick"], commands, state, self.run["state"]
+            )
         batch["result"] = copy.deepcopy(body)
         status = (
             "succeeded"
             if success
+            else "rejected"
+            if complete and routing
             else "exhausted"
             if state["tick"] >= self.run["spec"]["max_ticks"]
             else "running"
@@ -530,6 +581,48 @@ class MemoryCoordinator:
             status=status,
             phase="ready" if status == "running" else "terminal",
         )
+
+    def configure_semantic_channel(
+        self, mode, checkpoint_sha256, space_id="factory-route-v1", period_ticks=5, ttl_ticks=15
+    ):
+        require(
+            self.run is not None and self.run["state"].get("task") == "dispatch-routing",
+            "Semantic channel requires routing task",
+        )
+        require(
+            {"humanoid-01", "gantry-01"} <= {r["robot_id"] for r in self.run["spec"]["robots"]},
+            "Routing semantic peers missing",
+        )
+        config = channel_config(mode, checkpoint_sha256, space_id, period_ticks, ttl_ticks)
+        if self.semantic_index is not None:
+            require(self.semantic_index.config == config, "Semantic configuration is immutable")
+            return config
+        require(
+            self.run["revision"] == 0 and self.run["phase"] == "ready",
+            "Configure semantic channel before execution",
+        )
+        self.semantic_index = SemanticIndex(self.run["run_id"], self.run["state"]["jobs"], config)
+        return config
+
+    def refresh_semantic_packets(self, tick, *, force=False):
+        require(
+            self.semantic_index is not None and tick == self.run["tick"],
+            "Semantic refresh requires committed tick",
+        )
+        self.semantic_index.refresh(list(self.semantic_index.records.values()), tick)
+        return self.semantic_index.metrics
+
+    def retrieve_semantic_packet(self, recipient, job_id, tick):
+        require(
+            self.semantic_index is not None and tick <= self.run["tick"],
+            "Semantic retrieval requires committed time",
+        )
+        result = self.semantic_index.retrieve(recipient, job_id, tick)
+        return None if self.run["state"]["jobs"][job_id]["stage"] == "completed" else result
+
+    @property
+    def semantic_metrics(self):
+        return self.semantic_index.metrics if self.semantic_index else {"enabled": False}
 
     def configure_embedding_space(self, space_id, checkpoint_sha256):
         require(self.run is not None, "Run not created")

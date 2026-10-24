@@ -79,8 +79,17 @@ const factory_embedding = table({ public: false }, {
   space_id: t.string(), checkpoint_sha256: t.string(), dimension: t.u8(), modality: t.string(),
   command_id: t.string(), job_id: t.string(), vector: t.array(t.f32()), record_json: t.string(),
 });
+const factory_semantic_channel = table({ public: false }, {
+  run_id: t.string().primaryKey(), config_json: t.string(),
+});
+const factory_semantic_packet = table({ public: false }, {
+  key: t.string().primaryKey(), run_id: t.string().index('btree'),
+  job_id: t.string(), recipient_scope: t.string().index('btree'),
+  emitted_tick: t.u32(), expires_tick: t.u32(), mode: t.string(),
+  vector: t.array(t.f32()), text_payload: t.string(), packet_json: t.string(),
+});
 
-const spacetime = schema({ module_owner, task, assignment, plan_frame, action_frame, feedback_frame, factory_run, factory_robot, factory_batch, factory_command, factory_resource, factory_event, factory_embedding_space, factory_embedding });
+const spacetime = schema({ module_owner, task, assignment, plan_frame, action_frame, feedback_frame, factory_run, factory_robot, factory_batch, factory_command, factory_resource, factory_event, factory_embedding_space, factory_embedding, factory_semantic_channel, factory_semantic_packet });
 export default spacetime;
 type Ctx = ReducerCtx<typeof spacetime.schemaType>;
 type Json = Record<string, unknown>;
@@ -418,12 +427,14 @@ export const create_factory_run = spacetime.reducer({
   for (const id of ['mediator', 'judge']) ctx.db.factory_robot.insert({ key: `${args.run_id}:${id}`,
     run_id: args.run_id, robot_id: id, capabilities_json: '[]', last_sequence: -1n });
   const jobs = array(spec.jobs, 'factory jobs', 64); require(jobs.length > 0, 'Missing jobs');
+  if (state.task === 'dispatch-routing') require(jobs.length <= 3, 'Routing supports one to three jobs');
   const observedJobs = object(state.jobs, 'initial job inventory'), jobIds = new Set<string>();
   for (const item of jobs) {
     const job = object(item, 'job'); text(job.job_id, 'job ID', 128); identifier(job.job_id, 'job ID');
     require(!jobIds.has(job.job_id), 'Duplicate job'); jobIds.add(job.job_id);
     const observed = object(observedJobs[job.job_id], 'initial job');
     require(observed.stage === job.stage && observed.stage !== 'completed', 'Invalid initial job stage');
+    if (state.task === 'dispatch-routing') require(observed.routing_correct === null || observed.routing_correct === undefined, 'Initial route correctness cannot be prefilled');
   }
   require(Object.keys(observedJobs).length === jobs.length, 'Wrong initial job inventory');
   const resources = array(spec.resources, 'factory resources', 128);
@@ -518,6 +529,9 @@ export const commit_factory_batch = spacetime.reducer({
   require(run.phase === 'executing' && run.revision === args.revision, 'Factory result revision conflict');
   const result = parse(args.result_json, 'factory result'), state = object(result.state, 'factory observed state');
   require(state.tick === run.tick + 1, 'Factory observed tick conflict');
+  const previousState = parse(run.state_json, 'previous factory state');
+  require(state.task === previousState.task, 'Factory task is immutable');
+  const routing = state.task === 'dispatch-routing';
   const commands = array(parse(batch.prepare_json, 'stored batch').commands, 'stored commands');
   const outcomes = array(result.outcomes, 'factory outcomes', 32);
   require(outcomes.length === commands.length, 'Missing factory outcomes');
@@ -541,6 +555,13 @@ export const commit_factory_batch = spacetime.reducer({
     const job = object(item, 'observed job'), old = object(previous[jid], 'previous job');
     text(job.stage, 'observed stage', 128);
     const associated = outcomes.map(x => object(x, 'outcome')).filter(o => byId.get(o.command_id)!.job_id === jid);
+    if (routing) {
+      if (job.stage === 'completed') {
+        require(typeof job.routing_correct === 'boolean', 'Completed routing job requires measured correctness');
+        if (old.stage === 'completed') require(job.routing_correct === old.routing_correct, 'Completed routing correctness is immutable');
+        else require(associated.length === 1 && associated[0].status === 'completed' && object(associated[0].observed, 'route evidence').routing_correct === job.routing_correct, 'Routing correctness disagrees with terminal evidence');
+      } else require(job.routing_correct === null || job.routing_correct === undefined, 'Routing correctness is only observed after completion');
+    }
     if (job.stage !== old.stage) {
       require(associated.length === 1 && associated[0].status === 'completed', 'Unobserved factory job transition');
       const outcome = associated[0], command = byId.get(outcome.command_id)!;
@@ -558,12 +579,14 @@ export const commit_factory_batch = spacetime.reducer({
       require([null, undefined, '', command.robot_id, payload.source, payload.target].includes(job.custodian), 'Custody recipient outside authorized transfer');
     }
   }
-  const success = Object.values(jobs).every(item => object(item, 'job').stage === 'completed');
+  const complete = Object.values(jobs).every(item => object(item, 'job').stage === 'completed');
+  const success = complete && (!routing || Object.values(jobs).every(item => object(item, 'job').routing_correct === true));
   require(state.success === success, 'Factory success disagrees with observed job stages');
   storeFactoryEmbeddings(ctx, run, result.embeddings ?? [], state, byId);
+  storeFactorySemanticPackets(ctx, run, result.semantic_packets ?? [], state, previousState, byId);
   factoryMessages(ctx, args.run_id, result.messages ?? [], state.tick as number);
   ctx.db.factory_batch.key.update({ ...batch, result_json: args.result_json });
-  const status = success ? 'succeeded' : (state.tick as number) >= run.max_ticks ? 'exhausted' : 'running';
+  const status = success ? 'succeeded' : complete && routing ? 'rejected' : (state.tick as number) >= run.max_ticks ? 'exhausted' : 'running';
   ctx.db.factory_run.run_id.update({ ...run, state_json: JSON.stringify(state), tick: state.tick as number,
     revision: run.revision + 1, phase: status === 'running' ? 'ready' : 'terminal', status, updated_at: ctx.timestamp });
 });
@@ -651,5 +674,79 @@ function storeFactoryEmbeddings(ctx: Ctx, run: ReturnType<typeof factoryRun>, re
   for (const robot of robotIds) {
     const rows = [...ctx.db.factory_embedding.robot_scope.filter(`${run.run_id}:${robot}`)].sort((a,b) => b.tick-a.tick);
     for (const row of rows.slice(16)) ctx.db.factory_embedding.key.delete(row.key);
+  }
+}
+
+// Job beliefs are independent of short-lived pose embeddings. Retransmissions
+// preserve the original observation/payload; fresh emission never means fresh RGB.
+export const configure_factory_semantic_channel = spacetime.reducer({
+  run_id: t.string(), worker_id: t.string(), config_json: t.string(),
+}, (ctx, args) => {
+  const run = factoryRun(ctx, args.run_id, args.worker_id), config = parse(args.config_json, 'semantic config');
+  require(parse(run.state_json, 'factory state').task === 'dispatch-routing', 'Semantic channel requires routing task');
+  require(config.schema === 'relay.factory.semantic.v1' && config.space_id === 'factory-route-v1', 'Unsupported semantic schema');
+  require(['embeddings', 'text', 'none'].includes(config.mode as string), 'Unsupported semantic mode');
+  require(typeof config.checkpoint_sha256 === 'string' && /^[a-f0-9]{64}$/.test(config.checkpoint_sha256), 'Invalid semantic checkpoint');
+  integer(config.period_ticks, 'semantic cadence', 1, 64); integer(config.ttl_ticks, 'semantic TTL', 15, 64);
+  require(config.period_ticks <= config.ttl_ticks, 'Semantic cadence exceeds TTL');
+  const prior = ctx.db.factory_semantic_channel.run_id.find(run.run_id);
+  if (prior) { require(prior.config_json === args.config_json, 'Semantic configuration is immutable'); return; }
+  require(run.revision === 0 && run.phase === 'ready', 'Configure semantic channel before execution');
+  const robots = array(parse(run.spec_json, 'factory spec').robots, 'robots').map(r => object(r, 'robot').robot_id);
+  require(robots.includes('humanoid-01') && robots.includes('gantry-01'), 'Routing semantic peers missing');
+  ctx.db.factory_semantic_channel.insert({ run_id: run.run_id, config_json: args.config_json });
+});
+
+function semanticOrigin(packet: Json) {
+  return JSON.stringify(Object.fromEntries(Object.entries(packet).filter(([key]) => !['packet_id', 'emitted_tick', 'expires_tick'].includes(key)).sort(([a], [b]) => a.localeCompare(b))));
+}
+
+function storeFactorySemanticPackets(ctx: Ctx, run: ReturnType<typeof factoryRun>, values: unknown,
+  state: Json, previous: Json, commands: Map<unknown, Json>) {
+  const packets = array(values, 'semantic packet batch', 3);
+  const configured = ctx.db.factory_semantic_channel.run_id.find(run.run_id);
+  require(configured || packets.length === 0, 'Semantic channel not configured');
+  if (!configured) return;
+  const config = parse(configured.config_json, 'semantic config'), tick = state.tick as number;
+  const jobs = object(state.jobs, 'observed jobs'), oldJobs = object(previous.jobs, 'previous jobs');
+  const seen = new Set<string>();
+  for (const value of packets) {
+    const packet = object(value, 'semantic packet'); require(config.mode !== 'none', 'Semantic channel is disabled');
+    const content = config.mode === 'embeddings' ? 'vector' : 'text';
+    const fields = ['schema', 'space_id', 'checkpoint_sha256', 'mode', 'run_id', 'job_id', 'sender', 'recipient', 'topic', 'packet_id', 'emitted_tick', 'expires_tick', 'observation_tick', 'source_command_id', 'source_frame_sha256', content];
+    require(Object.keys(packet).length === fields.length && Object.keys(packet).every(key => fields.includes(key)), 'Semantic fields disclose mixed or unsupported data');
+    const packet_json = JSON.stringify(packet); require(packet_json.length <= 4096, 'Semantic packet exceeds limit');
+    for (const key of ['schema', 'space_id', 'checkpoint_sha256', 'mode']) require(packet[key] === config[key], 'Semantic packet schema/model/mode mismatch');
+    text(packet.job_id, 'semantic job', 128);
+    require(packet.run_id === run.run_id && packet.job_id in jobs && !seen.has(packet.job_id), 'Semantic run/job scope or duplicate mismatch');
+    seen.add(packet.job_id);
+    require(packet.sender === 'humanoid-01' && packet.recipient === 'gantry-01' && packet.topic === 'dispatch_route', 'Semantic peer/topic mismatch');
+    require(typeof packet.source_frame_sha256 === 'string' && /^[a-f0-9]{64}$/.test(packet.source_frame_sha256), 'Invalid semantic source frame');
+    text(packet.source_command_id, 'semantic source command', 128); identifier(packet.source_command_id, 'semantic source command');
+    require(packet.emitted_tick === tick && packet.packet_id === `humanoid-01-${packet.job_id}-${tick}`, 'Semantic emission tick or identity mismatch');
+    integer(packet.observation_tick, 'semantic observation tick', 0, tick - 1);
+    require(packet.expires_tick === tick + (config.ttl_ticks as number), 'Semantic TTL differs from configured delivery');
+    const job = object(jobs[packet.job_id], 'semantic job'); require(job.stage !== 'completed', 'Cannot publish completed-job beliefs');
+    if (content === 'vector') {
+      const vector = array(packet.vector, 'semantic vector', 32); require(vector.length === 32, 'Semantic vector dimension mismatch');
+      vector.forEach(value => number(value, 'semantic component'));
+      require(Math.abs((vector as number[]).reduce((sum, x) => sum + x*x, 0) - 1) <= 0.002, 'Semantic vector must be unit normalized');
+    } else text(packet.text, 'semantic text', 256);
+    const key = `${run.run_id}:${packet.job_id}`, prior = ctx.db.factory_semantic_packet.key.find(key);
+    if (prior) {
+      require(tick % (config.period_ticks as number) === 0, 'Semantic retransmission outside cadence');
+      require(semanticOrigin(parse(prior.packet_json, 'old semantic packet')) === semanticOrigin(packet), 'Semantic evidence and payload are immutable');
+    } else {
+      const command = commands.get(packet.source_command_id);
+      require(packet.observation_tick === tick - 1, 'Initial semantic observation must precede this physical tick');
+      require(object(oldJobs[packet.job_id], 'previous semantic job').stage === 'queued' && command && command.robot_id === 'humanoid-01' && command.job_id === packet.job_id && command.capability === 'transfer', 'Initial semantic evidence requires this job authorized humanoid transfer');
+    }
+    const row = { key, run_id: run.run_id, job_id: packet.job_id, recipient_scope: `${run.run_id}:gantry-01`, emitted_tick: tick,
+      expires_tick: packet.expires_tick as number, mode: config.mode as string, vector: content === 'vector' ? packet.vector as number[] : [],
+      text_payload: content === 'text' ? packet.text as string : '', packet_json };
+    if (prior) ctx.db.factory_semantic_packet.key.update(row); else ctx.db.factory_semantic_packet.insert(row);
+  }
+  for (const row of ctx.db.factory_semantic_packet.run_id.filter(run.run_id)) {
+    if (object(jobs[row.job_id], 'semantic job').stage === 'completed') ctx.db.factory_semantic_packet.key.delete(row.key);
   }
 }

@@ -46,6 +46,7 @@ def export_factory_replay(log_path, dest, summary=None, *, sample_every=5):
     )
     messages, events = deque(maxlen=80), deque(maxlen=40)
     latest_embeddings = {}
+    communication = None
     frames = []
     last_state, last_tick, last_stages = None, -1, None
     committed_ticks = decisions = completed_commands = failed_commands = 0
@@ -94,6 +95,7 @@ def export_factory_replay(log_path, dest, summary=None, *, sample_every=5):
                     "reason": "Per-frame retrieval latency is not in the trace",
                 },
             },
+            "communication": deepcopy(communication),
             "motor_actions": _compact(deepcopy(trace.get("motor_actions", []))),
             "causality": {
                 "label": "Recorded peer embedding IDs used by motor inference",
@@ -130,6 +132,7 @@ def export_factory_replay(log_path, dest, summary=None, *, sample_every=5):
                     raise ValueError("Trace contains multiple initializations")
                 run_id, scene = entry.get("run_id"), _compact(entry["scene"])
                 backend, policy = entry.get("backend", {}), entry.get("policy", {})
+                communication = _compact(entry.get("communication"))
                 if not policy and summary:
                     policy = summary.get("policy", {})
                 state = entry["state"]
@@ -153,6 +156,8 @@ def export_factory_replay(log_path, dest, summary=None, *, sample_every=5):
                     raise ValueError("Committed replay ticks must strictly increase")
                 last_tick = state["tick"]
                 committed_ticks += 1
+                if entry.get("communication") is not None:
+                    communication = {**(communication or {}), **_compact(entry["communication"])}
                 for message in entry.get("messages", []):
                     messages.append(
                         {
@@ -223,7 +228,7 @@ def export_factory_replay(log_path, dest, summary=None, *, sample_every=5):
         not last_state.get("success") or summary.get("tick", last_tick) != last_tick
     ):
         raise ValueError("Summary claims success without matching committed success evidence")
-    if final_status in {"succeeded", "failed", "cancelled", "exhausted"}:
+    if final_status in {"succeeded", "rejected", "failed", "cancelled", "exhausted"}:
         final_frame = frames[-1][1]
         final_frame["recorded_status"] = final_status
         final_frame["error"] = summary.get("error")
@@ -245,6 +250,9 @@ def export_factory_replay(log_path, dest, summary=None, *, sample_every=5):
                 }
             )
             final_frame["embeddings"]["metrics_scope"] = "whole recorded run"
+        if summary.get("tick") == last_tick and summary.get("communication"):
+            final_frame["communication"] = deepcopy(summary["communication"])
+            final_frame["communication"]["metrics_scope"] = "whole recorded run"
     summary = {**summary, "recorded": True, "live": False}
     if "coordination" in summary:
         summary["coordination"] = {**summary["coordination"], "connected": False, "recorded": True}

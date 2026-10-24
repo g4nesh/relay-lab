@@ -83,6 +83,7 @@ class FactoryWorld:
         cargo_ids: list[str] | None = None,
         motor_policy: Any | None = None,
         pose_jitter: float = 0.0,
+        task: str = "standard",
     ):
         if not math.isfinite(dt) or dt < 0.01 or dt > 0.2:
             raise ValueError("dt must be between 0.01 and 0.2 seconds")
@@ -90,7 +91,12 @@ class FactoryWorld:
             raise ValueError("batch_size must be between one and six")
         if not math.isfinite(pose_jitter) or not 0 <= pose_jitter <= 0.04:
             raise ValueError("pose_jitter must be between zero and 0.04 metres")
+        if task not in ("standard", "dispatch-routing"):
+            raise ValueError("Unknown factory task")
+        if task == "dispatch-routing" and batch_size > 3:
+            raise ValueError("Dispatch routing reserves two pallet slots per order; maximum three")
         self.seed, self.dt = int(seed), float(dt)
+        self.task = task
         self.motor_policy = motor_policy
         self._motor_actions: list[dict] = []
         self._motor_stats = {
@@ -108,6 +114,14 @@ class FactoryWorld:
         self.cargo_ids = cargo_ids or [f"part-{index + 1:03}" for index in range(batch_size)]
         if len(self.cargo_ids) != batch_size or len(set(self.cargo_ids)) != batch_size:
             raise ValueError("cargo IDs must be unique and match batch_size")
+        # This state is evaluator-only. It never enters public snapshots,
+        # candidates, planner feedback or a motor observation as a scalar.
+        cue_rng = np.random.default_rng(np.random.SeedSequence([self.seed, 0x52544C]))
+        self._private_routes = (
+            {cargo_id: str(cue_rng.choice(["A", "B"])) for cargo_id in self.cargo_ids}
+            if task == "dispatch-routing"
+            else {}
+        )
         self.model = mujoco.MjModel.from_xml_string(mujoco_xml(self.cargo_ids))
         self.data = mujoco.MjData(self.model)
         self.tick = 0
@@ -160,19 +174,63 @@ class FactoryWorld:
             self._update_joints(robot)
 
     @property
-    def success(self) -> bool:
+    def physical_complete(self) -> bool:
         return all(
             item["delivered"]
             and item["processed"]
             and item["owner"] is None
             and np.linalg.norm(
-                self._cargo_position(item["id"]) - np.array(pallet_slot(item["index"]))
+                self._cargo_position(item["id"])
+                - np.array(pallet_slot(item.get("delivery_slot", item["index"])))
             )
             < 0.065
             and np.linalg.norm(self.data.qvel[self._qvel[item["id"]] : self._qvel[item["id"]] + 3])
             < 0.08
             for item in self.cargo.values()
         )
+
+    @property
+    def success(self) -> bool:
+        return self.physical_complete and (
+            self.task != "dispatch-routing"
+            or all(item.get("routing_correct") is True for item in self.cargo.values())
+        )
+
+    def inspect_private_cue(self, robot_id: str, job_id: str) -> np.ndarray:
+        """Return the receiving inspection camera, never the hidden route label."""
+        if self.task != "dispatch-routing":
+            raise ValueError("Private inspection belongs to the dispatch-routing task")
+        if robot_id != "humanoid-01":
+            raise PermissionError("Only the receiving humanoid has the inspection camera")
+        item = next((item for item in self.cargo.values() if item["job_id"] == job_id), None)
+        if item is None:
+            raise ValueError("Unknown inspection job")
+        if item["stage"] != "queued" or item["location"] != "receive" or item["owner"]:
+            raise ValueError("Inspection is available only while the part is in receiving")
+        from .routing_codec import render_inspection_cue
+
+        rgb = render_inspection_cue(
+            self._private_routes[item["id"]], seed=self.seed + 7919 * (item["index"] + 1)
+        )
+        if not isinstance(rgb, np.ndarray) or rgb.dtype != np.uint8 or rgb.shape != (64, 64, 3):
+            raise ValueError("Inspection renderer must provide 64x64 uint8 RGB")
+        return rgb.copy()
+
+    def routing_oracle(self) -> dict:
+        """Export evaluator ground truth only after all physical work is done."""
+        if self.task != "dispatch-routing":
+            raise ValueError("No routing oracle for the standard task")
+        if not self.physical_complete:
+            raise RuntimeError("Routing ground truth is sealed until physical completion")
+        return {
+            item["job_id"]: {
+                "route": self._private_routes[item["id"]],
+                "required_slot": 2 * item["index"] + int(self._private_routes[item["id"]] == "B"),
+                "selected_slot": item["delivery_slot"],
+                "correct": item["routing_correct"],
+            }
+            for item in self.cargo.values()
+        }
 
     def scene(self) -> dict:
         scene = scene_spec()
@@ -227,12 +285,14 @@ class FactoryWorld:
                 }
             )
         return {
+            "task": self.task,
             "tick": self.tick,
             "time": round(self.tick * self.dt, 3),
             "dt": self.dt,
             "robots": robot_states,
             "cargo": cargo_states,
             "success": self.success,
+            "physical_complete": self.physical_complete,
             "jobs": {
                 item["job_id"]: {
                     **item,
@@ -1250,11 +1310,22 @@ class FactoryWorld:
                 return False
             item["delivered"] = True
             item["stage"] = "completed"
+            slot = command.get("pallet_slot", item["index"])
+            if self.task == "dispatch-routing":
+                item["delivery_slot"] = slot
+                item["routing_correct"] = slot == (
+                    2 * item["index"] + int(self._private_routes[cargo_id] == "B")
+                )
             self._event(
                 "delivery_verified",
                 robot,
                 cargo_id=cargo_id,
-                slot=item["index"],
+                slot=slot,
+                **(
+                    {"routing_correct": item["routing_correct"]}
+                    if self.task == "dispatch-routing"
+                    else {}
+                ),
                 position=self._vec(position),
             )
         return True
@@ -1292,6 +1363,14 @@ class FactoryWorld:
                 "position": self._vec(self._cargo_position(item["id"]))
                 if item
                 else self._vec(robot.position),
+                **(
+                    {
+                        "delivery_slot": item["delivery_slot"],
+                        "routing_correct": item["routing_correct"],
+                    }
+                    if "routing_correct" in item
+                    else {}
+                ),
             },
         }
         self._event(
@@ -1368,6 +1447,19 @@ class FactoryWorld:
                 raise ValueError("only gantry can access pallet")
             if not item["processed"]:
                 raise ValueError("unprocessed cargo cannot be dispatched")
+            if self.task == "dispatch-routing":
+                if target_id != "pallet":
+                    raise ValueError(
+                        "Dispatch routing uses a generic pallet with a local slot choice"
+                    )
+                slot = command.get("pallet_slot")
+                if type(slot) is not int or slot not in (2 * item["index"], 2 * item["index"] + 1):
+                    raise ValueError(
+                        "Dispatch requires an explicit slot in this job's reserved pair"
+                    )
+                return np.array(pallet_slot(slot))
+            if "pallet_slot" in command:
+                raise ValueError("Explicit pallet choices belong to the dispatch-routing task")
             return np.array(pallet_slot(item["index"]))
         raise ValueError("unknown or unsupported placement target")
 
@@ -1530,6 +1622,10 @@ class FactoryWorld:
 
     def close(self) -> None:
         """Release learned-camera GL resources on the producer's owning thread."""
+        if self.task == "dispatch-routing":
+            from .routing_codec import close_inspection_renderers
+
+            close_inspection_renderers()
         if self.motor_policy is not None:
             from .vision import close_renderers
 

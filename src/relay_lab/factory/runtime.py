@@ -33,6 +33,9 @@ class FactoryRun:
         checkpoint=None,
         embeddings=True,
         pose_jitter=0.02,
+        task="standard",
+        communication="embeddings",
+        routing_codec=None,
     ):
         if type(orders) is not int or not 1 <= orders <= 6:
             raise ValueError("Orders must be an integer from 1 to 6")
@@ -46,6 +49,12 @@ class FactoryRun:
             raise ValueError("Policy must be factory-vla or model-based")
         if type(embeddings) is not bool:
             raise ValueError("Embeddings must be enabled or disabled explicitly")
+        if task not in ("standard", "dispatch-routing"):
+            raise ValueError("Unknown factory task")
+        if communication not in ("embeddings", "text", "none"):
+            raise ValueError("Unknown communication mode")
+        if task == "dispatch-routing" and orders > 3:
+            raise ValueError("Dispatch routing supports at most three paired-slot orders")
         if world is None:
             motor = None
             if policy == "factory-vla":
@@ -59,6 +68,7 @@ class FactoryRun:
                 batch_size=orders,
                 motor_policy=motor,
                 pose_jitter=pose_jitter if motor else 0,
+                task=task,
             )
         self.world = world
         self.motor = getattr(world, "motor_policy", None)
@@ -95,8 +105,17 @@ class FactoryRun:
         self._closed = False
         self.no_progress_ticks = 0
         self.exchange = None
+        self.routing_exchange = None
         self._sensor_images = {}
-        if self.motor is not None:
+        if task == "dispatch-routing":
+            from .routing_exchange import RoutingExchange
+
+            if getattr(self.world, "task", None) != task:
+                raise ValueError("Injected world does not match the requested task")
+            self.routing_exchange = RoutingExchange(
+                self.world, self.coordinator, self.run_id, mode=communication, codec=routing_codec
+            )
+        elif self.motor is not None:
             from .exchange import LatentExchange
 
             self.exchange = LatentExchange(
@@ -142,10 +161,13 @@ class FactoryRun:
                 "state": self.state,
                 "backend": self.coordinator.backend_info,
                 "policy": self.motor.model_info if self.motor else {"policy": "model-based"},
+                "communication": self.routing_exchange.view() if self.routing_exchange else None,
             },
         )
         if self.exchange:
             self.exchange.initialize()
+        if self.routing_exchange:
+            self.routing_exchange.initialize()
         self._refresh()
 
     def _message(self, sender, recipient, kind, payload, *, correlation=None, priority=5):
@@ -178,6 +200,14 @@ class FactoryRun:
                 for key in ("kind", "source", "target", "cargo_id", "expected_stage", "next_stage")
             },
         }
+        if self.routing_exchange and candidate.get("target") == "pallet":
+            job = candidate["job_id"]
+            decision = self.routing_exchange.decide(
+                job, self.state["jobs"][job]["index"], self.state["tick"]
+            )
+            command["payload"]["pallet_slot"] = decision["pallet_slot"]
+            command["payload"]["route_packet_id"] = decision["packet_id"]
+            self._write("route_decision", decision)
         robot, job = command["robot_id"], candidate.get("job_id")
         messages = []
         # Readiness comes from world.candidates(): station proximity, idle receiver,
@@ -249,7 +279,7 @@ class FactoryRun:
             raise RuntimeError(
                 "Worker is stopped after an unconfirmed or failed execution; create a new run"
             )
-        if self.status in ("succeeded", "exhausted", "failed", "cancelled"):
+        if self.status in ("succeeded", "rejected", "exhausted", "failed", "cancelled"):
             return
         try:
             if self.authority is None:
@@ -281,6 +311,25 @@ class FactoryRun:
                     if self.exchange
                     else [],
                 }
+                if self.routing_exchange:
+                    # This is an explicit capability boundary, even for an
+                    # injected planner: no private sensor, memory, seed or
+                    # terminal route oracle is provided to the scheduler.
+                    planning_state = {
+                        "jobs": {
+                            key: {"stage": job["stage"], "custodian": job.get("custodian")}
+                            for key, job in self.state["jobs"].items()
+                        },
+                        "peer_semantics": [],
+                    }
+                    feedback = [
+                        {
+                            key: item[key]
+                            for key in ("job_id", "text", "kind", "from", "subgoal")
+                            if key in item
+                        }
+                        for item in feedback
+                    ]
                 decision = self.planner.choose(planning_state, candidates, feedback)
                 self.reason = decision.reason
                 self._write(
@@ -296,6 +345,8 @@ class FactoryRun:
             if self.exchange:
                 self.exchange.deliver(self.state["tick"])
             commands = self.coordinator.prepare(revision, list(self.active.values()), outgoing)
+            if self.routing_exchange:
+                self.routing_exchange.observe(commands, self.state["tick"])
             result = self.world.step(commands)  # Exactly once; no retry of physical work.
             state, outcomes = result["snapshot"], result["outcomes"]
             self._write(
@@ -333,15 +384,18 @@ class FactoryRun:
             latent_records = (
                 self.exchange.collect(state, terminal=bool(terminal)) if self.exchange else []
             )
+            extras = {}
             if latent_records:
-                authority = self.coordinator.commit(
-                    revision, state, outcomes, messages, embeddings=latent_records
-                )
-            else:
-                authority = self.coordinator.commit(revision, state, outcomes, messages)
+                extras["embeddings"] = latent_records
+            semantic_packets = self.routing_exchange.collect(state) if self.routing_exchange else []
+            if self.routing_exchange:
+                extras["semantic_packets"] = semantic_packets
+            authority = self.coordinator.commit(revision, state, outcomes, messages, **extras)
             self.state, self.authority = state, authority
             if self.exchange:
                 self.exchange.confirmed(latent_records, state["tick"])
+            if self.routing_exchange:
+                self.routing_exchange.confirmed(semantic_packets, state)
             if self.motor and (latent_records or state["tick"] % 10 == 0):
                 # Rendering stays on the simulation thread; HTTP only reads cached bytes.
                 images = {robot: self.world.sensor_png(robot) for robot in CAPABILITIES}
@@ -368,6 +422,21 @@ class FactoryRun:
                     "events": result["events"],
                     "motor_actions": result.get("motor_actions", []),
                     "embeddings": latent_records,
+                    **({"semantic_packets": semantic_packets} if self.routing_exchange else {}),
+                    **(
+                        {
+                            "communication": {
+                                "mode": self.routing_exchange.mode,
+                                "published": self.routing_exchange.published,
+                                "decisions": deepcopy(self.routing_exchange.decisions),
+                                "observation_provenance": self.routing_exchange.view()[
+                                    "observation_provenance"
+                                ],
+                            }
+                        }
+                        if self.routing_exchange
+                        else {}
+                    ),
                 },
             )
             if self.failed_commands:
@@ -422,6 +491,7 @@ class FactoryRun:
             if self.motor
             else {"policy": "model-based", "learned": False},
             "embeddings": self.exchange.view() if self.exchange else {"enabled": False},
+            "communication": self.routing_exchange.view() if self.routing_exchange else None,
             "coordination": {
                 **self.coordinator.backend_info,
                 "connected": self.authority is not None and not self._poisoned,
@@ -450,7 +520,7 @@ class FactoryRun:
         if self._closed:
             return
         self._closed = True
-        if cancelled and self.status not in ("succeeded", "exhausted", "failed"):
+        if cancelled and self.status not in ("succeeded", "rejected", "exhausted", "failed"):
             self.status = "cancelled"
             if self.authority and hasattr(self.coordinator, "abort"):
                 try:
@@ -460,6 +530,8 @@ class FactoryRun:
         self._refresh()
         try:
             summary = self.view()
+            if self.routing_exchange and self.state.get("physical_complete"):
+                summary["routing_oracle"] = self.world.routing_oracle()
             (self.output / "summary.json").write_text(json.dumps(summary, indent=2))
             self.log.close()
             if self.authority is not None:
@@ -479,7 +551,7 @@ class FactoryRun:
 def run_factory(**kwargs):
     run = FactoryRun(**kwargs)
     try:
-        while run.status not in ("succeeded", "exhausted", "failed"):
+        while run.status not in ("succeeded", "rejected", "exhausted", "failed"):
             run.tick()
         return run.view()
     finally:

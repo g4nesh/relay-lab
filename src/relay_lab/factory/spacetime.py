@@ -18,6 +18,7 @@ from relay_lab.spacetime import (
     _identifier,
 )
 
+from .communication import SemanticIndex, channel_config
 from .coordination import canonical
 from .embeddings import EmbeddingIndex, space_config
 
@@ -38,6 +39,8 @@ class SpacetimeCoordinator:
     def __init__(self, config: SpacetimeConfig | None = None):
         self.client = _MeasuredClient(config or SpacetimeConfig.from_env())
         self.embedding_index = None
+        self.semantic_index = None
+        self._completed_jobs = set()
         self._committed_tick = 0
         self.run_id: str | None = None
         self.worker_id: str | None = None
@@ -121,11 +124,14 @@ class SpacetimeCoordinator:
         outcomes: list[dict],
         messages: list[dict] | None = None,
         embeddings: list[dict] | None = None,
+        semantic_packets: list[dict] | None = None,
     ) -> dict:
         self.client._tick(revision)
         payload = {"state": state, "outcomes": outcomes, "messages": messages or []}
         if embeddings is not None:
             payload["embeddings"] = embeddings
+        if semantic_packets is not None:
+            payload["semantic_packets"] = semantic_packets
         encoded = canonical(payload)
         self.client._mutate(
             "commit_factory_batch",
@@ -137,6 +143,10 @@ class SpacetimeCoordinator:
             self.embedding_index.write_bytes += sum(
                 len(canonical(record).encode()) for record in embeddings
             )
+        if semantic_packets and self.semantic_index:
+            self.semantic_index.write_bytes += sum(
+                len(canonical(packet).encode()) for packet in semantic_packets
+            )
         return self.snapshot()
 
     def snapshot(self) -> dict:
@@ -144,6 +154,11 @@ class SpacetimeCoordinator:
         if row is None:
             raise SpacetimeError("Factory run not found")
         self._committed_tick = row["tick"]
+        self._completed_jobs = {
+            jid
+            for jid, job in json.loads(row["state_json"])["jobs"].items()
+            if job["stage"] == "completed"
+        }
         locks = self.client._sql(f"SELECT * FROM factory_resource WHERE run_id = '{self.run_id}'")
         return {
             "run_id": row["run_id"],
@@ -163,6 +178,55 @@ class SpacetimeCoordinator:
                 for lock in locks
             },
         }
+
+    def configure_semantic_channel(
+        self, mode, checkpoint_sha256, space_id="factory-route-v1", period_ticks=5, ttl_ticks=15
+    ):
+        config = channel_config(mode, checkpoint_sha256, space_id, period_ticks, ttl_ticks)
+        encoded = canonical(config)
+
+        def readback():
+            rows = self.client._sql(
+                f"SELECT config_json FROM factory_semantic_channel WHERE run_id = '{self.run_id}'"
+            )
+            return rows[0] if len(rows) == 1 else None
+
+        self.client._mutate(
+            "configure_factory_semantic_channel",
+            [self.run_id, self.worker_id, encoded],
+            readback,
+            {"config_json": encoded},
+        )
+        state = self.snapshot()["state"]
+        self.semantic_index = SemanticIndex(self.run_id, state["jobs"], config)
+        return config
+
+    def refresh_semantic_packets(self, tick, *, force=False):
+        if self.semantic_index is None or tick != self._committed_tick:
+            raise SpacetimeConflict("Semantic refresh requires current committed tick")
+        if not force and self.semantic_index.refreshes and self.semantic_index.cache_tick == tick:
+            return self.semantic_index.metrics
+        started, before = time.perf_counter(), self.client.body_bytes
+        rows = self.client._sql(
+            f"SELECT packet_json FROM factory_semantic_packet WHERE run_id = '{self.run_id}'"
+        )
+        self.semantic_index.refresh(
+            [json.loads(row["packet_json"]) for row in rows],
+            tick,
+            db_ms=(time.perf_counter() - started) * 1000,
+            transport_bytes=self.client.body_bytes - before,
+        )
+        return self.semantic_index.metrics
+
+    def retrieve_semantic_packet(self, recipient, job_id, tick):
+        if self.semantic_index is None or tick > self._committed_tick:
+            raise SpacetimeConflict("Semantic retrieval requires committed time")
+        result = self.semantic_index.retrieve(recipient, job_id, tick)
+        return None if job_id in self._completed_jobs else result
+
+    @property
+    def semantic_metrics(self):
+        return self.semantic_index.metrics if self.semantic_index else {"enabled": False}
 
     def configure_embedding_space(self, space_id, checkpoint_sha256):
         config = space_config(space_id, checkpoint_sha256)

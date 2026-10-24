@@ -29,11 +29,37 @@ uses that reference; it is not evidence of the new learned controller.
 
 The [verified learned factory recording](examples/factory-vla/README.md) completes
 3/3 workpieces with 4,390 neural actions and 338 peer-fusion actions. All 3,257
-commits match SpacetimeDB. A six-workpiece learned run also completes. **379 tests
-pass**, including real database failure checks. The paired embedding comparison
-shows actual use, but no demonstrated speed or success-rate benefit.
+commits match SpacetimeDB. A six-workpiece learned run also completes. That version
+passed 379 tests, including real database failure checks. Its fully observed pose
+embedding comparison shows actual use, but no demonstrated performance benefit.
 
 ![Completed learned factory task](examples/factory-vla/completed.png)
+
+## Partial-observation communication experiment
+
+The new `dispatch-routing` task makes communication decision-relevant: only the
+receiving humanoid sees a private inspection cue, while the gantry needs it to
+select the correct pallet slot. Other robots see only nearby dynamic objects.
+Qwen schedules public skills; Spacetime commits job-scoped learned beliefs.
+
+Compare **embeddings, exact text, and no private communication** using matched
+seeds, images, frozen motor weights and budgets. Text and vectors carry the same
+learned visual prediction, so text is a strong baseline. Physical delivery and
+correct sorting are scored separately. See the [task and information boundaries](docs/factory-communication.md)
+and [recorded comparison](examples/factory-communication/README.md).
+
+The controlled comparison completed **12/12 tasks with either embeddings or
+text, versus 2/12 without private communication**. Text matched the result with
+smaller payloads. A separate real Qwen/Spacetime suite preserves one interrupted
+database run in its results; it is not pooled with the controlled comparison.
+The current project has 480 passing tests across the full regression and final
+server checks.
+
+```bash
+uv run --extra learned relay-lab factory-run \
+  --task dispatch-routing --communication embeddings --seed 101 --orders 3 \
+  --output runs/private-dispatch
+```
 
 ## Original learned-VLA workcell
 

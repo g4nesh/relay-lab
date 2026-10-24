@@ -29,6 +29,13 @@ checkpoints/factory-vla/*
 !checkpoints/factory-vla/policy.json
 !checkpoints/factory-vla/evaluation.json
 !checkpoints/factory-vla/README.md
+!checkpoints/factory-routing/
+checkpoints/factory-routing/*
+!checkpoints/factory-routing/policy.pt
+!checkpoints/factory-routing/policy.json
+!checkpoints/factory-routing/evaluation.json
+!checkpoints/factory-routing/verification_rgb.npz
+!checkpoints/factory-routing/README.md
 .relay-lab/
 .env
 .env.*

@@ -1,0 +1,19 @@
+{
+  "checkpoint_sha256": "e3183e3c87318d13e0d5dba10f8d8a47ccc6d1ae8827c476edc3ca0421b14c00",
+  "sensor_signature": "dcfa750be0b4d45dd33cc5f490738e017e4e850ca1c09e1428626a44abdaa8b1",
+  "test_seed_base": 300000,
+  "test_data_sha256": "583414055c7900efcc2d50911e46d6090f2bf40d9519763d08f6cafbc52df5bc",
+  "samples": 768,
+  "classification_accuracy": 1.0,
+  "route_samples": 512,
+  "route_accuracy": 1.0,
+  "route_accepted_accuracy": 1.0,
+  "unreadable_recall": 1.0,
+  "route_min_confidence": 0.9991426467895508,
+  "max_latent_norm_error": 1.1920928955078125e-07,
+  "text_embedding_decision_agreement": 1.0,
+  "blank_rgb_prediction": "unreadable",
+  "blank_rgb_unreadable_score": 0.999414324760437,
+  "text_payload_bytes": 13,
+  "embedding_payload_bytes_mean": 650.18359375
+}

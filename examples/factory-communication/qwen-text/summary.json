@@ -1,0 +1,4912 @@
+{
+  "task": "dispatch-routing",
+  "tick": 3203,
+  "time": 320.3,
+  "dt": 0.1,
+  "robots": [
+    {
+      "id": "humanoid-01",
+      "kind": "humanoid",
+      "type": "humanoid",
+      "label": "H01 \u00b7 Loader",
+      "position": [
+        -7.0,
+        2.0,
+        0.0
+      ],
+      "yaw": 0.0,
+      "ee_position": [
+        -6.050474,
+        1.929901,
+        0.633647
+      ],
+      "velocity": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "speed": 0.0,
+      "holding": null,
+      "gripper_opening": 1.0,
+      "state": "idle",
+      "status": "idle",
+      "phase": "idle",
+      "active_command": null,
+      "command": null,
+      "progress": 1.0,
+      "joints": {
+        "base_yaw": -0.07369,
+        "shoulder": 0.2359,
+        "elbow": -1.72099,
+        "wrist": 1.4851,
+        "gripper": 1.0
+      },
+      "joint_points": [
+        [
+          -7.0,
+          2.0,
+          1.32
+        ],
+        [
+          -6.1273,
+          1.935572,
+          1.530344
+        ],
+        [
+          -6.050474,
+          1.929901,
+          0.633647
+        ]
+      ],
+      "controller": "learned vision-language-action motor policy"
+    },
+    {
+      "id": "amr-01",
+      "kind": "amr",
+      "type": "amr",
+      "label": "M01 \u00b7 Inbound carrier",
+      "position": [
+        -1.825817,
+        1.911071,
+        0.0
+      ],
+      "yaw": -12.27678,
+      "ee_position": [
+        -1.825817,
+        1.911071,
+        0.62
+      ],
+      "velocity": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "speed": 0.0,
+      "holding": null,
+      "gripper_opening": 0.0,
+      "state": "idle",
+      "status": "idle",
+      "phase": "idle",
+      "active_command": null,
+      "command": null,
+      "progress": 1.0,
+      "joints": {
+        "wheel_angle": 0.0
+      },
+      "joint_points": [],
+      "controller": "learned vision-language-action motor policy"
+    },
+    {
+      "id": "arm-01",
+      "kind": "arm",
+      "type": "arm",
+      "label": "A01 \u00b7 Assembly arm",
+      "position": [
+        0.0,
+        3.35,
+        0.0
+      ],
+      "yaw": -1.570796,
+      "ee_position": [
+        1.808554,
+        1.97126,
+        0.632926
+      ],
+      "velocity": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "speed": 0.0,
+      "holding": null,
+      "gripper_opening": 1.0,
+      "state": "idle",
+      "status": "idle",
+      "phase": "idle",
+      "active_command": null,
+      "command": null,
+      "progress": 1.0,
+      "joints": {
+        "base_yaw": -0.65135,
+        "shoulder": 0.42035,
+        "elbow": -1.21015,
+        "wrist": 0.7898,
+        "gripper": 1.0
+      },
+      "joint_points": [
+        [
+          0.0,
+          3.35,
+          1.0
+        ],
+        [
+          1.052749,
+          2.547443,
+          1.591712
+        ],
+        [
+          1.808554,
+          1.97126,
+          0.632926
+        ]
+      ],
+      "controller": "learned vision-language-action motor policy"
+    },
+    {
+      "id": "amr-02",
+      "kind": "amr",
+      "type": "amr",
+      "label": "M02 \u00b7 Outbound carrier",
+      "position": [
+        5.998353,
+        1.910477,
+        0.0
+      ],
+      "yaw": -12.508511,
+      "ee_position": [
+        5.998353,
+        1.910477,
+        0.62
+      ],
+      "velocity": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "speed": 0.0,
+      "holding": null,
+      "gripper_opening": 1.0,
+      "state": "idle",
+      "status": "idle",
+      "phase": "idle",
+      "active_command": null,
+      "command": null,
+      "progress": 1.0,
+      "joints": {
+        "wheel_angle": 0.0
+      },
+      "joint_points": [],
+      "controller": "learned vision-language-action motor policy"
+    },
+    {
+      "id": "gantry-01",
+      "kind": "gantry",
+      "type": "gantry",
+      "label": "G01 \u00b7 Pallet grappler",
+      "position": [
+        6.9,
+        2.0,
+        3.8
+      ],
+      "yaw": 0.0,
+      "ee_position": [
+        7.518725,
+        1.998768,
+        0.334309
+      ],
+      "velocity": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "speed": 0.0,
+      "holding": null,
+      "gripper_opening": 1.0,
+      "state": "idle",
+      "status": "idle",
+      "phase": "idle",
+      "active_command": null,
+      "command": null,
+      "progress": 1.0,
+      "joints": {
+        "bridge_x": 7.51872,
+        "trolley_y": 1.99877,
+        "hoist": 3.31569,
+        "gripper": 1.0
+      },
+      "joint_points": [
+        [
+          7.518725,
+          1.998768,
+          3.65
+        ],
+        [
+          7.518725,
+          1.998768,
+          0.334309
+        ]
+      ],
+      "controller": "learned vision-language-action motor policy"
+    }
+  ],
+  "cargo": [
+    {
+      "id": "part-001",
+      "job_id": "job-001",
+      "index": 0,
+      "owner": null,
+      "location": "pallet",
+      "processed": true,
+      "delivered": true,
+      "stage": "completed",
+      "delivery_slot": 0,
+      "routing_correct": true,
+      "position": [
+        8.076511,
+        1.303446,
+        0.319977
+      ],
+      "size": [
+        0.42,
+        0.32,
+        0.24
+      ],
+      "speed": 0.0
+    },
+    {
+      "id": "part-002",
+      "job_id": "job-002",
+      "index": 1,
+      "owner": null,
+      "location": "pallet",
+      "processed": true,
+      "delivered": true,
+      "stage": "completed",
+      "delivery_slot": 3,
+      "routing_correct": true,
+      "position": [
+        7.513432,
+        1.301884,
+        0.319977
+      ],
+      "size": [
+        0.42,
+        0.32,
+        0.24
+      ],
+      "speed": 0.0
+    },
+    {
+      "id": "part-003",
+      "job_id": "job-003",
+      "index": 2,
+      "owner": null,
+      "location": "pallet",
+      "processed": true,
+      "delivered": true,
+      "stage": "completed",
+      "delivery_slot": 4,
+      "routing_correct": true,
+      "position": [
+        7.51841,
+        1.998991,
+        0.319977
+      ],
+      "size": [
+        0.42,
+        0.32,
+        0.24
+      ],
+      "speed": 0.0
+    }
+  ],
+  "success": true,
+  "physical_complete": true,
+  "jobs": {
+    "job-001": {
+      "id": "job-001",
+      "job_id": "job-001",
+      "index": 0,
+      "owner": null,
+      "location": "pallet",
+      "processed": true,
+      "delivered": true,
+      "stage": "completed",
+      "delivery_slot": 0,
+      "routing_correct": true,
+      "position": [
+        8.076511,
+        1.303446,
+        0.319977
+      ],
+      "size": [
+        0.42,
+        0.32,
+        0.24
+      ],
+      "speed": 0.0,
+      "cargo_id": "part-001",
+      "custodian": null,
+      "color": "teal"
+    },
+    "job-002": {
+      "id": "job-002",
+      "job_id": "job-002",
+      "index": 1,
+      "owner": null,
+      "location": "pallet",
+      "processed": true,
+      "delivered": true,
+      "stage": "completed",
+      "delivery_slot": 3,
+      "routing_correct": true,
+      "position": [
+        7.513432,
+        1.301884,
+        0.319977
+      ],
+      "size": [
+        0.42,
+        0.32,
+        0.24
+      ],
+      "speed": 0.0,
+      "cargo_id": "part-002",
+      "custodian": null,
+      "color": "orange"
+    },
+    "job-003": {
+      "id": "job-003",
+      "job_id": "job-003",
+      "index": 2,
+      "owner": null,
+      "location": "pallet",
+      "processed": true,
+      "delivered": true,
+      "stage": "completed",
+      "delivery_slot": 4,
+      "routing_correct": true,
+      "position": [
+        7.51841,
+        1.998991,
+        0.319977
+      ],
+      "size": [
+        0.42,
+        0.32,
+        0.24
+      ],
+      "speed": 0.0,
+      "cargo_id": "part-003",
+      "custodian": null,
+      "color": "blue"
+    }
+  },
+  "completed": 3,
+  "total": 3,
+  "interlocks": {
+    "aisle-main": null
+  },
+  "motor_policy": {
+    "mode": "vla",
+    "metrics": {
+      "inferences": 4332,
+      "safety_edits": 4332,
+      "grasp_attempts": 12,
+      "release_attempts": 12
+    },
+    "model": {
+      "policy": "factory-vla",
+      "model_id": "relay-lab/factory-vla-v1",
+      "checkpoint": "/Users/ganeshtalluri/Documents/ChatGPT/vla-comms/checkpoints/factory-vla/policy.pt",
+      "checkpoint_sha256": "a31f6dd477c03ae6848f1a96fd79004582d02bfbcdef84f1fb8825f2e99e1f5b",
+      "parameters": 87182,
+      "sensor_signature": "b64eb4c32efd60ed5b3b0bb91444582d7415c18eb92aa6267c19c3078f5f2842",
+      "latent_space": "factory-vla-v1",
+      "embedding_dimensions": 32,
+      "device": "cpu",
+      "training": {
+        "codec_validation": {
+          "seed": 1008,
+          "samples": 12000,
+          "mean_m": 0.02108481526374817,
+          "p95_m": 0.0497165210545063,
+          "within_65mm": 0.9746666666666667
+        },
+        "seed": 91,
+        "rendered_scenes": 800,
+        "render_seed": 8123,
+        "dataset_sha256": "8f59d63c8a47ddb551e94fa70e2f63544ab9b65c9ead45e5d14cc7c66720ef46",
+        "source": "original MuJoCo tagged factory RGB and original behavior-cloning teacher",
+        "pixel_steps": 3000,
+        "control_steps": 24000,
+        "codec_steps": 5000,
+        "teacher_examples": 18432000,
+        "seconds": 137.86977099999785,
+        "source_sha256": "f5c6ee292043eac41f9ade1f355fbfd5aa3950335150a27b3829ed6f066363c8",
+        "modalities": [
+          "RGB",
+          "instruction",
+          "proprioception",
+          "compatible peer latent"
+        ],
+        "peer_fusion": "learned least-squares camera/peer fusion; typed same-checkpoint carrier identity required",
+        "refinements": [
+          {
+            "seed": 919,
+            "steps": 6000,
+            "examples": 6144000,
+            "parent_checkpoint_sha256": "c8d95b340930344c20fc7d15bb059036eb7cf3aed881308a8d864072ba035abe",
+            "source_sha256": "f5c6ee292043eac41f9ade1f355fbfd5aa3950335150a27b3829ed6f066363c8",
+            "seconds": 38.64606783282943
+          }
+        ],
+        "sensor_refinements": [
+          {
+            "parent_checkpoint_sha256": "27e16a9518a0faa6421c1fb0a4b28952c0c2d27b414fa553bb6052a5d44d2c09",
+            "sensor_signature": "b64eb4c32efd60ed5b3b0bb91444582d7415c18eb92aa6267c19c3078f5f2842",
+            "rendered_scenes": 800,
+            "dataset_sha256": "ffc44e2afcaa6be7ce4d0ea4db0670f8db99b7e7c70a13ab3ad412dd26700b81",
+            "changed_parameters": [
+              "target_offsets"
+            ],
+            "reason": "Distinct physical manipulator tag mounts prevent dock-tag interpenetration after placement"
+          }
+        ]
+      },
+      "inference_calls": 4332,
+      "total_inference_seconds": 2.0735003815498203,
+      "peer_fusion_calls": 0,
+      "sensor": {
+        "engine": "MuJoCo",
+        "views": [
+          "top",
+          "oblique"
+        ],
+        "rgb_shape": [
+          128,
+          512,
+          3
+        ],
+        "physical_fiducial_classes": 22,
+        "command_highlights": false
+      },
+      "inputs": [
+        "MuJoCo top and oblique RGB",
+        "instruction text",
+        "local proprioception",
+        "optional compatible peer embedding"
+      ],
+      "limitations": [
+        "Original task-specific imitation model, not a pretrained foundation VLA.",
+        "Calibrated fixed cameras and physical colour fiducials; no general visual reasoning.",
+        "Fixed-stance humanoid, holonomic mobile carriers, kinematic manipulator links and idealized proximity-checked grasps.",
+        "Visual goal held per instruction while target is stationary; numeric simulator goals never enter inference."
+      ]
+    }
+  },
+  "physics": {
+    "engine": "MuJoCo",
+    "controller": "learned vision-language-action",
+    "grasp": "proximity-checked idealized attachment",
+    "learned": true
+  },
+  "run_id": "factory-08dfb84635724444",
+  "status": "succeeded",
+  "sim_time": 320.3,
+  "scene": {
+    "name": "Relay Works \u00b7 Pilot Factory",
+    "units": "metres",
+    "up_axis": "z",
+    "floor_size": [
+      24.0,
+      14.0
+    ],
+    "cargo_size": [
+      0.42,
+      0.32,
+      0.24
+    ],
+    "stations": [
+      {
+        "id": "receive",
+        "kind": "receiving",
+        "label": "Inbound inspection",
+        "position": [
+          -8.0,
+          2.0,
+          1.02
+        ],
+        "size": [
+          1.3,
+          2.4,
+          0.9
+        ]
+      },
+      {
+        "id": "load",
+        "kind": "dock",
+        "label": "Load dock \u00b7 A",
+        "position": [
+          -6.0,
+          2.0,
+          0.62
+        ],
+        "size": [
+          1.25,
+          1.3,
+          0.04
+        ]
+      },
+      {
+        "id": "process-in",
+        "kind": "dock",
+        "label": "Machine input",
+        "position": [
+          -1.8,
+          2.0,
+          0.62
+        ],
+        "size": [
+          1.25,
+          1.3,
+          0.04
+        ]
+      },
+      {
+        "id": "fixture",
+        "kind": "fixture",
+        "label": "Precision assembly",
+        "position": [
+          0.0,
+          2.0,
+          1.02
+        ],
+        "size": [
+          1.2,
+          1.15,
+          0.9
+        ]
+      },
+      {
+        "id": "process-out",
+        "kind": "dock",
+        "label": "Machine output",
+        "position": [
+          1.8,
+          2.0,
+          0.62
+        ],
+        "size": [
+          1.25,
+          1.3,
+          0.04
+        ]
+      },
+      {
+        "id": "dispatch",
+        "kind": "dock",
+        "label": "Dispatch dock \u00b7 B",
+        "position": [
+          6.0,
+          2.0,
+          0.62
+        ],
+        "size": [
+          1.25,
+          1.3,
+          0.04
+        ]
+      },
+      {
+        "id": "pallet",
+        "kind": "pallet",
+        "label": "Outbound pallet",
+        "position": [
+          7.8,
+          2.0,
+          0.32
+        ],
+        "size": [
+          1.6,
+          2.4,
+          0.2
+        ]
+      }
+    ],
+    "robots": [
+      {
+        "id": "humanoid-01",
+        "kind": "humanoid",
+        "label": "H01 \u00b7 Loader",
+        "position": [
+          -7.0,
+          2.0,
+          0.0
+        ],
+        "yaw": 0.0,
+        "ee_position": [
+          -7.0,
+          2.0,
+          1.45
+        ],
+        "max_speed": 0.7,
+        "max_acceleration": 1.2,
+        "reach": 1.7,
+        "radius": 0.34,
+        "home": "humanoid-home",
+        "capabilities": [
+          "pick",
+          "place",
+          "transfer"
+        ],
+        "controller": "bounded Cartesian manipulation + analytic upper-body IK; fixed stance"
+      },
+      {
+        "id": "amr-01",
+        "kind": "amr",
+        "label": "M01 \u00b7 Inbound carrier",
+        "position": [
+          -6.0,
+          -1.5,
+          0.0
+        ],
+        "yaw": 1.57079632679,
+        "ee_position": [
+          -6.0,
+          -1.5,
+          0.62
+        ],
+        "max_speed": 1.15,
+        "max_acceleration": 0.65,
+        "reach": 0.0,
+        "radius": 0.55,
+        "home": "amr-01-home",
+        "capabilities": [
+          "navigate"
+        ],
+        "controller": "acceleration-limited navigation with swept-circle collision checks"
+      },
+      {
+        "id": "arm-01",
+        "kind": "arm",
+        "label": "A01 \u00b7 Assembly arm",
+        "position": [
+          0.0,
+          3.35,
+          0.0
+        ],
+        "yaw": -1.57079632679,
+        "ee_position": [
+          0.0,
+          2.8,
+          2.0
+        ],
+        "max_speed": 0.85,
+        "max_acceleration": 1.5,
+        "reach": 2.7,
+        "radius": 0.4,
+        "home": "arm-home",
+        "capabilities": [
+          "pick",
+          "place",
+          "transfer",
+          "process"
+        ],
+        "controller": "analytic two-link arm IK + bounded Cartesian trajectory"
+      },
+      {
+        "id": "amr-02",
+        "kind": "amr",
+        "label": "M02 \u00b7 Outbound carrier",
+        "position": [
+          6.0,
+          -1.5,
+          0.0
+        ],
+        "yaw": 1.57079632679,
+        "ee_position": [
+          6.0,
+          -1.5,
+          0.62
+        ],
+        "max_speed": 1.15,
+        "max_acceleration": 0.65,
+        "reach": 0.0,
+        "radius": 0.55,
+        "home": "amr-02-home",
+        "capabilities": [
+          "navigate"
+        ],
+        "controller": "acceleration-limited navigation with swept-circle collision checks"
+      },
+      {
+        "id": "gantry-01",
+        "kind": "gantry",
+        "label": "G01 \u00b7 Pallet grappler",
+        "position": [
+          6.9,
+          2.0,
+          3.8
+        ],
+        "yaw": 0.0,
+        "ee_position": [
+          6.9,
+          2.0,
+          2.7
+        ],
+        "max_speed": 0.95,
+        "max_acceleration": 1.25,
+        "reach": 3.6,
+        "radius": 0.25,
+        "home": "gantry-home",
+        "capabilities": [
+          "pick",
+          "place",
+          "transfer"
+        ],
+        "controller": "bounded XYZ bridge and hoist trajectory; idealized grapple"
+      }
+    ],
+    "obstacles": [
+      {
+        "id": "receiving-table",
+        "kind": "table",
+        "center": [
+          -8.0,
+          2.0
+        ],
+        "half_size": [
+          0.65,
+          1.2
+        ],
+        "height": 0.9
+      },
+      {
+        "id": "assembly-table",
+        "kind": "machine",
+        "center": [
+          0.0,
+          2.0
+        ],
+        "half_size": [
+          0.6,
+          0.575
+        ],
+        "height": 0.9
+      },
+      {
+        "id": "assembly-base",
+        "kind": "pedestal",
+        "center": [
+          0.0,
+          3.35
+        ],
+        "half_size": [
+          0.5,
+          0.5
+        ],
+        "height": 0.55
+      },
+      {
+        "id": "outbound-pallet",
+        "kind": "pallet",
+        "center": [
+          7.8,
+          2.0
+        ],
+        "half_size": [
+          0.8,
+          1.2
+        ],
+        "height": 0.2
+      },
+      {
+        "id": "rack-west",
+        "kind": "rack",
+        "center": [
+          -7.5,
+          5.7
+        ],
+        "half_size": [
+          2.4,
+          0.65
+        ],
+        "height": 3.7
+      },
+      {
+        "id": "utilities",
+        "kind": "cabinet",
+        "center": [
+          0.0,
+          5.7
+        ],
+        "half_size": [
+          2.2,
+          0.6
+        ],
+        "height": 2.0
+      },
+      {
+        "id": "rack-east",
+        "kind": "rack",
+        "center": [
+          7.5,
+          5.7
+        ],
+        "half_size": [
+          2.4,
+          0.65
+        ],
+        "height": 3.7
+      }
+    ],
+    "navigation": {
+      "spine_y": -1.5,
+      "lane_width": 1.8,
+      "docks": [
+        "load",
+        "process-in",
+        "process-out",
+        "dispatch"
+      ],
+      "routes": [
+        {
+          "id": "aisle-main",
+          "points": [
+            [
+              -9.5,
+              -1.5,
+              0.015
+            ],
+            [
+              9.5,
+              -1.5,
+              0.015
+            ]
+          ],
+          "exclusive": true
+        }
+      ]
+    },
+    "materials": {
+      "floor": "#d4d9dc",
+      "shell": "#eef1f2",
+      "steel": "#697985",
+      "graphite": "#24323d",
+      "inbound": "#047f83",
+      "outbound": "#cb771a"
+    },
+    "physics": {
+      "engine": "MuJoCo",
+      "released_cargo": "rigid-body gravity and contact",
+      "robots": "learned RGB/language motor actions through bounded kinematic actuators",
+      "grasp": "idealized attachment after measured proximity",
+      "humanoid": "fixed stance; upper-body IK, no balance or locomotion policy",
+      "learned_control": true
+    }
+  },
+  "stations": [
+    {
+      "id": "receive",
+      "kind": "receiving",
+      "label": "Inbound inspection",
+      "position": [
+        -8.0,
+        2.0,
+        1.02
+      ],
+      "size": [
+        1.3,
+        2.4,
+        0.9
+      ]
+    },
+    {
+      "id": "load",
+      "kind": "dock",
+      "label": "Load dock \u00b7 A",
+      "position": [
+        -6.0,
+        2.0,
+        0.62
+      ],
+      "size": [
+        1.25,
+        1.3,
+        0.04
+      ]
+    },
+    {
+      "id": "process-in",
+      "kind": "dock",
+      "label": "Machine input",
+      "position": [
+        -1.8,
+        2.0,
+        0.62
+      ],
+      "size": [
+        1.25,
+        1.3,
+        0.04
+      ]
+    },
+    {
+      "id": "fixture",
+      "kind": "fixture",
+      "label": "Precision assembly",
+      "position": [
+        0.0,
+        2.0,
+        1.02
+      ],
+      "size": [
+        1.2,
+        1.15,
+        0.9
+      ]
+    },
+    {
+      "id": "process-out",
+      "kind": "dock",
+      "label": "Machine output",
+      "position": [
+        1.8,
+        2.0,
+        0.62
+      ],
+      "size": [
+        1.25,
+        1.3,
+        0.04
+      ]
+    },
+    {
+      "id": "dispatch",
+      "kind": "dock",
+      "label": "Dispatch dock \u00b7 B",
+      "position": [
+        6.0,
+        2.0,
+        0.62
+      ],
+      "size": [
+        1.25,
+        1.3,
+        0.04
+      ]
+    },
+    {
+      "id": "pallet",
+      "kind": "pallet",
+      "label": "Outbound pallet",
+      "position": [
+        7.8,
+        2.0,
+        0.32
+      ],
+      "size": [
+        1.6,
+        2.4,
+        0.2
+      ]
+    }
+  ],
+  "orders": [
+    {
+      "id": "job-001",
+      "job_id": "job-001",
+      "index": 0,
+      "owner": null,
+      "location": "pallet",
+      "processed": true,
+      "delivered": true,
+      "stage": "completed",
+      "delivery_slot": 0,
+      "routing_correct": true,
+      "position": [
+        8.076511,
+        1.303446,
+        0.319977
+      ],
+      "size": [
+        0.42,
+        0.32,
+        0.24
+      ],
+      "speed": 0.0,
+      "cargo_id": "part-001",
+      "custodian": null,
+      "color": "teal"
+    },
+    {
+      "id": "job-002",
+      "job_id": "job-002",
+      "index": 1,
+      "owner": null,
+      "location": "pallet",
+      "processed": true,
+      "delivered": true,
+      "stage": "completed",
+      "delivery_slot": 3,
+      "routing_correct": true,
+      "position": [
+        7.513432,
+        1.301884,
+        0.319977
+      ],
+      "size": [
+        0.42,
+        0.32,
+        0.24
+      ],
+      "speed": 0.0,
+      "cargo_id": "part-002",
+      "custodian": null,
+      "color": "orange"
+    },
+    {
+      "id": "job-003",
+      "job_id": "job-003",
+      "index": 2,
+      "owner": null,
+      "location": "pallet",
+      "processed": true,
+      "delivered": true,
+      "stage": "completed",
+      "delivery_slot": 4,
+      "routing_correct": true,
+      "position": [
+        7.51841,
+        1.998991,
+        0.319977
+      ],
+      "size": [
+        0.42,
+        0.32,
+        0.24
+      ],
+      "speed": 0.0,
+      "cargo_id": "part-003",
+      "custodian": null,
+      "color": "blue"
+    }
+  ],
+  "mission": {
+    "completed": 3,
+    "total": 3
+  },
+  "resources": [
+    {
+      "id": "humanoid-01",
+      "label": "humanoid-01",
+      "owner": null,
+      "holder": "",
+      "command_id": "",
+      "expires_tick": 0
+    },
+    {
+      "id": "receive",
+      "label": "receive",
+      "owner": null,
+      "holder": "",
+      "command_id": "",
+      "expires_tick": 0
+    },
+    {
+      "id": "aisle-main",
+      "label": "aisle-main",
+      "owner": null,
+      "holder": "",
+      "command_id": "",
+      "expires_tick": 0
+    },
+    {
+      "id": "fixture",
+      "label": "fixture",
+      "owner": null,
+      "holder": "",
+      "command_id": "",
+      "expires_tick": 0
+    },
+    {
+      "id": "part-001",
+      "label": "part-001",
+      "owner": null,
+      "holder": "",
+      "command_id": "",
+      "expires_tick": 0
+    },
+    {
+      "id": "arm-01",
+      "label": "arm-01",
+      "owner": null,
+      "holder": "",
+      "command_id": "",
+      "expires_tick": 0
+    },
+    {
+      "id": "load",
+      "label": "load",
+      "owner": null,
+      "holder": "",
+      "command_id": "",
+      "expires_tick": 0
+    },
+    {
+      "id": "part-002",
+      "label": "part-002",
+      "owner": null,
+      "holder": "",
+      "command_id": "",
+      "expires_tick": 0
+    },
+    {
+      "id": "amr-01",
+      "label": "amr-01",
+      "owner": null,
+      "holder": "",
+      "command_id": "",
+      "expires_tick": 0
+    },
+    {
+      "id": "process-in",
+      "label": "process-in",
+      "owner": null,
+      "holder": "",
+      "command_id": "",
+      "expires_tick": 0
+    },
+    {
+      "id": "process-out",
+      "label": "process-out",
+      "owner": null,
+      "holder": "",
+      "command_id": "",
+      "expires_tick": 0
+    },
+    {
+      "id": "gantry-01",
+      "label": "gantry-01",
+      "owner": null,
+      "holder": "",
+      "command_id": "",
+      "expires_tick": 0
+    },
+    {
+      "id": "amr-02",
+      "label": "amr-02",
+      "owner": null,
+      "holder": "",
+      "command_id": "",
+      "expires_tick": 0
+    },
+    {
+      "id": "dispatch",
+      "label": "dispatch",
+      "owner": null,
+      "holder": "",
+      "command_id": "",
+      "expires_tick": 0
+    },
+    {
+      "id": "pallet",
+      "label": "pallet",
+      "owner": null,
+      "holder": "",
+      "command_id": "",
+      "expires_tick": 0
+    },
+    {
+      "id": "part-003",
+      "label": "part-003",
+      "owner": null,
+      "holder": "",
+      "command_id": "",
+      "expires_tick": 0
+    }
+  ],
+  "messages": [
+    {
+      "message_id": "amr-01-0",
+      "sender": "amr-01",
+      "recipient": "broadcast",
+      "sequence": 0,
+      "kind": "intent",
+      "correlation_id": null,
+      "expires_tick": 300,
+      "priority": 5,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": null,
+        "text": "amr-01 navigate empty carrier from current pose to load",
+        "subgoal": "load",
+        "reason": "AMR-01 needs to navigate to the load station to receive the first workpiece.",
+        "command_id": "cmd-0001",
+        "resources": [
+          "amr-01",
+          "aisle-main",
+          "load"
+        ]
+      },
+      "id": "amr-01-0",
+      "tick": 0,
+      "text": "amr-01 navigate empty carrier from current pose to load",
+      "task_id": null
+    },
+    {
+      "message_id": "amr-01-1",
+      "sender": "amr-01",
+      "recipient": "mediator",
+      "sequence": 1,
+      "kind": "outcome",
+      "correlation_id": null,
+      "expires_tick": 367,
+      "priority": 7,
+      "confidence": 1.0,
+      "payload": {
+        "command_id": "cmd-0001",
+        "job_id": null,
+        "text": "amr-01 completed: navigate; observed stage carrier positioned. verified skill completion",
+        "observed": {
+          "stage": null,
+          "custodian": null,
+          "cargo_id": null,
+          "position": [
+            -6.049979,
+            1.971776,
+            0.0
+          ]
+        }
+      },
+      "id": "amr-01-1",
+      "tick": 68,
+      "text": "amr-01 completed: navigate; observed stage carrier positioned. verified skill completion",
+      "task_id": null
+    },
+    {
+      "message_id": "amr-02-0",
+      "sender": "amr-02",
+      "recipient": "broadcast",
+      "sequence": 0,
+      "kind": "intent",
+      "correlation_id": null,
+      "expires_tick": 368,
+      "priority": 5,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": null,
+        "text": "amr-02 navigate empty carrier from current pose to process-out",
+        "subgoal": "process-out",
+        "reason": "Humanoid-01 is ready to transfer parts to AMR-02, preparing for assembly.",
+        "command_id": "cmd-0002",
+        "resources": [
+          "amr-02",
+          "aisle-main",
+          "process-out"
+        ]
+      },
+      "id": "amr-02-0",
+      "tick": 68,
+      "text": "amr-02 navigate empty carrier from current pose to process-out",
+      "task_id": null
+    },
+    {
+      "message_id": "humanoid-01-0",
+      "sender": "humanoid-01",
+      "recipient": "amr-01",
+      "sequence": 0,
+      "kind": "request",
+      "correlation_id": null,
+      "expires_tick": 369,
+      "priority": 8,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": "job-001",
+        "text": "Request custody transfer of part-001 from receive to amr-01.",
+        "command_id": "cmd-0003",
+        "subgoal": "loaded"
+      },
+      "id": "humanoid-01-0",
+      "tick": 69,
+      "text": "Request custody transfer of part-001 from receive to amr-01.",
+      "task_id": "job-001"
+    },
+    {
+      "message_id": "amr-01-2",
+      "sender": "amr-01",
+      "recipient": "humanoid-01",
+      "sequence": 2,
+      "kind": "ack",
+      "correlation_id": "humanoid-01-0",
+      "expires_tick": 369,
+      "priority": 8,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": "job-001",
+        "text": "Docking, stationary state and transfer readiness verified by simulator.",
+        "evidence": "world affordance checks"
+      },
+      "id": "amr-01-2",
+      "tick": 69,
+      "text": "Docking, stationary state and transfer readiness verified by simulator.",
+      "task_id": "job-001"
+    },
+    {
+      "message_id": "humanoid-01-1",
+      "sender": "humanoid-01",
+      "recipient": "broadcast",
+      "sequence": 1,
+      "kind": "intent",
+      "correlation_id": null,
+      "expires_tick": 369,
+      "priority": 5,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": "job-001",
+        "text": "humanoid-01 transfer part-001 from receive to amr-01",
+        "subgoal": "loaded",
+        "reason": "Humanoid-01 is tasked with transferring parts to the assembly station. This action ensures the first workpiece (job-001) is loaded and ready for assembly.",
+        "command_id": "cmd-0003",
+        "resources": [
+          "humanoid-01",
+          "receive",
+          "load",
+          "amr-01",
+          "part-001"
+        ]
+      },
+      "id": "humanoid-01-1",
+      "tick": 69,
+      "text": "humanoid-01 transfer part-001 from receive to amr-01",
+      "task_id": "job-001"
+    },
+    {
+      "message_id": "humanoid-01-2",
+      "sender": "humanoid-01",
+      "recipient": "mediator",
+      "sequence": 2,
+      "kind": "outcome",
+      "correlation_id": null,
+      "expires_tick": 452,
+      "priority": 7,
+      "confidence": 1.0,
+      "payload": {
+        "command_id": "cmd-0003",
+        "job_id": "job-001",
+        "text": "humanoid-01 completed: transfer; observed stage loaded. verified skill completion",
+        "observed": {
+          "stage": "loaded",
+          "custodian": "amr-01",
+          "cargo_id": "part-001",
+          "position": [
+            -6.049979,
+            1.971776,
+            0.62
+          ]
+        }
+      },
+      "id": "humanoid-01-2",
+      "tick": 153,
+      "text": "humanoid-01 completed: transfer; observed stage loaded. verified skill completion",
+      "task_id": "job-001"
+    },
+    {
+      "message_id": "amr-02-1",
+      "sender": "amr-02",
+      "recipient": "mediator",
+      "sequence": 1,
+      "kind": "outcome",
+      "correlation_id": null,
+      "expires_tick": 537,
+      "priority": 7,
+      "confidence": 1.0,
+      "payload": {
+        "command_id": "cmd-0002",
+        "job_id": null,
+        "text": "amr-02 completed: navigate; observed stage carrier positioned. verified skill completion",
+        "observed": {
+          "stage": null,
+          "custodian": null,
+          "cargo_id": null,
+          "position": [
+            1.807697,
+            1.972233,
+            0.0
+          ]
+        }
+      },
+      "id": "amr-02-1",
+      "tick": 238,
+      "text": "amr-02 completed: navigate; observed stage carrier positioned. verified skill completion",
+      "task_id": null
+    },
+    {
+      "message_id": "amr-01-3",
+      "sender": "amr-01",
+      "recipient": "broadcast",
+      "sequence": 3,
+      "kind": "intent",
+      "correlation_id": null,
+      "expires_tick": 538,
+      "priority": 5,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": "job-001",
+        "text": "amr-01 navigate part-001 from load to process-in",
+        "subgoal": "at_cell",
+        "reason": "amr-01 needs to navigate from load to process-in for job-001",
+        "command_id": "cmd-0004",
+        "resources": [
+          "amr-01",
+          "aisle-main",
+          "process-in",
+          "part-001"
+        ]
+      },
+      "id": "amr-01-3",
+      "tick": 238,
+      "text": "amr-01 navigate part-001 from load to process-in",
+      "task_id": "job-001"
+    },
+    {
+      "message_id": "amr-01-4",
+      "sender": "amr-01",
+      "recipient": "mediator",
+      "sequence": 4,
+      "kind": "outcome",
+      "correlation_id": null,
+      "expires_tick": 808,
+      "priority": 7,
+      "confidence": 1.0,
+      "payload": {
+        "command_id": "cmd-0004",
+        "job_id": "job-001",
+        "text": "amr-01 completed: navigate; observed stage at_cell. verified skill completion",
+        "observed": {
+          "stage": "at_cell",
+          "custodian": "amr-01",
+          "cargo_id": "part-001",
+          "position": [
+            -1.82577,
+            1.910363,
+            0.62
+          ]
+        }
+      },
+      "id": "amr-01-4",
+      "tick": 509,
+      "text": "amr-01 completed: navigate; observed stage at_cell. verified skill completion",
+      "task_id": "job-001"
+    },
+    {
+      "message_id": "arm-01-0",
+      "sender": "arm-01",
+      "recipient": "amr-01",
+      "sequence": 0,
+      "kind": "request",
+      "correlation_id": null,
+      "expires_tick": 809,
+      "priority": 8,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": "job-001",
+        "text": "Request custody transfer of part-001 from amr-01 to fixture.",
+        "command_id": "cmd-0005",
+        "subgoal": "in_fixture"
+      },
+      "id": "arm-01-0",
+      "tick": 509,
+      "text": "Request custody transfer of part-001 from amr-01 to fixture.",
+      "task_id": "job-001"
+    },
+    {
+      "message_id": "amr-01-5",
+      "sender": "amr-01",
+      "recipient": "arm-01",
+      "sequence": 5,
+      "kind": "ack",
+      "correlation_id": "arm-01-0",
+      "expires_tick": 809,
+      "priority": 8,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": "job-001",
+        "text": "Docking, stationary state and transfer readiness verified by simulator.",
+        "evidence": "world affordance checks"
+      },
+      "id": "amr-01-5",
+      "tick": 509,
+      "text": "Docking, stationary state and transfer readiness verified by simulator.",
+      "task_id": "job-001"
+    },
+    {
+      "message_id": "arm-01-1",
+      "sender": "arm-01",
+      "recipient": "broadcast",
+      "sequence": 1,
+      "kind": "intent",
+      "correlation_id": null,
+      "expires_tick": 809,
+      "priority": 5,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": "job-001",
+        "text": "arm-01 transfer part-001 from amr-01 to fixture",
+        "subgoal": "in_fixture",
+        "reason": "Start the transfer of part-001 from amr-01 to fixture using arm-01.",
+        "command_id": "cmd-0005",
+        "resources": [
+          "arm-01",
+          "amr-01",
+          "process-in",
+          "fixture",
+          "part-001"
+        ]
+      },
+      "id": "arm-01-1",
+      "tick": 509,
+      "text": "arm-01 transfer part-001 from amr-01 to fixture",
+      "task_id": "job-001"
+    },
+    {
+      "message_id": "arm-01-2",
+      "sender": "arm-01",
+      "recipient": "mediator",
+      "sequence": 2,
+      "kind": "outcome",
+      "correlation_id": null,
+      "expires_tick": 926,
+      "priority": 7,
+      "confidence": 1.0,
+      "payload": {
+        "command_id": "cmd-0005",
+        "job_id": "job-001",
+        "text": "arm-01 completed: transfer; observed stage in_fixture. verified skill completion",
+        "observed": {
+          "stage": "in_fixture",
+          "custodian": null,
+          "cargo_id": "part-001",
+          "position": [
+            0.000795,
+            2.003475,
+            1.019977
+          ]
+        }
+      },
+      "id": "arm-01-2",
+      "tick": 627,
+      "text": "arm-01 completed: transfer; observed stage in_fixture. verified skill completion",
+      "task_id": "job-001"
+    },
+    {
+      "message_id": "amr-01-6",
+      "sender": "amr-01",
+      "recipient": "broadcast",
+      "sequence": 6,
+      "kind": "intent",
+      "correlation_id": null,
+      "expires_tick": 927,
+      "priority": 5,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": null,
+        "text": "amr-01 navigate empty carrier from current pose to load",
+        "subgoal": "load",
+        "reason": "Navigate empty carrier from current pose to load to prepare for processing job-001",
+        "command_id": "cmd-0006",
+        "resources": [
+          "amr-01",
+          "aisle-main",
+          "load"
+        ]
+      },
+      "id": "amr-01-6",
+      "tick": 627,
+      "text": "amr-01 navigate empty carrier from current pose to load",
+      "task_id": null
+    },
+    {
+      "message_id": "arm-01-3",
+      "sender": "arm-01",
+      "recipient": "broadcast",
+      "sequence": 3,
+      "kind": "intent",
+      "correlation_id": null,
+      "expires_tick": 928,
+      "priority": 5,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": "job-001",
+        "text": "arm-01 process part-001 from fixture to fixture",
+        "subgoal": "processed",
+        "reason": "arm-01 processes part-001 from fixture to fixture to complete job-001",
+        "command_id": "cmd-0007",
+        "resources": [
+          "arm-01",
+          "fixture",
+          "part-001"
+        ]
+      },
+      "id": "arm-01-3",
+      "tick": 628,
+      "text": "arm-01 process part-001 from fixture to fixture",
+      "task_id": "job-001"
+    },
+    {
+      "message_id": "arm-01-4",
+      "sender": "arm-01",
+      "recipient": "mediator",
+      "sequence": 4,
+      "kind": "outcome",
+      "correlation_id": null,
+      "expires_tick": 968,
+      "priority": 7,
+      "confidence": 1.0,
+      "payload": {
+        "command_id": "cmd-0007",
+        "job_id": "job-001",
+        "text": "arm-01 completed: process; observed stage processed. verified skill completion",
+        "observed": {
+          "stage": "processed",
+          "custodian": null,
+          "cargo_id": "part-001",
+          "position": [
+            0.000795,
+            2.003475,
+            1.019977
+          ]
+        }
+      },
+      "id": "arm-01-4",
+      "tick": 669,
+      "text": "arm-01 completed: process; observed stage processed. verified skill completion",
+      "task_id": "job-001"
+    },
+    {
+      "message_id": "arm-01-5",
+      "sender": "arm-01",
+      "recipient": "amr-02",
+      "sequence": 5,
+      "kind": "request",
+      "correlation_id": null,
+      "expires_tick": 969,
+      "priority": 8,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": "job-001",
+        "text": "Request custody transfer of part-001 from fixture to amr-02.",
+        "command_id": "cmd-0008",
+        "subgoal": "outbound_loaded"
+      },
+      "id": "arm-01-5",
+      "tick": 669,
+      "text": "Request custody transfer of part-001 from fixture to amr-02.",
+      "task_id": "job-001"
+    },
+    {
+      "message_id": "amr-02-2",
+      "sender": "amr-02",
+      "recipient": "arm-01",
+      "sequence": 2,
+      "kind": "ack",
+      "correlation_id": "arm-01-5",
+      "expires_tick": 969,
+      "priority": 8,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": "job-001",
+        "text": "Docking, stationary state and transfer readiness verified by simulator.",
+        "evidence": "world affordance checks"
+      },
+      "id": "amr-02-2",
+      "tick": 669,
+      "text": "Docking, stationary state and transfer readiness verified by simulator.",
+      "task_id": "job-001"
+    },
+    {
+      "message_id": "arm-01-6",
+      "sender": "arm-01",
+      "recipient": "broadcast",
+      "sequence": 6,
+      "kind": "intent",
+      "correlation_id": null,
+      "expires_tick": 969,
+      "priority": 5,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": "job-001",
+        "text": "arm-01 transfer part-001 from fixture to amr-02",
+        "subgoal": "outbound_loaded",
+        "reason": "Execute the transfer of part-001 from fixture to amr-02 to complete the outbound loaded subgoal.",
+        "command_id": "cmd-0008",
+        "resources": [
+          "arm-01",
+          "fixture",
+          "process-out",
+          "amr-02",
+          "part-001"
+        ]
+      },
+      "id": "arm-01-6",
+      "tick": 669,
+      "text": "arm-01 transfer part-001 from fixture to amr-02",
+      "task_id": "job-001"
+    },
+    {
+      "message_id": "arm-01-7",
+      "sender": "arm-01",
+      "recipient": "mediator",
+      "sequence": 7,
+      "kind": "outcome",
+      "correlation_id": null,
+      "expires_tick": 1038,
+      "priority": 7,
+      "confidence": 1.0,
+      "payload": {
+        "command_id": "cmd-0008",
+        "job_id": "job-001",
+        "text": "arm-01 completed: transfer; observed stage outbound_loaded. verified skill completion",
+        "observed": {
+          "stage": "outbound_loaded",
+          "custodian": "amr-02",
+          "cargo_id": "part-001",
+          "position": [
+            1.807697,
+            1.972233,
+            0.62
+          ]
+        }
+      },
+      "id": "arm-01-7",
+      "tick": 739,
+      "text": "arm-01 completed: transfer; observed stage outbound_loaded. verified skill completion",
+      "task_id": "job-001"
+    },
+    {
+      "message_id": "amr-01-7",
+      "sender": "amr-01",
+      "recipient": "mediator",
+      "sequence": 7,
+      "kind": "outcome",
+      "correlation_id": null,
+      "expires_tick": 1185,
+      "priority": 7,
+      "confidence": 1.0,
+      "payload": {
+        "command_id": "cmd-0006",
+        "job_id": null,
+        "text": "amr-01 completed: navigate; observed stage carrier positioned. verified skill completion",
+        "observed": {
+          "stage": null,
+          "custodian": null,
+          "cargo_id": null,
+          "position": [
+            -6.049828,
+            1.963155,
+            0.0
+          ]
+        }
+      },
+      "id": "amr-01-7",
+      "tick": 886,
+      "text": "amr-01 completed: navigate; observed stage carrier positioned. verified skill completion",
+      "task_id": null
+    },
+    {
+      "message_id": "amr-02-3",
+      "sender": "amr-02",
+      "recipient": "broadcast",
+      "sequence": 3,
+      "kind": "intent",
+      "correlation_id": null,
+      "expires_tick": 1186,
+      "priority": 5,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": "job-001",
+        "text": "amr-02 navigate part-001 from process-out to dispatch",
+        "subgoal": "at_dispatch",
+        "reason": "amr-02 needs to navigate part-001 from process-out to dispatch",
+        "command_id": "cmd-0009",
+        "resources": [
+          "amr-02",
+          "aisle-main",
+          "dispatch",
+          "part-001"
+        ]
+      },
+      "id": "amr-02-3",
+      "tick": 886,
+      "text": "amr-02 navigate part-001 from process-out to dispatch",
+      "task_id": "job-001"
+    },
+    {
+      "message_id": "humanoid-01-3",
+      "sender": "humanoid-01",
+      "recipient": "amr-01",
+      "sequence": 3,
+      "kind": "request",
+      "correlation_id": null,
+      "expires_tick": 1187,
+      "priority": 8,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": "job-002",
+        "text": "Request custody transfer of part-002 from receive to amr-01.",
+        "command_id": "cmd-0010",
+        "subgoal": "loaded"
+      },
+      "id": "humanoid-01-3",
+      "tick": 887,
+      "text": "Request custody transfer of part-002 from receive to amr-01.",
+      "task_id": "job-002"
+    },
+    {
+      "message_id": "amr-01-8",
+      "sender": "amr-01",
+      "recipient": "humanoid-01",
+      "sequence": 8,
+      "kind": "ack",
+      "correlation_id": "humanoid-01-3",
+      "expires_tick": 1187,
+      "priority": 8,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": "job-002",
+        "text": "Docking, stationary state and transfer readiness verified by simulator.",
+        "evidence": "world affordance checks"
+      },
+      "id": "amr-01-8",
+      "tick": 887,
+      "text": "Docking, stationary state and transfer readiness verified by simulator.",
+      "task_id": "job-002"
+    },
+    {
+      "message_id": "humanoid-01-4",
+      "sender": "humanoid-01",
+      "recipient": "broadcast",
+      "sequence": 4,
+      "kind": "intent",
+      "correlation_id": null,
+      "expires_tick": 1187,
+      "priority": 5,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": "job-002",
+        "text": "humanoid-01 transfer part-002 from receive to amr-01",
+        "subgoal": "loaded",
+        "reason": "Transfer part-002 from receive to amr-01 to fulfill job-002",
+        "command_id": "cmd-0010",
+        "resources": [
+          "humanoid-01",
+          "receive",
+          "load",
+          "amr-01",
+          "part-002"
+        ]
+      },
+      "id": "humanoid-01-4",
+      "tick": 887,
+      "text": "humanoid-01 transfer part-002 from receive to amr-01",
+      "task_id": "job-002"
+    },
+    {
+      "message_id": "humanoid-01-5",
+      "sender": "humanoid-01",
+      "recipient": "mediator",
+      "sequence": 5,
+      "kind": "outcome",
+      "correlation_id": null,
+      "expires_tick": 1289,
+      "priority": 7,
+      "confidence": 1.0,
+      "payload": {
+        "command_id": "cmd-0010",
+        "job_id": "job-002",
+        "text": "humanoid-01 completed: transfer; observed stage loaded. verified skill completion",
+        "observed": {
+          "stage": "loaded",
+          "custodian": "amr-01",
+          "cargo_id": "part-002",
+          "position": [
+            -6.049828,
+            1.963155,
+            0.62
+          ]
+        }
+      },
+      "id": "humanoid-01-5",
+      "tick": 990,
+      "text": "humanoid-01 completed: transfer; observed stage loaded. verified skill completion",
+      "task_id": "job-002"
+    },
+    {
+      "message_id": "amr-02-4",
+      "sender": "amr-02",
+      "recipient": "mediator",
+      "sequence": 4,
+      "kind": "outcome",
+      "correlation_id": null,
+      "expires_tick": 1447,
+      "priority": 7,
+      "confidence": 1.0,
+      "payload": {
+        "command_id": "cmd-0009",
+        "job_id": "job-001",
+        "text": "amr-02 completed: navigate; observed stage at_dispatch. verified skill completion",
+        "observed": {
+          "stage": "at_dispatch",
+          "custodian": "amr-02",
+          "cargo_id": "part-001",
+          "position": [
+            5.998663,
+            1.911945,
+            0.62
+          ]
+        }
+      },
+      "id": "amr-02-4",
+      "tick": 1148,
+      "text": "amr-02 completed: navigate; observed stage at_dispatch. verified skill completion",
+      "task_id": "job-001"
+    },
+    {
+      "message_id": "gantry-01-0",
+      "sender": "gantry-01",
+      "recipient": "amr-02",
+      "sequence": 0,
+      "kind": "request",
+      "correlation_id": null,
+      "expires_tick": 1448,
+      "priority": 8,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": "job-001",
+        "text": "Request custody transfer of part-001 from amr-02 to pallet.",
+        "command_id": "cmd-0011",
+        "subgoal": "completed"
+      },
+      "id": "gantry-01-0",
+      "tick": 1148,
+      "text": "Request custody transfer of part-001 from amr-02 to pallet.",
+      "task_id": "job-001"
+    },
+    {
+      "message_id": "amr-02-5",
+      "sender": "amr-02",
+      "recipient": "gantry-01",
+      "sequence": 5,
+      "kind": "ack",
+      "correlation_id": "gantry-01-0",
+      "expires_tick": 1448,
+      "priority": 8,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": "job-001",
+        "text": "Docking, stationary state and transfer readiness verified by simulator.",
+        "evidence": "world affordance checks"
+      },
+      "id": "amr-02-5",
+      "tick": 1148,
+      "text": "Docking, stationary state and transfer readiness verified by simulator.",
+      "task_id": "job-001"
+    },
+    {
+      "message_id": "gantry-01-1",
+      "sender": "gantry-01",
+      "recipient": "broadcast",
+      "sequence": 1,
+      "kind": "intent",
+      "correlation_id": null,
+      "expires_tick": 1448,
+      "priority": 5,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": "job-001",
+        "text": "gantry-01 transfer part-001 from amr-02 to pallet",
+        "subgoal": "completed",
+        "reason": "gantry-01 transfer part-001 from amr-02 to pallet to complete job-001",
+        "command_id": "cmd-0011",
+        "resources": [
+          "gantry-01",
+          "amr-02",
+          "dispatch",
+          "pallet",
+          "part-001"
+        ]
+      },
+      "id": "gantry-01-1",
+      "tick": 1148,
+      "text": "gantry-01 transfer part-001 from amr-02 to pallet",
+      "task_id": "job-001"
+    },
+    {
+      "message_id": "amr-01-9",
+      "sender": "amr-01",
+      "recipient": "broadcast",
+      "sequence": 9,
+      "kind": "intent",
+      "correlation_id": null,
+      "expires_tick": 1449,
+      "priority": 5,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": "job-002",
+        "text": "amr-01 navigate part-002 from load to process-in",
+        "subgoal": "at_cell",
+        "reason": "amr-01 navigate part-002 from load to process-in",
+        "command_id": "cmd-0012",
+        "resources": [
+          "amr-01",
+          "aisle-main",
+          "process-in",
+          "part-002"
+        ]
+      },
+      "id": "amr-01-9",
+      "tick": 1149,
+      "text": "amr-01 navigate part-002 from load to process-in",
+      "task_id": "job-002"
+    },
+    {
+      "message_id": "gantry-01-2",
+      "sender": "gantry-01",
+      "recipient": "mediator",
+      "sequence": 2,
+      "kind": "outcome",
+      "correlation_id": null,
+      "expires_tick": 1563,
+      "priority": 7,
+      "confidence": 1.0,
+      "payload": {
+        "command_id": "cmd-0011",
+        "job_id": "job-001",
+        "text": "gantry-01 completed: transfer; observed stage completed. verified skill completion",
+        "observed": {
+          "stage": "completed",
+          "custodian": null,
+          "cargo_id": "part-001",
+          "position": [
+            8.076511,
+            1.303446,
+            0.319977
+          ],
+          "delivery_slot": 0,
+          "routing_correct": true
+        }
+      },
+      "id": "gantry-01-2",
+      "tick": 1264,
+      "text": "gantry-01 completed: transfer; observed stage completed. verified skill completion",
+      "task_id": "job-001"
+    },
+    {
+      "message_id": "amr-01-10",
+      "sender": "amr-01",
+      "recipient": "mediator",
+      "sequence": 10,
+      "kind": "outcome",
+      "correlation_id": null,
+      "expires_tick": 1720,
+      "priority": 7,
+      "confidence": 1.0,
+      "payload": {
+        "command_id": "cmd-0012",
+        "job_id": "job-002",
+        "text": "amr-01 completed: navigate; observed stage at_cell. verified skill completion",
+        "observed": {
+          "stage": "at_cell",
+          "custodian": "amr-01",
+          "cargo_id": "part-002",
+          "position": [
+            -1.82638,
+            1.949611,
+            0.62
+          ]
+        }
+      },
+      "id": "amr-01-10",
+      "tick": 1421,
+      "text": "amr-01 completed: navigate; observed stage at_cell. verified skill completion",
+      "task_id": "job-002"
+    },
+    {
+      "message_id": "amr-02-6",
+      "sender": "amr-02",
+      "recipient": "broadcast",
+      "sequence": 6,
+      "kind": "intent",
+      "correlation_id": null,
+      "expires_tick": 1721,
+      "priority": 5,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": null,
+        "text": "amr-02 navigate empty carrier from current pose to process-out",
+        "subgoal": "process-out",
+        "reason": "amr-02 needs to navigate to process-out to complete the next stage of the job",
+        "command_id": "cmd-0013",
+        "resources": [
+          "amr-02",
+          "aisle-main",
+          "process-out"
+        ]
+      },
+      "id": "amr-02-6",
+      "tick": 1421,
+      "text": "amr-02 navigate empty carrier from current pose to process-out",
+      "task_id": null
+    },
+    {
+      "message_id": "arm-01-8",
+      "sender": "arm-01",
+      "recipient": "amr-01",
+      "sequence": 8,
+      "kind": "request",
+      "correlation_id": null,
+      "expires_tick": 1722,
+      "priority": 8,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": "job-002",
+        "text": "Request custody transfer of part-002 from amr-01 to fixture.",
+        "command_id": "cmd-0014",
+        "subgoal": "in_fixture"
+      },
+      "id": "arm-01-8",
+      "tick": 1422,
+      "text": "Request custody transfer of part-002 from amr-01 to fixture.",
+      "task_id": "job-002"
+    },
+    {
+      "message_id": "amr-01-11",
+      "sender": "amr-01",
+      "recipient": "arm-01",
+      "sequence": 11,
+      "kind": "ack",
+      "correlation_id": "arm-01-8",
+      "expires_tick": 1722,
+      "priority": 8,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": "job-002",
+        "text": "Docking, stationary state and transfer readiness verified by simulator.",
+        "evidence": "world affordance checks"
+      },
+      "id": "amr-01-11",
+      "tick": 1422,
+      "text": "Docking, stationary state and transfer readiness verified by simulator.",
+      "task_id": "job-002"
+    },
+    {
+      "message_id": "arm-01-9",
+      "sender": "arm-01",
+      "recipient": "broadcast",
+      "sequence": 9,
+      "kind": "intent",
+      "correlation_id": null,
+      "expires_tick": 1722,
+      "priority": 5,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": "job-002",
+        "text": "arm-01 transfer part-002 from amr-01 to fixture",
+        "subgoal": "in_fixture",
+        "reason": "Execute the transfer of part-002 from amr-01 to fixture using arm-01 to complete the assembly stage.",
+        "command_id": "cmd-0014",
+        "resources": [
+          "arm-01",
+          "amr-01",
+          "process-in",
+          "fixture",
+          "part-002"
+        ]
+      },
+      "id": "arm-01-9",
+      "tick": 1422,
+      "text": "arm-01 transfer part-002 from amr-01 to fixture",
+      "task_id": "job-002"
+    },
+    {
+      "message_id": "arm-01-10",
+      "sender": "arm-01",
+      "recipient": "mediator",
+      "sequence": 10,
+      "kind": "outcome",
+      "correlation_id": null,
+      "expires_tick": 1878,
+      "priority": 7,
+      "confidence": 1.0,
+      "payload": {
+        "command_id": "cmd-0014",
+        "job_id": "job-002",
+        "text": "arm-01 completed: transfer; observed stage in_fixture. verified skill completion",
+        "observed": {
+          "stage": "in_fixture",
+          "custodian": null,
+          "cargo_id": "part-002",
+          "position": [
+            0.000666,
+            2.003488,
+            1.019977
+          ]
+        }
+      },
+      "id": "arm-01-10",
+      "tick": 1579,
+      "text": "arm-01 completed: transfer; observed stage in_fixture. verified skill completion",
+      "task_id": "job-002"
+    },
+    {
+      "message_id": "arm-01-11",
+      "sender": "arm-01",
+      "recipient": "broadcast",
+      "sequence": 11,
+      "kind": "intent",
+      "correlation_id": null,
+      "expires_tick": 1879,
+      "priority": 5,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": "job-002",
+        "text": "arm-01 process part-002 from fixture to fixture",
+        "subgoal": "processed",
+        "reason": "Execute the action to process part-002 from fixture to fixture using arm-01.",
+        "command_id": "cmd-0015",
+        "resources": [
+          "arm-01",
+          "fixture",
+          "part-002"
+        ]
+      },
+      "id": "arm-01-11",
+      "tick": 1579,
+      "text": "arm-01 process part-002 from fixture to fixture",
+      "task_id": "job-002"
+    },
+    {
+      "message_id": "arm-01-12",
+      "sender": "arm-01",
+      "recipient": "mediator",
+      "sequence": 12,
+      "kind": "outcome",
+      "correlation_id": null,
+      "expires_tick": 1919,
+      "priority": 7,
+      "confidence": 1.0,
+      "payload": {
+        "command_id": "cmd-0015",
+        "job_id": "job-002",
+        "text": "arm-01 completed: process; observed stage processed. verified skill completion",
+        "observed": {
+          "stage": "processed",
+          "custodian": null,
+          "cargo_id": "part-002",
+          "position": [
+            0.000666,
+            2.003488,
+            1.019977
+          ]
+        }
+      },
+      "id": "arm-01-12",
+      "tick": 1620,
+      "text": "arm-01 completed: process; observed stage processed. verified skill completion",
+      "task_id": "job-002"
+    },
+    {
+      "message_id": "amr-02-7",
+      "sender": "amr-02",
+      "recipient": "mediator",
+      "sequence": 7,
+      "kind": "outcome",
+      "correlation_id": null,
+      "expires_tick": 1972,
+      "priority": 7,
+      "confidence": 1.0,
+      "payload": {
+        "command_id": "cmd-0013",
+        "job_id": null,
+        "text": "amr-02 completed: navigate; observed stage carrier positioned. verified skill completion",
+        "observed": {
+          "stage": null,
+          "custodian": null,
+          "cargo_id": null,
+          "position": [
+            1.807834,
+            1.982776,
+            0.0
+          ]
+        }
+      },
+      "id": "amr-02-7",
+      "tick": 1673,
+      "text": "amr-02 completed: navigate; observed stage carrier positioned. verified skill completion",
+      "task_id": null
+    },
+    {
+      "message_id": "amr-01-12",
+      "sender": "amr-01",
+      "recipient": "broadcast",
+      "sequence": 12,
+      "kind": "intent",
+      "correlation_id": null,
+      "expires_tick": 1973,
+      "priority": 5,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": null,
+        "text": "amr-01 navigate empty carrier from current pose to load",
+        "subgoal": "load",
+        "reason": "amr-01 navigate empty carrier from current pose to load",
+        "command_id": "cmd-0016",
+        "resources": [
+          "amr-01",
+          "aisle-main",
+          "load"
+        ]
+      },
+      "id": "amr-01-12",
+      "tick": 1673,
+      "text": "amr-01 navigate empty carrier from current pose to load",
+      "task_id": null
+    },
+    {
+      "message_id": "arm-01-13",
+      "sender": "arm-01",
+      "recipient": "amr-02",
+      "sequence": 13,
+      "kind": "request",
+      "correlation_id": null,
+      "expires_tick": 1974,
+      "priority": 8,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": "job-002",
+        "text": "Request custody transfer of part-002 from fixture to amr-02.",
+        "command_id": "cmd-0017",
+        "subgoal": "outbound_loaded"
+      },
+      "id": "arm-01-13",
+      "tick": 1674,
+      "text": "Request custody transfer of part-002 from fixture to amr-02.",
+      "task_id": "job-002"
+    },
+    {
+      "message_id": "amr-02-8",
+      "sender": "amr-02",
+      "recipient": "arm-01",
+      "sequence": 8,
+      "kind": "ack",
+      "correlation_id": "arm-01-13",
+      "expires_tick": 1974,
+      "priority": 8,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": "job-002",
+        "text": "Docking, stationary state and transfer readiness verified by simulator.",
+        "evidence": "world affordance checks"
+      },
+      "id": "amr-02-8",
+      "tick": 1674,
+      "text": "Docking, stationary state and transfer readiness verified by simulator.",
+      "task_id": "job-002"
+    },
+    {
+      "message_id": "arm-01-14",
+      "sender": "arm-01",
+      "recipient": "broadcast",
+      "sequence": 14,
+      "kind": "intent",
+      "correlation_id": null,
+      "expires_tick": 1974,
+      "priority": 5,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": "job-002",
+        "text": "arm-01 transfer part-002 from fixture to amr-02",
+        "subgoal": "outbound_loaded",
+        "reason": "Execute the transfer of part-002 from fixture to amr-02 to complete the processing stage for job-002.",
+        "command_id": "cmd-0017",
+        "resources": [
+          "arm-01",
+          "fixture",
+          "process-out",
+          "amr-02",
+          "part-002"
+        ]
+      },
+      "id": "arm-01-14",
+      "tick": 1674,
+      "text": "arm-01 transfer part-002 from fixture to amr-02",
+      "task_id": "job-002"
+    },
+    {
+      "message_id": "arm-01-15",
+      "sender": "arm-01",
+      "recipient": "mediator",
+      "sequence": 15,
+      "kind": "outcome",
+      "correlation_id": null,
+      "expires_tick": 2043,
+      "priority": 7,
+      "confidence": 1.0,
+      "payload": {
+        "command_id": "cmd-0017",
+        "job_id": "job-002",
+        "text": "arm-01 completed: transfer; observed stage outbound_loaded. verified skill completion",
+        "observed": {
+          "stage": "outbound_loaded",
+          "custodian": "amr-02",
+          "cargo_id": "part-002",
+          "position": [
+            1.807834,
+            1.982776,
+            0.62
+          ]
+        }
+      },
+      "id": "arm-01-15",
+      "tick": 1744,
+      "text": "arm-01 completed: transfer; observed stage outbound_loaded. verified skill completion",
+      "task_id": "job-002"
+    },
+    {
+      "message_id": "amr-01-13",
+      "sender": "amr-01",
+      "recipient": "mediator",
+      "sequence": 13,
+      "kind": "outcome",
+      "correlation_id": null,
+      "expires_tick": 2231,
+      "priority": 7,
+      "confidence": 1.0,
+      "payload": {
+        "command_id": "cmd-0016",
+        "job_id": null,
+        "text": "amr-01 completed: navigate; observed stage carrier positioned. verified skill completion",
+        "observed": {
+          "stage": null,
+          "custodian": null,
+          "cargo_id": null,
+          "position": [
+            -6.049692,
+            1.930126,
+            0.0
+          ]
+        }
+      },
+      "id": "amr-01-13",
+      "tick": 1932,
+      "text": "amr-01 completed: navigate; observed stage carrier positioned. verified skill completion",
+      "task_id": null
+    },
+    {
+      "message_id": "amr-02-9",
+      "sender": "amr-02",
+      "recipient": "broadcast",
+      "sequence": 9,
+      "kind": "intent",
+      "correlation_id": null,
+      "expires_tick": 2232,
+      "priority": 5,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": "job-002",
+        "text": "amr-02 navigate part-002 from process-out to dispatch",
+        "subgoal": "at_dispatch",
+        "reason": "amr-02 needs to navigate part-002 from process-out to dispatch",
+        "command_id": "cmd-0018",
+        "resources": [
+          "amr-02",
+          "aisle-main",
+          "dispatch",
+          "part-002"
+        ]
+      },
+      "id": "amr-02-9",
+      "tick": 1932,
+      "text": "amr-02 navigate part-002 from process-out to dispatch",
+      "task_id": "job-002"
+    },
+    {
+      "message_id": "humanoid-01-6",
+      "sender": "humanoid-01",
+      "recipient": "amr-01",
+      "sequence": 6,
+      "kind": "request",
+      "correlation_id": null,
+      "expires_tick": 2233,
+      "priority": 8,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": "job-003",
+        "text": "Request custody transfer of part-003 from receive to amr-01.",
+        "command_id": "cmd-0019",
+        "subgoal": "loaded"
+      },
+      "id": "humanoid-01-6",
+      "tick": 1933,
+      "text": "Request custody transfer of part-003 from receive to amr-01.",
+      "task_id": "job-003"
+    },
+    {
+      "message_id": "amr-01-14",
+      "sender": "amr-01",
+      "recipient": "humanoid-01",
+      "sequence": 14,
+      "kind": "ack",
+      "correlation_id": "humanoid-01-6",
+      "expires_tick": 2233,
+      "priority": 8,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": "job-003",
+        "text": "Docking, stationary state and transfer readiness verified by simulator.",
+        "evidence": "world affordance checks"
+      },
+      "id": "amr-01-14",
+      "tick": 1933,
+      "text": "Docking, stationary state and transfer readiness verified by simulator.",
+      "task_id": "job-003"
+    },
+    {
+      "message_id": "humanoid-01-7",
+      "sender": "humanoid-01",
+      "recipient": "broadcast",
+      "sequence": 7,
+      "kind": "intent",
+      "correlation_id": null,
+      "expires_tick": 2233,
+      "priority": 5,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": "job-003",
+        "text": "humanoid-01 transfer part-003 from receive to amr-01",
+        "subgoal": "loaded",
+        "reason": "Humanoid-01 needs to transfer part-003 from receive to amr-01 to fulfill job-003.",
+        "command_id": "cmd-0019",
+        "resources": [
+          "humanoid-01",
+          "receive",
+          "load",
+          "amr-01",
+          "part-003"
+        ]
+      },
+      "id": "humanoid-01-7",
+      "tick": 1933,
+      "text": "humanoid-01 transfer part-003 from receive to amr-01",
+      "task_id": "job-003"
+    },
+    {
+      "message_id": "humanoid-01-8",
+      "sender": "humanoid-01",
+      "recipient": "mediator",
+      "sequence": 8,
+      "kind": "outcome",
+      "correlation_id": null,
+      "expires_tick": 2341,
+      "priority": 7,
+      "confidence": 1.0,
+      "payload": {
+        "command_id": "cmd-0019",
+        "job_id": "job-003",
+        "text": "humanoid-01 completed: transfer; observed stage loaded. verified skill completion",
+        "observed": {
+          "stage": "loaded",
+          "custodian": "amr-01",
+          "cargo_id": "part-003",
+          "position": [
+            -6.049692,
+            1.930126,
+            0.62
+          ]
+        }
+      },
+      "id": "humanoid-01-8",
+      "tick": 2042,
+      "text": "humanoid-01 completed: transfer; observed stage loaded. verified skill completion",
+      "task_id": "job-003"
+    },
+    {
+      "message_id": "amr-02-10",
+      "sender": "amr-02",
+      "recipient": "mediator",
+      "sequence": 10,
+      "kind": "outcome",
+      "correlation_id": null,
+      "expires_tick": 2499,
+      "priority": 7,
+      "confidence": 1.0,
+      "payload": {
+        "command_id": "cmd-0018",
+        "job_id": "job-002",
+        "text": "amr-02 completed: navigate; observed stage at_dispatch. verified skill completion",
+        "observed": {
+          "stage": "at_dispatch",
+          "custodian": "amr-02",
+          "cargo_id": "part-002",
+          "position": [
+            5.998117,
+            1.936547,
+            0.62
+          ]
+        }
+      },
+      "id": "amr-02-10",
+      "tick": 2200,
+      "text": "amr-02 completed: navigate; observed stage at_dispatch. verified skill completion",
+      "task_id": "job-002"
+    },
+    {
+      "message_id": "gantry-01-3",
+      "sender": "gantry-01",
+      "recipient": "amr-02",
+      "sequence": 3,
+      "kind": "request",
+      "correlation_id": null,
+      "expires_tick": 2500,
+      "priority": 8,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": "job-002",
+        "text": "Request custody transfer of part-002 from amr-02 to pallet.",
+        "command_id": "cmd-0020",
+        "subgoal": "completed"
+      },
+      "id": "gantry-01-3",
+      "tick": 2200,
+      "text": "Request custody transfer of part-002 from amr-02 to pallet.",
+      "task_id": "job-002"
+    },
+    {
+      "message_id": "amr-02-11",
+      "sender": "amr-02",
+      "recipient": "gantry-01",
+      "sequence": 11,
+      "kind": "ack",
+      "correlation_id": "gantry-01-3",
+      "expires_tick": 2500,
+      "priority": 8,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": "job-002",
+        "text": "Docking, stationary state and transfer readiness verified by simulator.",
+        "evidence": "world affordance checks"
+      },
+      "id": "amr-02-11",
+      "tick": 2200,
+      "text": "Docking, stationary state and transfer readiness verified by simulator.",
+      "task_id": "job-002"
+    },
+    {
+      "message_id": "gantry-01-4",
+      "sender": "gantry-01",
+      "recipient": "broadcast",
+      "sequence": 4,
+      "kind": "intent",
+      "correlation_id": null,
+      "expires_tick": 2500,
+      "priority": 5,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": "job-002",
+        "text": "gantry-01 transfer part-002 from amr-02 to pallet",
+        "subgoal": "completed",
+        "reason": "Transfer part-002 from amr-02 to pallet using gantry-01 to complete job-002",
+        "command_id": "cmd-0020",
+        "resources": [
+          "gantry-01",
+          "amr-02",
+          "dispatch",
+          "pallet",
+          "part-002"
+        ]
+      },
+      "id": "gantry-01-4",
+      "tick": 2200,
+      "text": "gantry-01 transfer part-002 from amr-02 to pallet",
+      "task_id": "job-002"
+    },
+    {
+      "message_id": "amr-01-15",
+      "sender": "amr-01",
+      "recipient": "broadcast",
+      "sequence": 15,
+      "kind": "intent",
+      "correlation_id": null,
+      "expires_tick": 2501,
+      "priority": 5,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": "job-003",
+        "text": "amr-01 navigate part-003 from load to process-in",
+        "subgoal": "at_cell",
+        "reason": "amr-01 needs to navigate part-003 from load to process-in to prepare for next stage",
+        "command_id": "cmd-0021",
+        "resources": [
+          "amr-01",
+          "aisle-main",
+          "process-in",
+          "part-003"
+        ]
+      },
+      "id": "amr-01-15",
+      "tick": 2201,
+      "text": "amr-01 navigate part-003 from load to process-in",
+      "task_id": "job-003"
+    },
+    {
+      "message_id": "gantry-01-5",
+      "sender": "gantry-01",
+      "recipient": "mediator",
+      "sequence": 5,
+      "kind": "outcome",
+      "correlation_id": null,
+      "expires_tick": 2641,
+      "priority": 7,
+      "confidence": 1.0,
+      "payload": {
+        "command_id": "cmd-0020",
+        "job_id": "job-002",
+        "text": "gantry-01 completed: transfer; observed stage completed. verified skill completion",
+        "observed": {
+          "stage": "completed",
+          "custodian": null,
+          "cargo_id": "part-002",
+          "position": [
+            7.513432,
+            1.301884,
+            0.319977
+          ],
+          "delivery_slot": 3,
+          "routing_correct": true
+        }
+      },
+      "id": "gantry-01-5",
+      "tick": 2342,
+      "text": "gantry-01 completed: transfer; observed stage completed. verified skill completion",
+      "task_id": "job-002"
+    },
+    {
+      "message_id": "amr-01-16",
+      "sender": "amr-01",
+      "recipient": "mediator",
+      "sequence": 16,
+      "kind": "outcome",
+      "correlation_id": null,
+      "expires_tick": 2771,
+      "priority": 7,
+      "confidence": 1.0,
+      "payload": {
+        "command_id": "cmd-0021",
+        "job_id": "job-003",
+        "text": "amr-01 completed: navigate; observed stage at_cell. verified skill completion",
+        "observed": {
+          "stage": "at_cell",
+          "custodian": "amr-01",
+          "cargo_id": "part-003",
+          "position": [
+            -1.825794,
+            1.913601,
+            0.62
+          ]
+        }
+      },
+      "id": "amr-01-16",
+      "tick": 2472,
+      "text": "amr-01 completed: navigate; observed stage at_cell. verified skill completion",
+      "task_id": "job-003"
+    },
+    {
+      "message_id": "amr-02-12",
+      "sender": "amr-02",
+      "recipient": "broadcast",
+      "sequence": 12,
+      "kind": "intent",
+      "correlation_id": null,
+      "expires_tick": 2772,
+      "priority": 5,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": null,
+        "text": "amr-02 navigate empty carrier from current pose to process-out",
+        "subgoal": "process-out",
+        "reason": "amr-02 needs to navigate to process-out to complete the task",
+        "command_id": "cmd-0022",
+        "resources": [
+          "amr-02",
+          "aisle-main",
+          "process-out"
+        ]
+      },
+      "id": "amr-02-12",
+      "tick": 2472,
+      "text": "amr-02 navigate empty carrier from current pose to process-out",
+      "task_id": null
+    },
+    {
+      "message_id": "arm-01-16",
+      "sender": "arm-01",
+      "recipient": "amr-01",
+      "sequence": 16,
+      "kind": "request",
+      "correlation_id": null,
+      "expires_tick": 2773,
+      "priority": 8,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": "job-003",
+        "text": "Request custody transfer of part-003 from amr-01 to fixture.",
+        "command_id": "cmd-0023",
+        "subgoal": "in_fixture"
+      },
+      "id": "arm-01-16",
+      "tick": 2473,
+      "text": "Request custody transfer of part-003 from amr-01 to fixture.",
+      "task_id": "job-003"
+    },
+    {
+      "message_id": "amr-01-17",
+      "sender": "amr-01",
+      "recipient": "arm-01",
+      "sequence": 17,
+      "kind": "ack",
+      "correlation_id": "arm-01-16",
+      "expires_tick": 2773,
+      "priority": 8,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": "job-003",
+        "text": "Docking, stationary state and transfer readiness verified by simulator.",
+        "evidence": "world affordance checks"
+      },
+      "id": "amr-01-17",
+      "tick": 2473,
+      "text": "Docking, stationary state and transfer readiness verified by simulator.",
+      "task_id": "job-003"
+    },
+    {
+      "message_id": "arm-01-17",
+      "sender": "arm-01",
+      "recipient": "broadcast",
+      "sequence": 17,
+      "kind": "intent",
+      "correlation_id": null,
+      "expires_tick": 2773,
+      "priority": 5,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": "job-003",
+        "text": "arm-01 transfer part-003 from amr-01 to fixture",
+        "subgoal": "in_fixture",
+        "reason": "Execute the transfer of part-003 from amr-01 to fixture using arm-01 to complete the job stage.",
+        "command_id": "cmd-0023",
+        "resources": [
+          "arm-01",
+          "amr-01",
+          "process-in",
+          "fixture",
+          "part-003"
+        ]
+      },
+      "id": "arm-01-17",
+      "tick": 2473,
+      "text": "arm-01 transfer part-003 from amr-01 to fixture",
+      "task_id": "job-003"
+    },
+    {
+      "message_id": "arm-01-18",
+      "sender": "arm-01",
+      "recipient": "mediator",
+      "sequence": 18,
+      "kind": "outcome",
+      "correlation_id": null,
+      "expires_tick": 2929,
+      "priority": 7,
+      "confidence": 1.0,
+      "payload": {
+        "command_id": "cmd-0023",
+        "job_id": "job-003",
+        "text": "arm-01 completed: transfer; observed stage in_fixture. verified skill completion",
+        "observed": {
+          "stage": "in_fixture",
+          "custodian": null,
+          "cargo_id": "part-003",
+          "position": [
+            0.000689,
+            2.003458,
+            1.019977
+          ]
+        }
+      },
+      "id": "arm-01-18",
+      "tick": 2630,
+      "text": "arm-01 completed: transfer; observed stage in_fixture. verified skill completion",
+      "task_id": "job-003"
+    },
+    {
+      "message_id": "arm-01-19",
+      "sender": "arm-01",
+      "recipient": "broadcast",
+      "sequence": 19,
+      "kind": "intent",
+      "correlation_id": null,
+      "expires_tick": 2930,
+      "priority": 5,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": "job-003",
+        "text": "arm-01 process part-003 from fixture to fixture",
+        "subgoal": "processed",
+        "reason": "Execute the arm-01 process part-003 from fixture to fixture action to complete the job.",
+        "command_id": "cmd-0024",
+        "resources": [
+          "arm-01",
+          "fixture",
+          "part-003"
+        ]
+      },
+      "id": "arm-01-19",
+      "tick": 2630,
+      "text": "arm-01 process part-003 from fixture to fixture",
+      "task_id": "job-003"
+    },
+    {
+      "message_id": "arm-01-20",
+      "sender": "arm-01",
+      "recipient": "mediator",
+      "sequence": 20,
+      "kind": "outcome",
+      "correlation_id": null,
+      "expires_tick": 2970,
+      "priority": 7,
+      "confidence": 1.0,
+      "payload": {
+        "command_id": "cmd-0024",
+        "job_id": "job-003",
+        "text": "arm-01 completed: process; observed stage processed. verified skill completion",
+        "observed": {
+          "stage": "processed",
+          "custodian": null,
+          "cargo_id": "part-003",
+          "position": [
+            0.000689,
+            2.003458,
+            1.019977
+          ]
+        }
+      },
+      "id": "arm-01-20",
+      "tick": 2671,
+      "text": "arm-01 completed: process; observed stage processed. verified skill completion",
+      "task_id": "job-003"
+    },
+    {
+      "message_id": "amr-02-13",
+      "sender": "amr-02",
+      "recipient": "mediator",
+      "sequence": 13,
+      "kind": "outcome",
+      "correlation_id": null,
+      "expires_tick": 3037,
+      "priority": 7,
+      "confidence": 1.0,
+      "payload": {
+        "command_id": "cmd-0022",
+        "job_id": null,
+        "text": "amr-02 completed: navigate; observed stage carrier positioned. verified skill completion",
+        "observed": {
+          "stage": null,
+          "custodian": null,
+          "cargo_id": null,
+          "position": [
+            1.808158,
+            1.974016,
+            0.0
+          ]
+        }
+      },
+      "id": "amr-02-13",
+      "tick": 2738,
+      "text": "amr-02 completed: navigate; observed stage carrier positioned. verified skill completion",
+      "task_id": null
+    },
+    {
+      "message_id": "arm-01-21",
+      "sender": "arm-01",
+      "recipient": "amr-02",
+      "sequence": 21,
+      "kind": "request",
+      "correlation_id": null,
+      "expires_tick": 3038,
+      "priority": 8,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": "job-003",
+        "text": "Request custody transfer of part-003 from fixture to amr-02.",
+        "command_id": "cmd-0025",
+        "subgoal": "outbound_loaded"
+      },
+      "id": "arm-01-21",
+      "tick": 2738,
+      "text": "Request custody transfer of part-003 from fixture to amr-02.",
+      "task_id": "job-003"
+    },
+    {
+      "message_id": "amr-02-14",
+      "sender": "amr-02",
+      "recipient": "arm-01",
+      "sequence": 14,
+      "kind": "ack",
+      "correlation_id": "arm-01-21",
+      "expires_tick": 3038,
+      "priority": 8,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": "job-003",
+        "text": "Docking, stationary state and transfer readiness verified by simulator.",
+        "evidence": "world affordance checks"
+      },
+      "id": "amr-02-14",
+      "tick": 2738,
+      "text": "Docking, stationary state and transfer readiness verified by simulator.",
+      "task_id": "job-003"
+    },
+    {
+      "message_id": "arm-01-22",
+      "sender": "arm-01",
+      "recipient": "broadcast",
+      "sequence": 22,
+      "kind": "intent",
+      "correlation_id": null,
+      "expires_tick": 3038,
+      "priority": 5,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": "job-003",
+        "text": "arm-01 transfer part-003 from fixture to amr-02",
+        "subgoal": "outbound_loaded",
+        "reason": "Execute the transfer of part-003 from fixture to amr-02 to complete the processing stage for job-003.",
+        "command_id": "cmd-0025",
+        "resources": [
+          "arm-01",
+          "fixture",
+          "process-out",
+          "amr-02",
+          "part-003"
+        ]
+      },
+      "id": "arm-01-22",
+      "tick": 2738,
+      "text": "arm-01 transfer part-003 from fixture to amr-02",
+      "task_id": "job-003"
+    },
+    {
+      "message_id": "arm-01-23",
+      "sender": "arm-01",
+      "recipient": "mediator",
+      "sequence": 23,
+      "kind": "outcome",
+      "correlation_id": null,
+      "expires_tick": 3107,
+      "priority": 7,
+      "confidence": 1.0,
+      "payload": {
+        "command_id": "cmd-0025",
+        "job_id": "job-003",
+        "text": "arm-01 completed: transfer; observed stage outbound_loaded. verified skill completion",
+        "observed": {
+          "stage": "outbound_loaded",
+          "custodian": "amr-02",
+          "cargo_id": "part-003",
+          "position": [
+            1.808158,
+            1.974016,
+            0.62
+          ]
+        }
+      },
+      "id": "arm-01-23",
+      "tick": 2808,
+      "text": "arm-01 completed: transfer; observed stage outbound_loaded. verified skill completion",
+      "task_id": "job-003"
+    },
+    {
+      "message_id": "amr-02-15",
+      "sender": "amr-02",
+      "recipient": "broadcast",
+      "sequence": 15,
+      "kind": "intent",
+      "correlation_id": null,
+      "expires_tick": 3108,
+      "priority": 5,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": "job-003",
+        "text": "amr-02 navigate part-003 from process-out to dispatch",
+        "subgoal": "at_dispatch",
+        "reason": "amr-02 needs to navigate part-003 from process-out to dispatch",
+        "command_id": "cmd-0026",
+        "resources": [
+          "amr-02",
+          "aisle-main",
+          "dispatch",
+          "part-003"
+        ]
+      },
+      "id": "amr-02-15",
+      "tick": 2808,
+      "text": "amr-02 navigate part-003 from process-out to dispatch",
+      "task_id": "job-003"
+    },
+    {
+      "message_id": "amr-02-16",
+      "sender": "amr-02",
+      "recipient": "mediator",
+      "sequence": 16,
+      "kind": "outcome",
+      "correlation_id": null,
+      "expires_tick": 3369,
+      "priority": 7,
+      "confidence": 1.0,
+      "payload": {
+        "command_id": "cmd-0026",
+        "job_id": "job-003",
+        "text": "amr-02 completed: navigate; observed stage at_dispatch. verified skill completion",
+        "observed": {
+          "stage": "at_dispatch",
+          "custodian": "amr-02",
+          "cargo_id": "part-003",
+          "position": [
+            5.998657,
+            1.911339,
+            0.62
+          ]
+        }
+      },
+      "id": "amr-02-16",
+      "tick": 3070,
+      "text": "amr-02 completed: navigate; observed stage at_dispatch. verified skill completion",
+      "task_id": "job-003"
+    },
+    {
+      "message_id": "gantry-01-6",
+      "sender": "gantry-01",
+      "recipient": "amr-02",
+      "sequence": 6,
+      "kind": "request",
+      "correlation_id": null,
+      "expires_tick": 3370,
+      "priority": 8,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": "job-003",
+        "text": "Request custody transfer of part-003 from amr-02 to pallet.",
+        "command_id": "cmd-0027",
+        "subgoal": "completed"
+      },
+      "id": "gantry-01-6",
+      "tick": 3070,
+      "text": "Request custody transfer of part-003 from amr-02 to pallet.",
+      "task_id": "job-003"
+    },
+    {
+      "message_id": "amr-02-17",
+      "sender": "amr-02",
+      "recipient": "gantry-01",
+      "sequence": 17,
+      "kind": "ack",
+      "correlation_id": "gantry-01-6",
+      "expires_tick": 3370,
+      "priority": 8,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": "job-003",
+        "text": "Docking, stationary state and transfer readiness verified by simulator.",
+        "evidence": "world affordance checks"
+      },
+      "id": "amr-02-17",
+      "tick": 3070,
+      "text": "Docking, stationary state and transfer readiness verified by simulator.",
+      "task_id": "job-003"
+    },
+    {
+      "message_id": "gantry-01-7",
+      "sender": "gantry-01",
+      "recipient": "broadcast",
+      "sequence": 7,
+      "kind": "intent",
+      "correlation_id": null,
+      "expires_tick": 3370,
+      "priority": 5,
+      "confidence": 1.0,
+      "payload": {
+        "job_id": "job-003",
+        "text": "gantry-01 transfer part-003 from amr-02 to pallet",
+        "subgoal": "completed",
+        "reason": "Transfer part-003 from AMR-02 to Gantry-01 to complete job-003",
+        "command_id": "cmd-0027",
+        "resources": [
+          "gantry-01",
+          "amr-02",
+          "dispatch",
+          "pallet",
+          "part-003"
+        ]
+      },
+      "id": "gantry-01-7",
+      "tick": 3070,
+      "text": "gantry-01 transfer part-003 from amr-02 to pallet",
+      "task_id": "job-003"
+    },
+    {
+      "message_id": "gantry-01-8",
+      "sender": "gantry-01",
+      "recipient": "mediator",
+      "sequence": 8,
+      "kind": "outcome",
+      "correlation_id": null,
+      "expires_tick": 3502,
+      "priority": 7,
+      "confidence": 1.0,
+      "payload": {
+        "command_id": "cmd-0027",
+        "job_id": "job-003",
+        "text": "gantry-01 completed: transfer; observed stage completed. verified skill completion",
+        "observed": {
+          "stage": "completed",
+          "custodian": null,
+          "cargo_id": "part-003",
+          "position": [
+            7.51841,
+            1.998991,
+            0.319977
+          ],
+          "delivery_slot": 4,
+          "routing_correct": true
+        }
+      },
+      "id": "gantry-01-8",
+      "tick": 3203,
+      "text": "gantry-01 completed: transfer; observed stage completed. verified skill completion",
+      "task_id": "job-003"
+    }
+  ],
+  "events": [
+    {
+      "type": "resource_acquired",
+      "kind": "resource_acquired",
+      "tick": 0,
+      "robot_id": "amr-01",
+      "command_id": "cmd-0001",
+      "resource_id": "aisle-main"
+    },
+    {
+      "type": "command_started",
+      "kind": "command_started",
+      "tick": 0,
+      "robot_id": "amr-01",
+      "command_id": "cmd-0001",
+      "action": "navigate",
+      "cargo_id": null,
+      "target_id": "load"
+    },
+    {
+      "type": "docked",
+      "kind": "docked",
+      "tick": 67,
+      "robot_id": "amr-01",
+      "command_id": "cmd-0001",
+      "target_id": "load",
+      "position": [
+        -6.049979,
+        1.971776,
+        0.0
+      ]
+    },
+    {
+      "type": "command_completed",
+      "kind": "command_completed",
+      "tick": 67,
+      "robot_id": "amr-01",
+      "command_id": "cmd-0001",
+      "action": "navigate",
+      "cargo_id": null,
+      "target_id": "load",
+      "success": true,
+      "reason": ""
+    },
+    {
+      "type": "resource_released",
+      "kind": "resource_released",
+      "tick": 67,
+      "robot_id": "amr-01",
+      "command_id": "cmd-0001",
+      "resource_id": "aisle-main"
+    },
+    {
+      "type": "resource_acquired",
+      "kind": "resource_acquired",
+      "tick": 68,
+      "robot_id": "amr-02",
+      "command_id": "cmd-0002",
+      "resource_id": "aisle-main"
+    },
+    {
+      "type": "command_started",
+      "kind": "command_started",
+      "tick": 68,
+      "robot_id": "amr-02",
+      "command_id": "cmd-0002",
+      "action": "navigate",
+      "cargo_id": null,
+      "target_id": "process-out"
+    },
+    {
+      "type": "command_started",
+      "kind": "command_started",
+      "tick": 69,
+      "robot_id": "humanoid-01",
+      "command_id": "cmd-0003",
+      "action": "transfer",
+      "cargo_id": "part-001",
+      "target_id": "amr-01"
+    },
+    {
+      "type": "custody_acquired",
+      "kind": "custody_acquired",
+      "tick": 100,
+      "robot_id": "humanoid-01",
+      "command_id": "cmd-0003",
+      "cargo_id": "part-001",
+      "previous_owner": null,
+      "measured_distance": 0.02099
+    },
+    {
+      "type": "custody_released",
+      "kind": "custody_released",
+      "tick": 152,
+      "robot_id": "humanoid-01",
+      "command_id": "cmd-0003",
+      "cargo_id": "part-001",
+      "receiver": "amr-01",
+      "position": [
+        -6.04862,
+        1.973422,
+        0.654951
+      ]
+    },
+    {
+      "type": "command_completed",
+      "kind": "command_completed",
+      "tick": 152,
+      "robot_id": "humanoid-01",
+      "command_id": "cmd-0003",
+      "action": "transfer",
+      "cargo_id": "part-001",
+      "target_id": "amr-01",
+      "success": true,
+      "reason": ""
+    },
+    {
+      "type": "docked",
+      "kind": "docked",
+      "tick": 237,
+      "robot_id": "amr-02",
+      "command_id": "cmd-0002",
+      "target_id": "process-out",
+      "position": [
+        1.807697,
+        1.972233,
+        0.0
+      ]
+    },
+    {
+      "type": "command_completed",
+      "kind": "command_completed",
+      "tick": 237,
+      "robot_id": "amr-02",
+      "command_id": "cmd-0002",
+      "action": "navigate",
+      "cargo_id": null,
+      "target_id": "process-out",
+      "success": true,
+      "reason": ""
+    },
+    {
+      "type": "resource_released",
+      "kind": "resource_released",
+      "tick": 237,
+      "robot_id": "amr-02",
+      "command_id": "cmd-0002",
+      "resource_id": "aisle-main"
+    },
+    {
+      "type": "resource_acquired",
+      "kind": "resource_acquired",
+      "tick": 238,
+      "robot_id": "amr-01",
+      "command_id": "cmd-0004",
+      "resource_id": "aisle-main"
+    },
+    {
+      "type": "command_started",
+      "kind": "command_started",
+      "tick": 238,
+      "robot_id": "amr-01",
+      "command_id": "cmd-0004",
+      "action": "navigate",
+      "cargo_id": "part-001",
+      "target_id": "process-in"
+    },
+    {
+      "type": "docked",
+      "kind": "docked",
+      "tick": 508,
+      "robot_id": "amr-01",
+      "command_id": "cmd-0004",
+      "target_id": "process-in",
+      "position": [
+        -1.825786,
+        1.907672,
+        0.0
+      ]
+    },
+    {
+      "type": "command_completed",
+      "kind": "command_completed",
+      "tick": 508,
+      "robot_id": "amr-01",
+      "command_id": "cmd-0004",
+      "action": "navigate",
+      "cargo_id": "part-001",
+      "target_id": "process-in",
+      "success": true,
+      "reason": ""
+    },
+    {
+      "type": "resource_released",
+      "kind": "resource_released",
+      "tick": 508,
+      "robot_id": "amr-01",
+      "command_id": "cmd-0004",
+      "resource_id": "aisle-main"
+    },
+    {
+      "type": "command_started",
+      "kind": "command_started",
+      "tick": 509,
+      "robot_id": "arm-01",
+      "command_id": "cmd-0005",
+      "action": "transfer",
+      "cargo_id": "part-001",
+      "target_id": "fixture"
+    },
+    {
+      "type": "custody_acquired",
+      "kind": "custody_acquired",
+      "tick": 560,
+      "robot_id": "arm-01",
+      "command_id": "cmd-0005",
+      "cargo_id": "part-001",
+      "previous_owner": "amr-01",
+      "measured_distance": 0.02105
+    },
+    {
+      "type": "custody_released",
+      "kind": "custody_released",
+      "tick": 623,
+      "robot_id": "arm-01",
+      "command_id": "cmd-0005",
+      "cargo_id": "part-001",
+      "receiver": "fixture",
+      "position": [
+        0.000795,
+        2.003475,
+        1.053252
+      ]
+    },
+    {
+      "type": "command_completed",
+      "kind": "command_completed",
+      "tick": 626,
+      "robot_id": "arm-01",
+      "command_id": "cmd-0005",
+      "action": "transfer",
+      "cargo_id": "part-001",
+      "target_id": "fixture",
+      "success": true,
+      "reason": ""
+    },
+    {
+      "type": "resource_acquired",
+      "kind": "resource_acquired",
+      "tick": 627,
+      "robot_id": "amr-01",
+      "command_id": "cmd-0006",
+      "resource_id": "aisle-main"
+    },
+    {
+      "type": "command_started",
+      "kind": "command_started",
+      "tick": 627,
+      "robot_id": "amr-01",
+      "command_id": "cmd-0006",
+      "action": "navigate",
+      "cargo_id": null,
+      "target_id": "load"
+    },
+    {
+      "type": "command_started",
+      "kind": "command_started",
+      "tick": 628,
+      "robot_id": "arm-01",
+      "command_id": "cmd-0007",
+      "action": "process",
+      "cargo_id": "part-001",
+      "target_id": "fixture"
+    },
+    {
+      "type": "process_started",
+      "kind": "process_started",
+      "tick": 638,
+      "robot_id": "arm-01",
+      "command_id": "cmd-0007",
+      "cargo_id": "part-001"
+    },
+    {
+      "type": "process_verified",
+      "kind": "process_verified",
+      "tick": 668,
+      "robot_id": "arm-01",
+      "command_id": "cmd-0007",
+      "cargo_id": "part-001",
+      "dwell_seconds": 3.0000000000000013
+    },
+    {
+      "type": "command_completed",
+      "kind": "command_completed",
+      "tick": 668,
+      "robot_id": "arm-01",
+      "command_id": "cmd-0007",
+      "action": "process",
+      "cargo_id": "part-001",
+      "target_id": "fixture",
+      "success": true,
+      "reason": ""
+    },
+    {
+      "type": "command_started",
+      "kind": "command_started",
+      "tick": 669,
+      "robot_id": "arm-01",
+      "command_id": "cmd-0008",
+      "action": "transfer",
+      "cargo_id": "part-001",
+      "target_id": "amr-02"
+    },
+    {
+      "type": "custody_acquired",
+      "kind": "custody_acquired",
+      "tick": 677,
+      "robot_id": "arm-01",
+      "command_id": "cmd-0008",
+      "cargo_id": "part-001",
+      "previous_owner": null,
+      "measured_distance": 0.02016
+    },
+    {
+      "type": "custody_released",
+      "kind": "custody_released",
+      "tick": 738,
+      "robot_id": "arm-01",
+      "command_id": "cmd-0008",
+      "cargo_id": "part-001",
+      "receiver": "amr-02",
+      "position": [
+        1.806222,
+        1.968145,
+        0.653405
+      ]
+    },
+    {
+      "type": "command_completed",
+      "kind": "command_completed",
+      "tick": 738,
+      "robot_id": "arm-01",
+      "command_id": "cmd-0008",
+      "action": "transfer",
+      "cargo_id": "part-001",
+      "target_id": "amr-02",
+      "success": true,
+      "reason": ""
+    },
+    {
+      "type": "docked",
+      "kind": "docked",
+      "tick": 885,
+      "robot_id": "amr-01",
+      "command_id": "cmd-0006",
+      "target_id": "load",
+      "position": [
+        -6.049828,
+        1.963155,
+        0.0
+      ]
+    },
+    {
+      "type": "command_completed",
+      "kind": "command_completed",
+      "tick": 885,
+      "robot_id": "amr-01",
+      "command_id": "cmd-0006",
+      "action": "navigate",
+      "cargo_id": null,
+      "target_id": "load",
+      "success": true,
+      "reason": ""
+    },
+    {
+      "type": "resource_released",
+      "kind": "resource_released",
+      "tick": 885,
+      "robot_id": "amr-01",
+      "command_id": "cmd-0006",
+      "resource_id": "aisle-main"
+    },
+    {
+      "type": "resource_acquired",
+      "kind": "resource_acquired",
+      "tick": 886,
+      "robot_id": "amr-02",
+      "command_id": "cmd-0009",
+      "resource_id": "aisle-main"
+    },
+    {
+      "type": "command_started",
+      "kind": "command_started",
+      "tick": 886,
+      "robot_id": "amr-02",
+      "command_id": "cmd-0009",
+      "action": "navigate",
+      "cargo_id": "part-001",
+      "target_id": "dispatch"
+    },
+    {
+      "type": "command_started",
+      "kind": "command_started",
+      "tick": 887,
+      "robot_id": "humanoid-01",
+      "command_id": "cmd-0010",
+      "action": "transfer",
+      "cargo_id": "part-002",
+      "target_id": "amr-01"
+    },
+    {
+      "type": "custody_acquired",
+      "kind": "custody_acquired",
+      "tick": 939,
+      "robot_id": "humanoid-01",
+      "command_id": "cmd-0010",
+      "cargo_id": "part-002",
+      "previous_owner": null,
+      "measured_distance": 0.02895
+    },
+    {
+      "type": "custody_released",
+      "kind": "custody_released",
+      "tick": 989,
+      "robot_id": "humanoid-01",
+      "command_id": "cmd-0010",
+      "cargo_id": "part-002",
+      "receiver": "amr-01",
+      "position": [
+        -6.049849,
+        1.963712,
+        0.65589
+      ]
+    },
+    {
+      "type": "command_completed",
+      "kind": "command_completed",
+      "tick": 989,
+      "robot_id": "humanoid-01",
+      "command_id": "cmd-0010",
+      "action": "transfer",
+      "cargo_id": "part-002",
+      "target_id": "amr-01",
+      "success": true,
+      "reason": ""
+    },
+    {
+      "type": "docked",
+      "kind": "docked",
+      "tick": 1147,
+      "robot_id": "amr-02",
+      "command_id": "cmd-0009",
+      "target_id": "dispatch",
+      "position": [
+        5.998351,
+        1.911432,
+        0.0
+      ]
+    },
+    {
+      "type": "command_completed",
+      "kind": "command_completed",
+      "tick": 1147,
+      "robot_id": "amr-02",
+      "command_id": "cmd-0009",
+      "action": "navigate",
+      "cargo_id": "part-001",
+      "target_id": "dispatch",
+      "success": true,
+      "reason": ""
+    },
+    {
+      "type": "resource_released",
+      "kind": "resource_released",
+      "tick": 1147,
+      "robot_id": "amr-02",
+      "command_id": "cmd-0009",
+      "resource_id": "aisle-main"
+    },
+    {
+      "type": "command_started",
+      "kind": "command_started",
+      "tick": 1148,
+      "robot_id": "gantry-01",
+      "command_id": "cmd-0011",
+      "action": "transfer",
+      "cargo_id": "part-001",
+      "target_id": "pallet"
+    },
+    {
+      "type": "resource_acquired",
+      "kind": "resource_acquired",
+      "tick": 1149,
+      "robot_id": "amr-01",
+      "command_id": "cmd-0012",
+      "resource_id": "aisle-main"
+    },
+    {
+      "type": "command_started",
+      "kind": "command_started",
+      "tick": 1149,
+      "robot_id": "amr-01",
+      "command_id": "cmd-0012",
+      "action": "navigate",
+      "cargo_id": "part-002",
+      "target_id": "process-in"
+    },
+    {
+      "type": "custody_acquired",
+      "kind": "custody_acquired",
+      "tick": 1187,
+      "robot_id": "gantry-01",
+      "command_id": "cmd-0011",
+      "cargo_id": "part-001",
+      "previous_owner": "amr-02",
+      "measured_distance": 0.01816
+    },
+    {
+      "type": "custody_released",
+      "kind": "custody_released",
+      "tick": 1260,
+      "robot_id": "gantry-01",
+      "command_id": "cmd-0011",
+      "cargo_id": "part-001",
+      "receiver": "pallet",
+      "position": [
+        8.076511,
+        1.303446,
+        0.360365
+      ]
+    },
+    {
+      "type": "delivery_verified",
+      "kind": "delivery_verified",
+      "tick": 1263,
+      "robot_id": "gantry-01",
+      "command_id": "cmd-0011",
+      "cargo_id": "part-001",
+      "slot": 0,
+      "routing_correct": true,
+      "position": [
+        8.076511,
+        1.303446,
+        0.319977
+      ]
+    },
+    {
+      "type": "command_completed",
+      "kind": "command_completed",
+      "tick": 1263,
+      "robot_id": "gantry-01",
+      "command_id": "cmd-0011",
+      "action": "transfer",
+      "cargo_id": "part-001",
+      "target_id": "pallet",
+      "success": true,
+      "reason": ""
+    },
+    {
+      "type": "docked",
+      "kind": "docked",
+      "tick": 1420,
+      "robot_id": "amr-01",
+      "command_id": "cmd-0012",
+      "target_id": "process-in",
+      "position": [
+        -1.826505,
+        1.948977,
+        0.0
+      ]
+    },
+    {
+      "type": "command_completed",
+      "kind": "command_completed",
+      "tick": 1420,
+      "robot_id": "amr-01",
+      "command_id": "cmd-0012",
+      "action": "navigate",
+      "cargo_id": "part-002",
+      "target_id": "process-in",
+      "success": true,
+      "reason": ""
+    },
+    {
+      "type": "resource_released",
+      "kind": "resource_released",
+      "tick": 1420,
+      "robot_id": "amr-01",
+      "command_id": "cmd-0012",
+      "resource_id": "aisle-main"
+    },
+    {
+      "type": "resource_acquired",
+      "kind": "resource_acquired",
+      "tick": 1421,
+      "robot_id": "amr-02",
+      "command_id": "cmd-0013",
+      "resource_id": "aisle-main"
+    },
+    {
+      "type": "command_started",
+      "kind": "command_started",
+      "tick": 1421,
+      "robot_id": "amr-02",
+      "command_id": "cmd-0013",
+      "action": "navigate",
+      "cargo_id": null,
+      "target_id": "process-out"
+    },
+    {
+      "type": "command_started",
+      "kind": "command_started",
+      "tick": 1422,
+      "robot_id": "arm-01",
+      "command_id": "cmd-0014",
+      "action": "transfer",
+      "cargo_id": "part-002",
+      "target_id": "fixture"
+    },
+    {
+      "type": "custody_acquired",
+      "kind": "custody_acquired",
+      "tick": 1512,
+      "robot_id": "arm-01",
+      "command_id": "cmd-0014",
+      "cargo_id": "part-002",
+      "previous_owner": "amr-01",
+      "measured_distance": 0.0177
+    },
+    {
+      "type": "custody_released",
+      "kind": "custody_released",
+      "tick": 1575,
+      "robot_id": "arm-01",
+      "command_id": "cmd-0014",
+      "cargo_id": "part-002",
+      "receiver": "fixture",
+      "position": [
+        0.000666,
+        2.003488,
+        1.053833
+      ]
+    },
+    {
+      "type": "command_completed",
+      "kind": "command_completed",
+      "tick": 1578,
+      "robot_id": "arm-01",
+      "command_id": "cmd-0014",
+      "action": "transfer",
+      "cargo_id": "part-002",
+      "target_id": "fixture",
+      "success": true,
+      "reason": ""
+    },
+    {
+      "type": "command_started",
+      "kind": "command_started",
+      "tick": 1579,
+      "robot_id": "arm-01",
+      "command_id": "cmd-0015",
+      "action": "process",
+      "cargo_id": "part-002",
+      "target_id": "fixture"
+    },
+    {
+      "type": "process_started",
+      "kind": "process_started",
+      "tick": 1589,
+      "robot_id": "arm-01",
+      "command_id": "cmd-0015",
+      "cargo_id": "part-002"
+    },
+    {
+      "type": "process_verified",
+      "kind": "process_verified",
+      "tick": 1619,
+      "robot_id": "arm-01",
+      "command_id": "cmd-0015",
+      "cargo_id": "part-002",
+      "dwell_seconds": 3.0000000000000013
+    },
+    {
+      "type": "command_completed",
+      "kind": "command_completed",
+      "tick": 1619,
+      "robot_id": "arm-01",
+      "command_id": "cmd-0015",
+      "action": "process",
+      "cargo_id": "part-002",
+      "target_id": "fixture",
+      "success": true,
+      "reason": ""
+    },
+    {
+      "type": "docked",
+      "kind": "docked",
+      "tick": 1672,
+      "robot_id": "amr-02",
+      "command_id": "cmd-0013",
+      "target_id": "process-out",
+      "position": [
+        1.807834,
+        1.982776,
+        0.0
+      ]
+    },
+    {
+      "type": "command_completed",
+      "kind": "command_completed",
+      "tick": 1672,
+      "robot_id": "amr-02",
+      "command_id": "cmd-0013",
+      "action": "navigate",
+      "cargo_id": null,
+      "target_id": "process-out",
+      "success": true,
+      "reason": ""
+    },
+    {
+      "type": "resource_released",
+      "kind": "resource_released",
+      "tick": 1672,
+      "robot_id": "amr-02",
+      "command_id": "cmd-0013",
+      "resource_id": "aisle-main"
+    },
+    {
+      "type": "resource_acquired",
+      "kind": "resource_acquired",
+      "tick": 1673,
+      "robot_id": "amr-01",
+      "command_id": "cmd-0016",
+      "resource_id": "aisle-main"
+    },
+    {
+      "type": "command_started",
+      "kind": "command_started",
+      "tick": 1673,
+      "robot_id": "amr-01",
+      "command_id": "cmd-0016",
+      "action": "navigate",
+      "cargo_id": null,
+      "target_id": "load"
+    },
+    {
+      "type": "command_started",
+      "kind": "command_started",
+      "tick": 1674,
+      "robot_id": "arm-01",
+      "command_id": "cmd-0017",
+      "action": "transfer",
+      "cargo_id": "part-002",
+      "target_id": "amr-02"
+    },
+    {
+      "type": "custody_acquired",
+      "kind": "custody_acquired",
+      "tick": 1682,
+      "robot_id": "arm-01",
+      "command_id": "cmd-0017",
+      "cargo_id": "part-002",
+      "previous_owner": null,
+      "measured_distance": 0.01989
+    },
+    {
+      "type": "custody_released",
+      "kind": "custody_released",
+      "tick": 1743,
+      "robot_id": "arm-01",
+      "command_id": "cmd-0017",
+      "cargo_id": "part-002",
+      "receiver": "amr-02",
+      "position": [
+        1.810077,
+        1.978704,
+        0.652285
+      ]
+    },
+    {
+      "type": "command_completed",
+      "kind": "command_completed",
+      "tick": 1743,
+      "robot_id": "arm-01",
+      "command_id": "cmd-0017",
+      "action": "transfer",
+      "cargo_id": "part-002",
+      "target_id": "amr-02",
+      "success": true,
+      "reason": ""
+    },
+    {
+      "type": "docked",
+      "kind": "docked",
+      "tick": 1931,
+      "robot_id": "amr-01",
+      "command_id": "cmd-0016",
+      "target_id": "load",
+      "position": [
+        -6.049692,
+        1.930126,
+        0.0
+      ]
+    },
+    {
+      "type": "command_completed",
+      "kind": "command_completed",
+      "tick": 1931,
+      "robot_id": "amr-01",
+      "command_id": "cmd-0016",
+      "action": "navigate",
+      "cargo_id": null,
+      "target_id": "load",
+      "success": true,
+      "reason": ""
+    },
+    {
+      "type": "resource_released",
+      "kind": "resource_released",
+      "tick": 1931,
+      "robot_id": "amr-01",
+      "command_id": "cmd-0016",
+      "resource_id": "aisle-main"
+    },
+    {
+      "type": "resource_acquired",
+      "kind": "resource_acquired",
+      "tick": 1932,
+      "robot_id": "amr-02",
+      "command_id": "cmd-0018",
+      "resource_id": "aisle-main"
+    },
+    {
+      "type": "command_started",
+      "kind": "command_started",
+      "tick": 1932,
+      "robot_id": "amr-02",
+      "command_id": "cmd-0018",
+      "action": "navigate",
+      "cargo_id": "part-002",
+      "target_id": "dispatch"
+    },
+    {
+      "type": "command_started",
+      "kind": "command_started",
+      "tick": 1933,
+      "robot_id": "humanoid-01",
+      "command_id": "cmd-0019",
+      "action": "transfer",
+      "cargo_id": "part-003",
+      "target_id": "amr-01"
+    },
+    {
+      "type": "custody_acquired",
+      "kind": "custody_acquired",
+      "tick": 1988,
+      "robot_id": "humanoid-01",
+      "command_id": "cmd-0019",
+      "cargo_id": "part-003",
+      "previous_owner": null,
+      "measured_distance": 0.02987
+    },
+    {
+      "type": "custody_released",
+      "kind": "custody_released",
+      "tick": 2041,
+      "robot_id": "humanoid-01",
+      "command_id": "cmd-0019",
+      "cargo_id": "part-003",
+      "receiver": "amr-01",
+      "position": [
+        -6.050257,
+        1.929953,
+        0.651856
+      ]
+    },
+    {
+      "type": "command_completed",
+      "kind": "command_completed",
+      "tick": 2041,
+      "robot_id": "humanoid-01",
+      "command_id": "cmd-0019",
+      "action": "transfer",
+      "cargo_id": "part-003",
+      "target_id": "amr-01",
+      "success": true,
+      "reason": ""
+    },
+    {
+      "type": "docked",
+      "kind": "docked",
+      "tick": 2199,
+      "robot_id": "amr-02",
+      "command_id": "cmd-0018",
+      "target_id": "dispatch",
+      "position": [
+        5.998191,
+        1.941225,
+        0.0
+      ]
+    },
+    {
+      "type": "command_completed",
+      "kind": "command_completed",
+      "tick": 2199,
+      "robot_id": "amr-02",
+      "command_id": "cmd-0018",
+      "action": "navigate",
+      "cargo_id": "part-002",
+      "target_id": "dispatch",
+      "success": true,
+      "reason": ""
+    },
+    {
+      "type": "resource_released",
+      "kind": "resource_released",
+      "tick": 2199,
+      "robot_id": "amr-02",
+      "command_id": "cmd-0018",
+      "resource_id": "aisle-main"
+    },
+    {
+      "type": "command_started",
+      "kind": "command_started",
+      "tick": 2200,
+      "robot_id": "gantry-01",
+      "command_id": "cmd-0020",
+      "action": "transfer",
+      "cargo_id": "part-002",
+      "target_id": "pallet"
+    },
+    {
+      "type": "resource_acquired",
+      "kind": "resource_acquired",
+      "tick": 2201,
+      "robot_id": "amr-01",
+      "command_id": "cmd-0021",
+      "resource_id": "aisle-main"
+    },
+    {
+      "type": "command_started",
+      "kind": "command_started",
+      "tick": 2201,
+      "robot_id": "amr-01",
+      "command_id": "cmd-0021",
+      "action": "navigate",
+      "cargo_id": "part-003",
+      "target_id": "process-in"
+    },
+    {
+      "type": "custody_acquired",
+      "kind": "custody_acquired",
+      "tick": 2272,
+      "robot_id": "gantry-01",
+      "command_id": "cmd-0020",
+      "cargo_id": "part-002",
+      "previous_owner": "amr-02",
+      "measured_distance": 0.01905
+    },
+    {
+      "type": "custody_released",
+      "kind": "custody_released",
+      "tick": 2338,
+      "robot_id": "gantry-01",
+      "command_id": "cmd-0020",
+      "cargo_id": "part-002",
+      "receiver": "pallet",
+      "position": [
+        7.513432,
+        1.301884,
+        0.361192
+      ]
+    },
+    {
+      "type": "delivery_verified",
+      "kind": "delivery_verified",
+      "tick": 2341,
+      "robot_id": "gantry-01",
+      "command_id": "cmd-0020",
+      "cargo_id": "part-002",
+      "slot": 3,
+      "routing_correct": true,
+      "position": [
+        7.513432,
+        1.301884,
+        0.319977
+      ]
+    },
+    {
+      "type": "command_completed",
+      "kind": "command_completed",
+      "tick": 2341,
+      "robot_id": "gantry-01",
+      "command_id": "cmd-0020",
+      "action": "transfer",
+      "cargo_id": "part-002",
+      "target_id": "pallet",
+      "success": true,
+      "reason": ""
+    },
+    {
+      "type": "docked",
+      "kind": "docked",
+      "tick": 2471,
+      "robot_id": "amr-01",
+      "command_id": "cmd-0021",
+      "target_id": "process-in",
+      "position": [
+        -1.825817,
+        1.911071,
+        0.0
+      ]
+    },
+    {
+      "type": "command_completed",
+      "kind": "command_completed",
+      "tick": 2471,
+      "robot_id": "amr-01",
+      "command_id": "cmd-0021",
+      "action": "navigate",
+      "cargo_id": "part-003",
+      "target_id": "process-in",
+      "success": true,
+      "reason": ""
+    },
+    {
+      "type": "resource_released",
+      "kind": "resource_released",
+      "tick": 2471,
+      "robot_id": "amr-01",
+      "command_id": "cmd-0021",
+      "resource_id": "aisle-main"
+    },
+    {
+      "type": "resource_acquired",
+      "kind": "resource_acquired",
+      "tick": 2472,
+      "robot_id": "amr-02",
+      "command_id": "cmd-0022",
+      "resource_id": "aisle-main"
+    },
+    {
+      "type": "command_started",
+      "kind": "command_started",
+      "tick": 2472,
+      "robot_id": "amr-02",
+      "command_id": "cmd-0022",
+      "action": "navigate",
+      "cargo_id": null,
+      "target_id": "process-out"
+    },
+    {
+      "type": "command_started",
+      "kind": "command_started",
+      "tick": 2473,
+      "robot_id": "arm-01",
+      "command_id": "cmd-0023",
+      "action": "transfer",
+      "cargo_id": "part-003",
+      "target_id": "fixture"
+    },
+    {
+      "type": "custody_acquired",
+      "kind": "custody_acquired",
+      "tick": 2563,
+      "robot_id": "arm-01",
+      "command_id": "cmd-0023",
+      "cargo_id": "part-003",
+      "previous_owner": "amr-01",
+      "measured_distance": 0.01985
+    },
+    {
+      "type": "custody_released",
+      "kind": "custody_released",
+      "tick": 2626,
+      "robot_id": "arm-01",
+      "command_id": "cmd-0023",
+      "cargo_id": "part-003",
+      "receiver": "fixture",
+      "position": [
+        0.000689,
+        2.003458,
+        1.053456
+      ]
+    },
+    {
+      "type": "command_completed",
+      "kind": "command_completed",
+      "tick": 2629,
+      "robot_id": "arm-01",
+      "command_id": "cmd-0023",
+      "action": "transfer",
+      "cargo_id": "part-003",
+      "target_id": "fixture",
+      "success": true,
+      "reason": ""
+    },
+    {
+      "type": "command_started",
+      "kind": "command_started",
+      "tick": 2630,
+      "robot_id": "arm-01",
+      "command_id": "cmd-0024",
+      "action": "process",
+      "cargo_id": "part-003",
+      "target_id": "fixture"
+    },
+    {
+      "type": "process_started",
+      "kind": "process_started",
+      "tick": 2640,
+      "robot_id": "arm-01",
+      "command_id": "cmd-0024",
+      "cargo_id": "part-003"
+    },
+    {
+      "type": "process_verified",
+      "kind": "process_verified",
+      "tick": 2670,
+      "robot_id": "arm-01",
+      "command_id": "cmd-0024",
+      "cargo_id": "part-003",
+      "dwell_seconds": 3.0000000000000013
+    },
+    {
+      "type": "command_completed",
+      "kind": "command_completed",
+      "tick": 2670,
+      "robot_id": "arm-01",
+      "command_id": "cmd-0024",
+      "action": "process",
+      "cargo_id": "part-003",
+      "target_id": "fixture",
+      "success": true,
+      "reason": ""
+    },
+    {
+      "type": "docked",
+      "kind": "docked",
+      "tick": 2737,
+      "robot_id": "amr-02",
+      "command_id": "cmd-0022",
+      "target_id": "process-out",
+      "position": [
+        1.808158,
+        1.974016,
+        0.0
+      ]
+    },
+    {
+      "type": "command_completed",
+      "kind": "command_completed",
+      "tick": 2737,
+      "robot_id": "amr-02",
+      "command_id": "cmd-0022",
+      "action": "navigate",
+      "cargo_id": null,
+      "target_id": "process-out",
+      "success": true,
+      "reason": ""
+    },
+    {
+      "type": "resource_released",
+      "kind": "resource_released",
+      "tick": 2737,
+      "robot_id": "amr-02",
+      "command_id": "cmd-0022",
+      "resource_id": "aisle-main"
+    },
+    {
+      "type": "command_started",
+      "kind": "command_started",
+      "tick": 2738,
+      "robot_id": "arm-01",
+      "command_id": "cmd-0025",
+      "action": "transfer",
+      "cargo_id": "part-003",
+      "target_id": "amr-02"
+    },
+    {
+      "type": "custody_acquired",
+      "kind": "custody_acquired",
+      "tick": 2746,
+      "robot_id": "arm-01",
+      "command_id": "cmd-0025",
+      "cargo_id": "part-003",
+      "previous_owner": null,
+      "measured_distance": 0.01972
+    },
+    {
+      "type": "custody_released",
+      "kind": "custody_released",
+      "tick": 2807,
+      "robot_id": "arm-01",
+      "command_id": "cmd-0025",
+      "cargo_id": "part-003",
+      "receiver": "amr-02",
+      "position": [
+        1.807929,
+        1.970965,
+        0.653148
+      ]
+    },
+    {
+      "type": "command_completed",
+      "kind": "command_completed",
+      "tick": 2807,
+      "robot_id": "arm-01",
+      "command_id": "cmd-0025",
+      "action": "transfer",
+      "cargo_id": "part-003",
+      "target_id": "amr-02",
+      "success": true,
+      "reason": ""
+    },
+    {
+      "type": "resource_acquired",
+      "kind": "resource_acquired",
+      "tick": 2808,
+      "robot_id": "amr-02",
+      "command_id": "cmd-0026",
+      "resource_id": "aisle-main"
+    },
+    {
+      "type": "command_started",
+      "kind": "command_started",
+      "tick": 2808,
+      "robot_id": "amr-02",
+      "command_id": "cmd-0026",
+      "action": "navigate",
+      "cargo_id": "part-003",
+      "target_id": "dispatch"
+    },
+    {
+      "type": "docked",
+      "kind": "docked",
+      "tick": 3069,
+      "robot_id": "amr-02",
+      "command_id": "cmd-0026",
+      "target_id": "dispatch",
+      "position": [
+        5.998353,
+        1.910477,
+        0.0
+      ]
+    },
+    {
+      "type": "command_completed",
+      "kind": "command_completed",
+      "tick": 3069,
+      "robot_id": "amr-02",
+      "command_id": "cmd-0026",
+      "action": "navigate",
+      "cargo_id": "part-003",
+      "target_id": "dispatch",
+      "success": true,
+      "reason": ""
+    },
+    {
+      "type": "resource_released",
+      "kind": "resource_released",
+      "tick": 3069,
+      "robot_id": "amr-02",
+      "command_id": "cmd-0026",
+      "resource_id": "aisle-main"
+    },
+    {
+      "type": "command_started",
+      "kind": "command_started",
+      "tick": 3070,
+      "robot_id": "gantry-01",
+      "command_id": "cmd-0027",
+      "action": "transfer",
+      "cargo_id": "part-003",
+      "target_id": "pallet"
+    },
+    {
+      "type": "custody_acquired",
+      "kind": "custody_acquired",
+      "tick": 3134,
+      "robot_id": "gantry-01",
+      "command_id": "cmd-0027",
+      "cargo_id": "part-003",
+      "previous_owner": "amr-02",
+      "measured_distance": 0.02736
+    },
+    {
+      "type": "custody_released",
+      "kind": "custody_released",
+      "tick": 3199,
+      "robot_id": "gantry-01",
+      "command_id": "cmd-0027",
+      "cargo_id": "part-003",
+      "receiver": "pallet",
+      "position": [
+        7.51841,
+        1.998991,
+        0.35193
+      ]
+    },
+    {
+      "type": "delivery_verified",
+      "kind": "delivery_verified",
+      "tick": 3202,
+      "robot_id": "gantry-01",
+      "command_id": "cmd-0027",
+      "cargo_id": "part-003",
+      "slot": 4,
+      "routing_correct": true,
+      "position": [
+        7.51841,
+        1.998991,
+        0.319977
+      ]
+    },
+    {
+      "type": "command_completed",
+      "kind": "command_completed",
+      "tick": 3202,
+      "robot_id": "gantry-01",
+      "command_id": "cmd-0027",
+      "action": "transfer",
+      "cargo_id": "part-003",
+      "target_id": "pallet",
+      "success": true,
+      "reason": ""
+    }
+  ],
+  "error": null,
+  "planner": {
+    "mode": "llm",
+    "model": "Qwen/Qwen3-1.7B-MLX-4bit",
+    "revision": "21457c6f51ed54a7c16e988c0844db973815c137",
+    "calls": 27,
+    "latency_seconds": 25.796,
+    "control": "factory-vla",
+    "learned_motor_control": true,
+    "reason": "Transfer part-003 from AMR-02 to Gantry-01 to complete job-003"
+  },
+  "policy": {
+    "policy": "factory-vla",
+    "model_id": "relay-lab/factory-vla-v1",
+    "checkpoint": "/Users/ganeshtalluri/Documents/ChatGPT/vla-comms/checkpoints/factory-vla/policy.pt",
+    "checkpoint_sha256": "a31f6dd477c03ae6848f1a96fd79004582d02bfbcdef84f1fb8825f2e99e1f5b",
+    "parameters": 87182,
+    "sensor_signature": "b64eb4c32efd60ed5b3b0bb91444582d7415c18eb92aa6267c19c3078f5f2842",
+    "latent_space": "factory-vla-v1",
+    "embedding_dimensions": 32,
+    "device": "cpu",
+    "training": {
+      "codec_validation": {
+        "seed": 1008,
+        "samples": 12000,
+        "mean_m": 0.02108481526374817,
+        "p95_m": 0.0497165210545063,
+        "within_65mm": 0.9746666666666667
+      },
+      "seed": 91,
+      "rendered_scenes": 800,
+      "render_seed": 8123,
+      "dataset_sha256": "8f59d63c8a47ddb551e94fa70e2f63544ab9b65c9ead45e5d14cc7c66720ef46",
+      "source": "original MuJoCo tagged factory RGB and original behavior-cloning teacher",
+      "pixel_steps": 3000,
+      "control_steps": 24000,
+      "codec_steps": 5000,
+      "teacher_examples": 18432000,
+      "seconds": 137.86977099999785,
+      "source_sha256": "f5c6ee292043eac41f9ade1f355fbfd5aa3950335150a27b3829ed6f066363c8",
+      "modalities": [
+        "RGB",
+        "instruction",
+        "proprioception",
+        "compatible peer latent"
+      ],
+      "peer_fusion": "learned least-squares camera/peer fusion; typed same-checkpoint carrier identity required",
+      "refinements": [
+        {
+          "seed": 919,
+          "steps": 6000,
+          "examples": 6144000,
+          "parent_checkpoint_sha256": "c8d95b340930344c20fc7d15bb059036eb7cf3aed881308a8d864072ba035abe",
+          "source_sha256": "f5c6ee292043eac41f9ade1f355fbfd5aa3950335150a27b3829ed6f066363c8",
+          "seconds": 38.64606783282943
+        }
+      ],
+      "sensor_refinements": [
+        {
+          "parent_checkpoint_sha256": "27e16a9518a0faa6421c1fb0a4b28952c0c2d27b414fa553bb6052a5d44d2c09",
+          "sensor_signature": "b64eb4c32efd60ed5b3b0bb91444582d7415c18eb92aa6267c19c3078f5f2842",
+          "rendered_scenes": 800,
+          "dataset_sha256": "ffc44e2afcaa6be7ce4d0ea4db0670f8db99b7e7c70a13ab3ad412dd26700b81",
+          "changed_parameters": [
+            "target_offsets"
+          ],
+          "reason": "Distinct physical manipulator tag mounts prevent dock-tag interpenetration after placement"
+        }
+      ]
+    },
+    "inference_calls": 4332,
+    "total_inference_seconds": 2.0735003815498203,
+    "peer_fusion_calls": 0,
+    "sensor": {
+      "engine": "MuJoCo",
+      "views": [
+        "top",
+        "oblique"
+      ],
+      "rgb_shape": [
+        128,
+        512,
+        3
+      ],
+      "physical_fiducial_classes": 22,
+      "command_highlights": false
+    },
+    "inputs": [
+      "MuJoCo top and oblique RGB",
+      "instruction text",
+      "local proprioception",
+      "optional compatible peer embedding"
+    ],
+    "limitations": [
+      "Original task-specific imitation model, not a pretrained foundation VLA.",
+      "Calibrated fixed cameras and physical colour fiducials; no general visual reasoning.",
+      "Fixed-stance humanoid, holonomic mobile carriers, kinematic manipulator links and idealized proximity-checked grasps.",
+      "Visual goal held per instruction while target is stationary; numeric simulator goals never enter inference."
+    ]
+  },
+  "embeddings": {
+    "enabled": false
+  },
+  "communication": {
+    "task": "dispatch-routing",
+    "mode": "text",
+    "model": {
+      "model_id": "relay-lab/private-inspection-codec-v1",
+      "space_id": "factory-route-v1",
+      "checkpoint_sha256": "e3183e3c87318d13e0d5dba10f8d8a47ccc6d1ae8827c476edc3ca0421b14c00",
+      "checkpoint": "/Users/ganeshtalluri/Documents/ChatGPT/vla-comms/checkpoints/factory-routing/policy.pt",
+      "sensor_signature": "dcfa750be0b4d45dd33cc5f490738e017e4e850ca1c09e1428626a44abdaa8b1",
+      "parameters": 20907,
+      "embedding_dimensions": 32,
+      "training": {
+        "seed": 317,
+        "steps": 1200,
+        "examples_seen": 115200,
+        "training_scenes": 3072,
+        "train_seed_base": 100000,
+        "validation_seed_base": 200000,
+        "validation": {
+          "samples": 768,
+          "classification_accuracy": 1.0,
+          "route_samples": 512,
+          "route_accuracy": 1.0,
+          "route_accepted_accuracy": 1.0,
+          "unreadable_recall": 1.0,
+          "route_min_confidence": 0.9992220401763916,
+          "max_latent_norm_error": 1.1920928955078125e-07
+        },
+        "training_data_sha256": "cb8a827b36074f338711bbc6a3c3b6a1a0f0eae5ab9329eca08cb0395d96b7aa",
+        "validation_data_sha256": "ea27a6db47955c5f1b07ed65837f62dbb540da9bbbbb2f8e9003158c1e230f06",
+        "source_sha256": "f68cd1879341707334dc38c2f5bb5872f8ea90e5028d736061b90c241b648fa5",
+        "source": "original MuJoCo inspection-panel RGB; independent illumination/pose/background/LED noise; unreadable sensor augmentation",
+        "seconds": 36.12939570797607
+      },
+      "encode_calls": 3,
+      "decode_calls": 3,
+      "encode_seconds": 0.0045520830899477005,
+      "decode_seconds": 0.0001257078256458044,
+      "inputs": [
+        "private 64x64 MuJoCo RGB crop"
+      ],
+      "limitations": [
+        "Task-specific indicator classifier/latent codec, not a pretrained VLA.",
+        "Confidence is a neural softmax score, not a calibrated probability.",
+        "Binary text baseline uses exactly the same learned visual inference."
+      ]
+    },
+    "period_ticks": 5,
+    "ttl_ticks": 15,
+    "published": 786,
+    "local_observations": 3,
+    "observation_provenance": [
+      {
+        "job_id": "job-001",
+        "observation_tick": 69,
+        "source_command_id": "cmd-0003",
+        "source_frame_sha256": "da6dfca650ab5be0510efc079e16130938c7ddb8549d3e944e2af46f5eee2b88"
+      },
+      {
+        "job_id": "job-002",
+        "observation_tick": 887,
+        "source_command_id": "cmd-0010",
+        "source_frame_sha256": "cfeeed763daf9d2077754a472015b7a16e623449f6a5b8a72471fb354ddabb0e"
+      },
+      {
+        "job_id": "job-003",
+        "observation_tick": 1933,
+        "source_command_id": "cmd-0019",
+        "source_frame_sha256": "0671490891223d41528d22f0e9a25bbf5abb11d5d53453c0ecbece55f9e78faa"
+      }
+    ],
+    "decisions": [
+      {
+        "job_id": "job-001",
+        "robot_id": "gantry-01",
+        "tick": 1148,
+        "route": "A",
+        "pallet_slot": 0,
+        "packet_id": "humanoid-01-job-001-1145",
+        "observation_tick": 69,
+        "emitted_tick": 1145,
+        "transport_age_ticks": 3,
+        "observation_age_ticks": 1079,
+        "source_frame_sha256": "da6dfca650ab5be0510efc079e16130938c7ddb8549d3e944e2af46f5eee2b88",
+        "confidence": null,
+        "source": "committed peer text"
+      },
+      {
+        "job_id": "job-002",
+        "robot_id": "gantry-01",
+        "tick": 2200,
+        "route": "B",
+        "pallet_slot": 3,
+        "packet_id": "humanoid-01-job-002-2200",
+        "observation_tick": 887,
+        "emitted_tick": 2200,
+        "transport_age_ticks": 0,
+        "observation_age_ticks": 1313,
+        "source_frame_sha256": "cfeeed763daf9d2077754a472015b7a16e623449f6a5b8a72471fb354ddabb0e",
+        "confidence": null,
+        "source": "committed peer text"
+      },
+      {
+        "job_id": "job-003",
+        "robot_id": "gantry-01",
+        "tick": 3070,
+        "route": "A",
+        "pallet_slot": 4,
+        "packet_id": "humanoid-01-job-003-3070",
+        "observation_tick": 1933,
+        "emitted_tick": 3070,
+        "transport_age_ticks": 0,
+        "observation_age_ticks": 1137,
+        "source_frame_sha256": "0671490891223d41528d22f0e9a25bbf5abb11d5d53453c0ecbece55f9e78faa",
+        "confidence": null,
+        "source": "committed peer text"
+      }
+    ],
+    "encode_ms": [
+      3.3058749977499247,
+      0.5296668969094753,
+      0.8356671314686537
+    ],
+    "decode_ms": [
+      0.07924996316432953,
+      0.08533289656043053,
+      0.5665840581059456,
+      0.10762503370642662,
+      0.004332978278398514,
+      0.0033329706639051437
+    ],
+    "metrics": {
+      "index": "Spacetime B-tree run/job; exact job-scoped retrieval",
+      "db_refresh": {
+        "p50_ms": 5.913125118240714,
+        "p95_ms": 8.023374946787953
+      },
+      "local_retrieval": {
+        "p50_ms": 0.0149579718708992,
+        "p95_ms": 0.4127500578761101
+      },
+      "transport_bytes": 661148,
+      "packet_payload_write_bytes": 427750,
+      "refreshes": 632,
+      "retrievals": 3,
+      "cache_tick": 3203,
+      "cached_records": 0,
+      "record_limit": 3,
+      "stale_drops": 0
+    },
+    "control_plane": "Public stage, custody, safety leases and handoff ACKs in every mode",
+    "decision_boundary": "Qwen schedules public skills; only the gantry's local route adapter reads peer packets",
+    "blind_prior": "A for every job; independent of hidden labels and seed"
+  },
+  "coordination": {
+    "backend": "spacetimedb",
+    "server": "http://127.0.0.1:3000",
+    "database": "relay-lab",
+    "protocol": "factory.v1 CAS command barriers + leases + causal events",
+    "durability": "confirmed=true",
+    "trusted_worker": true,
+    "durable": true,
+    "connected": true
+  },
+  "metrics": {
+    "commands": 27,
+    "completed_commands": 27,
+    "failed_commands": 0,
+    "messages": 78,
+    "wall_seconds": 131.44
+  },
+  "output": "/Users/ganeshtalluri/Documents/ChatGPT/vla-comms/runs/communication-benchmark-qwen-spacetime/seed-101-text",
+  "routing_oracle": {
+    "job-001": {
+      "route": "A",
+      "required_slot": 0,
+      "selected_slot": 0,
+      "correct": true
+    },
+    "job-002": {
+      "route": "B",
+      "required_slot": 3,
+      "selected_slot": 3,
+      "correct": true
+    },
+    "job-003": {
+      "route": "A",
+      "required_slot": 4,
+      "selected_slot": 4,
+      "correct": true
+    }
+  }
+}

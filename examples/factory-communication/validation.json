@@ -1,0 +1,28 @@
+{
+  "schema": "relay.factory.communication-validation.v1",
+  "unique_tests_passed": 480,
+  "full_regression_tests_passed": 479,
+  "full_regression_seconds": 29.71,
+  "subsequent_server_regression_tests_passed": 6,
+  "new_server_regression_count": 1,
+  "ruff": "passed",
+  "typescript": "passed",
+  "javascript_syntax_and_build": "passed",
+  "browser_qa": [
+    "36/36 primary results and pairing checks",
+    "3/3 factory replay and packet provenance",
+    "rejected recording status and latest-recording regression"
+  ],
+  "primary_traces_audited": 36,
+  "primary_commits_audited": 115548,
+  "live_traces_audited": 9,
+  "live_durable_commits_audited": 28005,
+  "diagnostic_repeat_durable_commits_audited": 3212,
+  "actor_sha256": "a31f6dd477c03ae6848f1a96fd79004582d02bfbcdef84f1fb8825f2e99e1f5b",
+  "codec_sha256": "e3183e3c87318d13e0d5dba10f8d8a47ccc6d1ae8827c476edc3ca0421b14c00",
+  "known_limitations": [
+    "One original live run stopped on an unconfirmed Spacetime request; retained as failed. Same-condition repeat succeeded; exact transient cause unknown.",
+    "Task-specific private cue codec, fixed fiducial motor policy, kinematic robots and idealized proximity attachment.",
+    "No isolated wall-clock or asynchronous-network latency claim."
+  ]
+}

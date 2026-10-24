@@ -20,7 +20,7 @@ WEB = Path(__file__).parent / "web"
 
 
 class FactorySession:
-    def __init__(self, coordination="spacetime", replay=None):
+    def __init__(self, coordination="spacetime", replay=None, comparison=None):
         self.coordination = coordination
         self._run = None
         self._worker = None
@@ -33,6 +33,9 @@ class FactorySession:
         self.replay_path = Path(replay).resolve() if replay else None
         if self.replay_path and not self.replay_path.is_file():
             raise ValueError("Recorded factory replay does not exist")
+        self.comparison_path = Path(comparison).resolve() if comparison else None
+        if self.comparison_path and not self.comparison_path.is_file():
+            raise ValueError("Factory comparison result does not exist")
         self._idle = self._preview()
 
     @staticmethod
@@ -75,10 +78,19 @@ class FactorySession:
             value["speed"] = self.speed
             value["pause_requested"] = self._pause.is_set()
             value["replay_available"] = self.replay_path is not None
+            value["comparison_available"] = self.comparison_path is not None
             return value
 
     def start(self, options):
-        unknown = set(options) - {"seed", "orders", "planner", "policy", "embeddings"}
+        unknown = set(options) - {
+            "seed",
+            "orders",
+            "planner",
+            "policy",
+            "embeddings",
+            "task",
+            "communication",
+        }
         if unknown:
             raise ValueError("Unknown start options")
         seed, orders, planner = (
@@ -99,6 +111,18 @@ class FactorySession:
         embeddings = options.get("embeddings", True)
         if policy not in ("factory-vla", "model-based") or type(embeddings) is not bool:
             raise ValueError("Invalid policy or embedding option")
+        task, communication = (
+            options.get("task", "standard"),
+            options.get("communication", "embeddings"),
+        )
+        if task not in ("standard", "dispatch-routing") or communication not in (
+            "embeddings",
+            "text",
+            "none",
+        ):
+            raise ValueError("Invalid task or communication option")
+        if task == "dispatch-routing" and orders > 3:
+            raise ValueError("Dispatch routing supports at most three orders")
         with self._lock:
             if self._closed:
                 raise ValueError("Factory session is closed")
@@ -113,6 +137,8 @@ class FactorySession:
                 coordination=self.coordination,
                 policy=policy,
                 embeddings=embeddings,
+                task=task,
+                communication=communication,
             )
             self._run.status = "starting"
             self._run._refresh()
@@ -126,6 +152,7 @@ class FactorySession:
             run.initialize()
             while not self._stop.is_set() and run.status not in (
                 "succeeded",
+                "rejected",
                 "failed",
                 "exhausted",
             ):
@@ -147,7 +174,9 @@ class FactorySession:
         finally:
             run.close(cancelled=self._stop.is_set())
             replay = run.output / "replay.json"
-            if replay.is_file() and (run.status == "succeeded" or self.replay_path is None):
+            if replay.is_file() and (
+                run.status in ("succeeded", "rejected") or self.replay_path is None
+            ):
                 with self._lock:
                     self.replay_path = replay
             if self._stop.is_set():
@@ -174,6 +203,11 @@ class FactorySession:
             with gzip.open(path, "rt") as stream:
                 return json.load(stream)
         return json.loads(path.read_text())
+
+    def comparison(self):
+        if self.comparison_path is None:
+            raise ValueError("No measured comparison is loaded")
+        return json.loads(self.comparison_path.read_text())
 
     def resume(self):
         self._pause.clear()
@@ -240,6 +274,12 @@ class FactoryHandler(BaseHTTPRequestHandler):
             self._json({"error": "Loopback origin required"}, 403)
             return
         path = unquote(urlparse(self.path).path)
+        if path == "/api/factory/comparison":
+            try:
+                self._json(self.server.session.comparison())
+            except ValueError as error:
+                self._json({"error": str(error)}, 404)
+            return
         if path == "/api/factory/state":
             self._json(self.server.session.view())
             return
@@ -266,7 +306,16 @@ class FactoryHandler(BaseHTTPRequestHandler):
         if (
             not filename.is_relative_to(WEB.resolve())
             or not filename.is_file()
-            or filename.name not in {"index.html", "styles.css", "app.bundle.js", "favicon.svg"}
+            or filename.name
+            not in {
+                "index.html",
+                "styles.css",
+                "app.bundle.js",
+                "favicon.svg",
+                "comparison.html",
+                "comparison.js",
+                "comparison.css",
+            }
         ):
             self.send_error(404)
             return
@@ -318,8 +367,8 @@ class FactoryHandler(BaseHTTPRequestHandler):
             super().log_message(format, *args)
 
 
-def serve_factory(port=8767, coordination="spacetime", replay=None):
-    session = FactorySession(coordination, replay=replay)
+def serve_factory(port=8767, coordination="spacetime", replay=None, comparison=None):
+    session = FactorySession(coordination, replay=replay, comparison=comparison)
     server = ThreadingHTTPServer(("127.0.0.1", port), FactoryHandler)
     server.session = session
     print(f"Factory dashboard: http://127.0.0.1:{port}", flush=True)

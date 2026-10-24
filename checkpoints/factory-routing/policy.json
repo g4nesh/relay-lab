@@ -1,0 +1,30 @@
+{
+  "model_id": "relay-lab/private-inspection-codec-v1",
+  "space_id": "factory-route-v1",
+  "checkpoint_sha256": "e3183e3c87318d13e0d5dba10f8d8a47ccc6d1ae8827c476edc3ca0421b14c00",
+  "sensor_signature": "dcfa750be0b4d45dd33cc5f490738e017e4e850ca1c09e1428626a44abdaa8b1",
+  "parameters": 20907,
+  "training": {
+    "seed": 317,
+    "steps": 1200,
+    "examples_seen": 115200,
+    "training_scenes": 3072,
+    "train_seed_base": 100000,
+    "validation_seed_base": 200000,
+    "validation": {
+      "samples": 768,
+      "classification_accuracy": 1.0,
+      "route_samples": 512,
+      "route_accuracy": 1.0,
+      "route_accepted_accuracy": 1.0,
+      "unreadable_recall": 1.0,
+      "route_min_confidence": 0.9992220401763916,
+      "max_latent_norm_error": 1.1920928955078125e-07
+    },
+    "training_data_sha256": "cb8a827b36074f338711bbc6a3c3b6a1a0f0eae5ab9329eca08cb0395d96b7aa",
+    "validation_data_sha256": "ea27a6db47955c5f1b07ed65837f62dbb540da9bbbbb2f8e9003158c1e230f06",
+    "source_sha256": "f68cd1879341707334dc38c2f5bb5872f8ea90e5028d736061b90c241b648fa5",
+    "source": "original MuJoCo inspection-panel RGB; independent illumination/pose/background/LED noise; unreadable sensor augmentation",
+    "seconds": 36.12939570797607
+  }
+}

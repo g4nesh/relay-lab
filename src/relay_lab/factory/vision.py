@@ -191,6 +191,30 @@ def marker_positions(snapshot):
     return positions
 
 
+def local_marker_positions(snapshot, robot_id):
+    """Limit dynamic observations to each robot's physical work area.
+
+    Fixed station/slot beacons are a shared static navigation map. Cargo and
+    peer tags are observed only nearby; the task's private inspection camera
+    is separate and never becomes a globally visible scene marker.
+    """
+    positions = marker_positions(snapshot)
+    robot = next(item for item in snapshot["robots"] if item["id"] == robot_id)
+    if robot["kind"] == "amr":
+        center, radius = np.asarray(robot["position"][:2]), 2.5
+    else:
+        center = np.asarray([robot["position"][0], 2.0])
+        radius = {"humanoid": 2.5, "arm": 3.0, "gantry": 3.0}[robot["kind"]]
+    dynamic = set(ROBOT_IDS) | {cargo["id"] for cargo in snapshot["cargo"]}
+    return {
+        name: pose
+        for name, pose in positions.items()
+        if name not in dynamic
+        or name == robot_id
+        or np.linalg.norm(np.asarray(pose[:2]) - center) <= radius
+    }
+
+
 _LOCAL = threading.local()
 
 
@@ -199,7 +223,12 @@ def render_observation(snapshot, robot_id):
     if rig is None:
         rig = FactoryCameraRig()
         _LOCAL.rig = rig
-    rig.set_positions(marker_positions(snapshot))
+    positions = (
+        local_marker_positions(snapshot, robot_id)
+        if snapshot.get("task") == "dispatch-routing"
+        else marker_positions(snapshot)
+    )
+    rig.set_positions(positions)
     return rig.render(robot_id)
 
 
@@ -219,7 +248,13 @@ def instruction_for(robot, command, phase):
         return f"pick {cargo_id}"
     if phase == "approach_place":
         if target == "pallet":
-            target = f"pallet-{int(cargo_id.split('-')[-1]):03}"
+            selected_slot = command.get("pallet_slot")
+            if selected_slot is not None:
+                if type(selected_slot) is not int or not 0 <= selected_slot < 6:
+                    raise ValueError("Invalid local pallet choice")
+                target = f"pallet-{selected_slot + 1:03}"
+            else:
+                target = f"pallet-{int(cargo_id.split('-')[-1]):03}"
         return f"place {cargo_id} on {target}"
     if phase in ("approach_process", "processing"):
         return f"process {cargo_id}"
