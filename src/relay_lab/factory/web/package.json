@@ -1,0 +1,9 @@
+{
+  "name": "relay-lab-factory-view",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "scripts": { "build": "esbuild app.js --bundle --minify --format=esm --outfile=app.bundle.js" },
+  "dependencies": { "three": "0.180.0" },
+  "devDependencies": { "esbuild": "0.25.10" }
+}

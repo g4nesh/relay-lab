@@ -1,7 +1,31 @@
 # Relay Lab
 
-An original two-robot MuJoCo workcell: one robot supplies colored parcels through
-one shared relay pad; the other packs them in a requested order.
+An original multi-robot simulation project with a five-robot pilot factory and
+a learned-VLA tabletop workcell. Both use local language-model coordination and
+SpacetimeDB synchronization.
+
+## Factory dashboard
+
+The new [factory extension](docs/factory.md) combines a humanoid loader, two mobile
+carriers, an articulated assembly arm, and an overhead grappler in a continuous
+production workflow. Its live 3D dashboard shows robot motion, resource leases,
+job progress, and acknowledged handoffs. After the setup below, run:
+
+```bash
+python3 scripts/spacetime.py publish
+uv run relay-lab factory
+```
+
+Open <http://127.0.0.1:8767>. Qwen chooses macro skills; the new embodiments use
+explicit model-based motion adapters. The original learned VLA stays calibrated
+to the tabletop workcell. See [the architecture and limitations](docs/factory.md)
+for the distinction, and [the verified factory run](examples/factory/README.md)
+for screenshots and complete execution evidence.
+
+## Original learned-VLA workcell
+
+One robot supplies colored parcels through a shared relay pad; the other packs
+them in a requested order.
 
 The active loop uses **a local Qwen LLM mediator, a small task-adapted learned
 vision/language/action policy, a deterministic outcome judge, and SpacetimeDB**.

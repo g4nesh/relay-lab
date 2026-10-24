@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Relay Lab · Factory</title>
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%231b3e3b'/%3E%3Cpath d='M19 44V20h14c14 0 14 18 0 18H19m13 0 13 9' fill='none' stroke='white' stroke-width='6'/%3E%3C/svg%3E">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <a class="brand" href="./" aria-label="Relay Lab home"><span class="brand-mark">r<span>↗</span></span><span>relay<span class="brand-lab"> lab</span></span></a>
+      <div class="header-location"><span class="separator">/</span> Factory operations <span class="tag">ALPHA</span></div>
+      <div class="header-end"><span id="connection" class="connection"><i></i> Connecting</span><span class="local-badge">LOCAL WORKSPACE</span><span class="avatar">RL</span></div>
+    </header>
+    <aside class="sidebar">
+      <div class="workspace-title"><span class="section-eyebrow">WORKSPACE</span><strong>Autonomy hall <span>01</span></strong><p>Heterogeneous robot coordination</p></div>
+      <button class="nav-item active" id="overview-nav"><span class="grid-icon">▦</span> Factory overview <span class="nav-dot"></span></button>
+      <div class="fleet-heading"><span class="section-eyebrow">ROBOT TEAM</span><span id="fleet-count">5 units</span></div>
+      <div id="fleet-list" class="fleet-list"></div>
+      <div class="sidebar-bottom"><div class="backend-icon">▤</div><div><strong>SpacetimeDB</strong><span id="backend-state">Waiting for backend</span></div><i id="backend-dot"></i></div>
+    </aside>
+    <main class="main-content">
+      <section class="page-heading">
+        <div><div class="breadcrumbs">WORKSPACE <span>/</span> FACTORY</div><h1>Factory overview <span id="mission-status" class="status-pill">Ready</span></h1><p>A shared world. Five robots. One coordinated workflow.</p></div>
+        <div class="mission-controls"><select id="planner-control" aria-label="Mission planner"><option value="llm" selected>Local LLM</option><option value="rules">Rules reference</option></select><select id="order-control" aria-label="Number of workpieces"><option value="1">1 workpiece</option><option value="3" selected>3 workpieces</option><option value="6">6 workpieces</option></select><select id="speed-control" aria-label="Simulation speed"><option value="1">1× speed</option><option value="2">2× speed</option><option value="4" selected>4× speed</option><option value="8">8× speed</option><option value="12">12× speed</option></select><button id="reset-button" class="icon-button" title="Reset mission" aria-label="Reset mission">↺</button><button id="run-button" class="primary-button"><span id="run-icon">▶</span><span id="run-label">Start mission</span></button></div>
+      </section>
+      <div id="error-banner" class="error-banner" role="alert" hidden></div>
+      <section class="metric-strip" aria-label="Mission metrics">
+        <div><span class="metric-label">MISSION PROGRESS</span><strong><span id="complete-count">0</span><span class="metric-muted"> / <span id="order-count">3</span></span><small>orders delivered</small></strong><div class="micro-progress"><span id="mission-progress"></span></div></div>
+        <div><span class="metric-label">ROBOT TEAM</span><strong id="active-count">5<small>connected units</small></strong></div>
+        <div><span class="metric-label">SIMULATION TIME</span><strong><span id="sim-clock">00:00</span><small id="tick-count">tick 0</small></strong></div>
+        <div><span class="metric-label">COORDINATION</span><strong id="coordination-label">Synchronized<small id="coordination-detail">Committed state · live updates</small></strong></div>
+      </section>
+      <div class="operations-grid">
+        <section class="scene-panel" aria-label="Interactive factory environment">
+          <div class="scene-title"><div><span class="live-dot"></span><strong>Live environment</strong><span>HALL 01</span></div><button id="labels-toggle" class="subtle-button" aria-pressed="true">⌗ Labels</button></div>
+          <div id="scene-container"><canvas id="factory-canvas" aria-label="Interactive 3D factory; drag to orbit, scroll to zoom, click a robot to inspect"></canvas><div id="world-labels" aria-hidden="true"></div><div id="loading-state"><span class="loading-spinner"></span>Building the factory environment…</div></div>
+          <div class="scene-footer"><div class="view-switch" aria-label="Camera view"><button class="selected" data-view="overview">Overview</button><button data-view="floor">Floor level</button><button data-view="top">Top view</button></div><div class="viewport-hint"><span>↔</span> Drag to orbit <b>·</b> Scroll to zoom</div><button id="fullscreen-button" class="icon-button" title="Expand environment" aria-label="Expand environment">⛶</button></div>
+          <div class="scene-legend"><span><i class="green"></i> Autonomous mobile robot</span><span><i class="blue"></i> Manipulator</span><span><i class="amber"></i> Shared resource</span></div>
+        </section>
+        <aside class="detail-panel">
+          <div class="detail-tabs"><button id="mission-tab" class="active">Mission</button><button id="robot-tab">Robot details</button><button id="event-tab" hidden>Event</button></div>
+          <div id="mission-detail"><div class="detail-section"><span class="section-eyebrow">ACTIVE WORKFLOW</span><h2>Material to dispatch</h2><p class="detail-description">Load, transport, process and palletize. Every handoff is acknowledged.</p><div id="workflow-stages" class="workflow-stages"></div></div><div class="detail-section resources-section"><div class="section-header"><span class="section-eyebrow">SHARED RESOURCES</span><span id="resource-count">0 reserved</span></div><div id="resource-list"></div></div><div class="model-note"><span>◈</span><p><strong id="planner-name">Model-based coordination</strong><span id="planner-detail">Execution verified against simulator state.</span></p></div></div>
+          <div id="robot-detail" hidden></div><div id="event-detail" hidden></div>
+        </aside>
+        <section class="activity-panel">
+          <div class="activity-heading"><div><h2>Coordination stream <span id="message-count">0</span></h2><p>Intent → reservation → action → observed outcome</p></div><div class="activity-filters"><button class="active" data-filter="all">All events</button><button data-filter="handoff">Handoffs</button><button data-filter="resource">Resources</button></div></div>
+          <div class="event-table-head"><span>TIME</span><span>TYPE</span><span>AGENT / CHANNEL</span><span>MESSAGE</span></div><div id="event-list" class="event-list"><div class="empty-events">Start a mission to see plans, reservations and verified handoffs.</div></div>
+        </section>
+      </div>
+      <footer class="workspace-footer"><span><i></i> Original factory simulation <b>·</b> Kinematic robot controllers <b>·</b> Simulator-grounded outcomes</span><span id="state-version">State version 0</span></footer>
+    </main>
+  </div>
+  <script type="module" src="./app.bundle.js"></script>
+</body>
+</html>

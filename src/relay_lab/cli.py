@@ -9,7 +9,7 @@ from .runner import RunConfig, prepare_directory, run_episode, write_json
 
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(
-        description="Relay Lab: two robots, one handoff, local messages."
+        description="Relay Lab: robot teams, local model coordination, and shared simulation state."
     )
     commands = result.add_subparsers(dest="command", required=True)
     run = commands.add_parser("run", help="Record one rollout with video and an HTML replay")
@@ -70,6 +70,16 @@ def parser() -> argparse.ArgumentParser:
     serve.add_argument("--port", type=int, default=8766)
     status = commands.add_parser("task-status", help="Read a task's authoritative Spacetime state")
     status.add_argument("task_id")
+    factory = commands.add_parser("factory", help="Open the live five-robot factory dashboard")
+    factory.add_argument("--port", type=int, default=8767)
+    factory.add_argument("--coordination", choices=("spacetime", "memory"), default="spacetime")
+    factory_run = commands.add_parser("factory-run", help="Run and record a full factory workflow")
+    factory_run.add_argument("--seed", type=int, default=7)
+    factory_run.add_argument("--orders", type=int, default=3)
+    factory_run.add_argument("--planner", choices=("llm", "rules"), default="llm")
+    factory_run.add_argument("--coordination", choices=("spacetime", "memory"), default="spacetime")
+    factory_run.add_argument("--max-ticks", type=int, default=6000)
+    factory_run.add_argument("--output", type=Path)
     return result
 
 
@@ -81,6 +91,27 @@ def main() -> None:
     argument_parser = parser()
     args = argument_parser.parse_args()
     try:
+        if args.command == "factory":
+            from .factory.server import serve_factory
+
+            serve_factory(args.port, args.coordination)
+            return
+        if args.command == "factory-run":
+            from .factory.runtime import run_factory
+
+            summary = run_factory(
+                seed=args.seed,
+                orders=args.orders,
+                planner=args.planner,
+                coordination=args.coordination,
+                max_ticks=args.max_ticks,
+                output=args.output,
+            )
+            print(
+                f"{summary['status'].upper()} · {summary['mission']['completed']}/{args.orders} workpieces · {summary['tick']} ticks"
+            )
+            print(f"Logs: {summary['output']}")
+            return
         if args.command == "serve":
             from .server import serve
 

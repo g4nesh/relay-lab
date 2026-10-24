@@ -41,7 +41,35 @@ const feedback_frame = table({ public: false }, {
   created_at: t.timestamp(),
 });
 
-const spacetime = schema({ module_owner, task, assignment, plan_frame, action_frame, feedback_frame });
+// Factory coordination is additive; the original two-arm tables remain intact.
+const factory_run = table({ public: false }, {
+  run_id: t.string().primaryKey(), worker_id: t.string(), spec_json: t.string(),
+  state_json: t.string(), revision: t.u32(), tick: t.u32(), max_ticks: t.u32(),
+  phase: t.string(), status: t.string(), created_at: t.timestamp(), updated_at: t.timestamp(),
+});
+const factory_robot = table({ public: false }, {
+  key: t.string().primaryKey(), run_id: t.string().index('btree'), robot_id: t.string(),
+  capabilities_json: t.string(), last_sequence: t.i64(),
+});
+const factory_batch = table({ public: false }, {
+  key: t.string().primaryKey(), run_id: t.string().index('btree'), revision: t.u32(),
+  prepare_json: t.string(), result_json: t.string(), created_at: t.timestamp(),
+});
+const factory_command = table({ public: false }, {
+  key: t.string().primaryKey(), run_id: t.string().index('btree'), command_id: t.string(),
+  robot_id: t.string(), job_id: t.string(), command_json: t.string(), status: t.string(),
+});
+const factory_resource = table({ public: false }, {
+  key: t.string().primaryKey(), run_id: t.string().index('btree'), resource_id: t.string(),
+  holder: t.string(), command_id: t.string(), expires_tick: t.u32(),
+});
+const factory_event = table({ public: false }, {
+  key: t.string().primaryKey(), run_id: t.string().index('btree'), message_id: t.string(),
+  sender: t.string(), recipient: t.string(), sequence: t.u32(), created_tick: t.u32(),
+  expires_tick: t.u32(), priority: t.u8(), acknowledged: t.bool(), payload_json: t.string(),
+});
+
+const spacetime = schema({ module_owner, task, assignment, plan_frame, action_frame, feedback_frame, factory_run, factory_robot, factory_batch, factory_command, factory_resource, factory_event });
 export default spacetime;
 type Ctx = ReducerCtx<typeof spacetime.schemaType>;
 type Json = Record<string, unknown>;
@@ -296,4 +324,253 @@ export const abort_task = spacetime.reducer({ task_id: t.string(), worker_id: t.
   }
   require(value.status === 'running', 'Cannot abort a terminal task');
   ctx.db.task.task_id.update({ ...value, status: 'failed', phase: 'terminal', reason: args.reason, updated_at: ctx.timestamp });
+});
+
+// ----- Heterogeneous factory coordination protocol v1 -----
+const FACTORY_STAGES = ['queued', 'loaded', 'at_cell', 'in_fixture', 'processed', 'outbound_loaded', 'at_dispatch', 'completed'];
+const FACTORY_CAPABILITIES = ['transfer', 'navigate', 'transfer', 'process', 'transfer', 'navigate', 'transfer'];
+function factoryRun(ctx: Ctx, run_id: string, worker_id: string) {
+  owner(ctx); identifier(run_id, 'factory run'); identifier(worker_id, 'factory worker');
+  const run = ctx.db.factory_run.run_id.find(run_id);
+  require(run && run.worker_id === worker_id, 'Unknown factory run or wrong worker');
+  return run;
+}
+function array(value: unknown, label: string, max = 64): unknown[] {
+  require(Array.isArray(value) && value.length <= max, `Invalid ${label}`); return value;
+}
+function integer(value: unknown, label: string, min: number, max: number): asserts value is number {
+  require(Number.isInteger(value) && (value as number) >= min && (value as number) <= max, `Invalid ${label}`);
+}
+function factoryMessages(ctx: Ctx, run_id: string, messages: unknown, tick: number) {
+  for (const value of array(messages, 'messages', 64)) {
+    const msg = object(value, 'message');
+    text(msg.message_id, 'message ID', 128); identifier(msg.message_id, 'message ID');
+    text(msg.sender, 'message sender', 128); text(msg.recipient, 'message recipient', 128);
+    const key = `${run_id}:${msg.message_id}`, payload_json = JSON.stringify(msg);
+    const prior = ctx.db.factory_event.key.find(key);
+    if (prior) { require(prior.payload_json === payload_json, 'Conflicting duplicate message'); continue; }
+    const sender = ctx.db.factory_robot.key.find(`${run_id}:${msg.sender}`);
+    require(sender, 'Unknown message sender');
+    require(msg.recipient === 'broadcast' || ctx.db.factory_robot.key.find(`${run_id}:${msg.recipient}`), 'Unknown message recipient');
+    integer(msg.sequence, 'message sequence', 0, 4_294_967_295);
+    require(BigInt(msg.sequence) === sender.last_sequence + 1n, 'Stale or out-of-order message');
+    integer(msg.expires_tick, 'message expiry', tick + 1, tick + 10_000);
+    integer(msg.priority, 'message priority', 0, 10); number(msg.confidence, 'confidence');
+    require(msg.confidence >= 0 && msg.confidence <= 1, 'Confidence outside range');
+    require(['intent', 'belief', 'request', 'ack', 'outcome', 'blocked'].includes(msg.kind as string), 'Unknown message kind');
+    object(msg.payload, 'message payload');
+    let parent;
+    if (msg.correlation_id !== null && msg.correlation_id !== undefined) {
+      text(msg.correlation_id, 'causal parent', 128);
+      parent = ctx.db.factory_event.key.find(`${run_id}:${msg.correlation_id}`);
+      require(parent, 'Unknown causal parent');
+    }
+    if (msg.kind === 'ack') {
+      require(parent && parent.recipient === msg.sender && parent.sender === msg.recipient && parent.expires_tick > tick, 'Invalid ACK scope or expired message');
+      ctx.db.factory_event.key.update({ ...parent, acknowledged: true });
+    } else {
+      const targets = [...ctx.db.factory_robot.run_id.filter(run_id)].filter(r =>
+        r.robot_id !== msg.sender && (msg.recipient === 'broadcast' || r.robot_id === msg.recipient));
+      const live = [...ctx.db.factory_event.run_id.filter(run_id)].filter(e =>
+        !e.acknowledged && e.expires_tick > tick && parse(e.payload_json, 'stored message').kind !== 'ack');
+      for (const target of targets) require(live.filter(e =>
+        e.sender !== target.robot_id && (e.recipient === target.robot_id || e.recipient === 'broadcast')).length < 64, 'Recipient queue full');
+    }
+    ctx.db.factory_event.insert({ key, run_id, message_id: msg.message_id, sender: msg.sender,
+      recipient: msg.recipient, sequence: msg.sequence, created_tick: tick, expires_tick: msg.expires_tick,
+      priority: msg.priority, acknowledged: false, payload_json });
+    ctx.db.factory_robot.key.update({ ...sender, last_sequence: BigInt(msg.sequence) });
+  }
+}
+
+export const create_factory_run = spacetime.reducer({
+  run_id: t.string(), worker_id: t.string(), spec_json: t.string(), state_json: t.string(),
+}, (ctx, args) => {
+  owner(ctx); identifier(args.run_id, 'factory run'); identifier(args.worker_id, 'factory worker');
+  const spec = parse(args.spec_json, 'factory spec'), state = parse(args.state_json, 'initial factory state');
+  const prior = ctx.db.factory_run.run_id.find(args.run_id);
+  if (prior) {
+    require(prior.worker_id === args.worker_id && prior.spec_json === args.spec_json, 'Conflicting factory creation');
+    require(prior.revision === 0 && prior.phase === 'ready' && prior.state_json === args.state_json, 'Existing execution cannot be resumed with a new world'); return;
+  }
+  integer(spec.max_ticks, 'factory tick budget', 1, 100_000);
+  require(state.tick === 0 && state.success === false, 'Invalid initial factory state');
+  const robots = array(spec.robots, 'factory robots', 32); require(robots.length > 0, 'Missing robots');
+  const ids = new Set<string>();
+  for (const item of robots) {
+    const robot = object(item, 'robot'); text(robot.robot_id, 'robot ID', 128); identifier(robot.robot_id, 'robot ID');
+    require(!ids.has(robot.robot_id) && !['mediator', 'judge'].includes(robot.robot_id), 'Duplicate or reserved robot ID'); ids.add(robot.robot_id);
+    const caps = array(robot.capabilities, 'capabilities', 32); require(caps.length > 0, 'No capabilities'); caps.forEach(c => text(c, 'capability', 128));
+    ctx.db.factory_robot.insert({ key: `${args.run_id}:${robot.robot_id}`, run_id: args.run_id,
+      robot_id: robot.robot_id, capabilities_json: JSON.stringify(caps), last_sequence: -1n });
+  }
+  for (const id of ['mediator', 'judge']) ctx.db.factory_robot.insert({ key: `${args.run_id}:${id}`,
+    run_id: args.run_id, robot_id: id, capabilities_json: '[]', last_sequence: -1n });
+  const jobs = array(spec.jobs, 'factory jobs', 64); require(jobs.length > 0, 'Missing jobs');
+  const observedJobs = object(state.jobs, 'initial job inventory'), jobIds = new Set<string>();
+  for (const item of jobs) {
+    const job = object(item, 'job'); text(job.job_id, 'job ID', 128); identifier(job.job_id, 'job ID');
+    require(!jobIds.has(job.job_id), 'Duplicate job'); jobIds.add(job.job_id);
+    const observed = object(observedJobs[job.job_id], 'initial job');
+    require(observed.stage === job.stage && observed.stage !== 'completed', 'Invalid initial job stage');
+  }
+  require(Object.keys(observedJobs).length === jobs.length, 'Wrong initial job inventory');
+  const resources = array(spec.resources, 'factory resources', 128);
+  require(new Set(resources).size === resources.length, 'Duplicate resource registry entry');
+  for (const resource of new Set([...resources, ...ids])) {
+    text(resource, 'resource', 128); identifier(resource, 'resource');
+    ctx.db.factory_resource.insert({ key: `${args.run_id}:${resource}`, run_id: args.run_id,
+      resource_id: resource, holder: '', command_id: '', expires_tick: 0 });
+  }
+  ctx.db.factory_run.insert({ ...args, revision: 0, tick: 0, max_ticks: spec.max_ticks,
+    phase: 'ready', status: 'running', created_at: ctx.timestamp, updated_at: ctx.timestamp });
+});
+
+export const prepare_factory_batch = spacetime.reducer({
+  run_id: t.string(), worker_id: t.string(), revision: t.u32(), prepare_json: t.string(),
+}, (ctx, args) => {
+  const run = factoryRun(ctx, args.run_id, args.worker_id), key = `${args.run_id}:${args.revision}`;
+  const prior = ctx.db.factory_batch.key.find(key);
+  if (prior) {
+    require(prior.prepare_json === args.prepare_json, 'Conflicting duplicate factory batch');
+    require(run.status === 'running' && run.phase === 'executing' && run.revision === args.revision && !prior.result_json, 'Old or terminal batch cannot authorize physics'); return;
+  }
+  require(run.phase === 'ready' && run.status === 'running' && run.revision === args.revision, 'Factory phase or revision conflict');
+  const batch = parse(args.prepare_json, 'factory batch'), state = parse(run.state_json, 'stored factory state');
+  const commands = array(batch.commands, 'factory commands', 32), seenRobots = new Set<string>(), seenJobs = new Set<string>();
+  const jobs = object(state.jobs, 'stored factory jobs');
+  factoryMessages(ctx, args.run_id, batch.messages ?? [], run.tick);
+  const included = new Set(commands.map(c => object(c, 'command').command_id));
+  for (const c of ctx.db.factory_command.run_id.filter(args.run_id)) require(c.status !== 'running' || included.has(c.command_id), 'Running commands cannot be omitted');
+  for (const value of commands) {
+    const command = object(value, 'factory command');
+    text(command.command_id, 'command ID', 128); identifier(command.command_id, 'command ID');
+    const oldCommand = ctx.db.factory_command.key.find(`${args.run_id}:${command.command_id}`);
+    if (oldCommand) require(oldCommand.status === 'running' && oldCommand.command_json === JSON.stringify(command), 'Terminal or changed command replay');
+    text(command.robot_id, 'command robot', 128);
+    const robot = ctx.db.factory_robot.key.find(`${args.run_id}:${command.robot_id}`);
+    require(robot && !seenRobots.has(command.robot_id), 'Unknown or duplicate robot'); seenRobots.add(command.robot_id);
+    require((JSON.parse(robot.capabilities_json) as unknown[]).includes(command.capability), 'Robot lacks capability');
+    const payload = object(command.payload ?? {}, 'command payload');
+    if (payload.handoff_message_id) {
+      text(payload.handoff_message_id, 'handoff message', 128);
+      require(ctx.db.factory_event.key.find(`${args.run_id}:${payload.handoff_message_id}`)?.acknowledged, 'Handoff not acknowledged');
+    }
+    const job_id = command.job_id ?? ''; text(job_id, 'command job', 128, true);
+    if (job_id) {
+      const job = object(jobs[job_id], 'command job');
+      require(!seenJobs.has(job_id), 'Conflicting job custody'); seenJobs.add(job_id);
+      if (!oldCommand && job.custodian && job.custodian !== command.robot_id && ctx.db.factory_robot.key.find(`${args.run_id}:${job.custodian}`)) {
+        const handoff = typeof payload.handoff_message_id === 'string' ? ctx.db.factory_event.key.find(`${args.run_id}:${payload.handoff_message_id}`) : undefined;
+        const parent = handoff ? parse(handoff.payload_json, 'handoff request') : {};
+        require(command.capability === 'transfer' && handoff?.acknowledged && parent.kind === 'request' &&
+          parent.sender === command.robot_id && parent.recipient === job.custodian &&
+          object(parent.payload, 'handoff payload').job_id === job_id &&
+          object(parent.payload, 'handoff payload').command_id === command.command_id && (oldCommand || handoff.expires_tick > run.tick), 'Robot custody requires acknowledged handoff');
+      }
+      const expected = command.expected_stage ?? payload.expected_stage;
+      require(expected === undefined || expected === job.stage, 'Stale job stage');
+    }
+    const lease = command.lease_ticks ?? 1; integer(lease, 'resource lease', 1, 1000);
+    const resources = array(command.resources ?? [], 'command resources', 32);
+    require(new Set(resources).size === resources.length, 'Duplicate resource');
+    const required: unknown[] = ['transfer', 'process'].includes(command.capability as string)
+      ? [payload.source, payload.target] : command.capability === 'navigate' ? [payload.target, 'aisle-main'] : [];
+    if (job_id) required.push(object(jobs[job_id], 'job').cargo_id);
+    for (const resource of required) if (typeof resource === 'string' && ctx.db.factory_resource.key.find(`${args.run_id}:${resource}`)) {
+      require(resources.includes(resource), 'Command omitted required station, aisle, or cargo resources');
+    }
+    // The actor lease is implicit and cannot be omitted to bypass a peer's
+    // reservation of this robot during an in-progress handoff.
+    for (const resource of new Set([command.robot_id, ...resources])) {
+      text(resource, 'resource ID', 128);
+      const lock = ctx.db.factory_resource.key.find(`${args.run_id}:${resource}`);
+      require(lock && (!lock.holder || lock.expires_tick <= run.tick || lock.holder === command.robot_id), 'Resource unavailable');
+      ctx.db.factory_resource.key.update({ ...lock, holder: command.robot_id,
+        command_id: command.command_id, expires_tick: run.tick + lease });
+    }
+    const row = { key: `${args.run_id}:${command.command_id}`, run_id: args.run_id,
+      command_id: command.command_id, robot_id: command.robot_id, job_id, command_json: JSON.stringify(command), status: 'authorized' };
+    if (oldCommand) ctx.db.factory_command.key.update(row); else ctx.db.factory_command.insert(row);
+  }
+  ctx.db.factory_batch.insert({ key, run_id: args.run_id, revision: args.revision,
+    prepare_json: args.prepare_json, result_json: '', created_at: ctx.timestamp });
+  ctx.db.factory_run.run_id.update({ ...run, phase: 'executing', updated_at: ctx.timestamp });
+});
+
+export const commit_factory_batch = spacetime.reducer({
+  run_id: t.string(), worker_id: t.string(), revision: t.u32(), result_json: t.string(),
+}, (ctx, args) => {
+  const run = factoryRun(ctx, args.run_id, args.worker_id), key = `${args.run_id}:${args.revision}`;
+  const batch = ctx.db.factory_batch.key.find(key); require(batch, 'Factory batch not authorized');
+  if (batch.result_json) { require(batch.result_json === args.result_json, 'Conflicting duplicate factory outcome'); return; }
+  require(run.phase === 'executing' && run.revision === args.revision, 'Factory result revision conflict');
+  const result = parse(args.result_json, 'factory result'), state = object(result.state, 'factory observed state');
+  require(state.tick === run.tick + 1, 'Factory observed tick conflict');
+  const commands = array(parse(batch.prepare_json, 'stored batch').commands, 'stored commands');
+  const outcomes = array(result.outcomes, 'factory outcomes', 32);
+  require(outcomes.length === commands.length, 'Missing factory outcomes');
+  const byId = new Map(commands.map(c => { const x = object(c, 'command'); return [x.command_id, x]; }));
+  const seen = new Set<unknown>();
+  for (const item of outcomes) {
+    const outcome = object(item, 'factory outcome'), command = byId.get(outcome.command_id);
+    require(command && !seen.has(outcome.command_id), 'Unknown or duplicate outcome'); seen.add(outcome.command_id);
+    require(outcome.robot_id === command.robot_id, 'Factory outcome robot mismatch');
+    require(['running', 'completed', 'failed'].includes(outcome.status as string), 'Invalid factory outcome status');
+    object(outcome.observed, 'observed skill evidence');
+    const row = ctx.db.factory_command.key.find(`${args.run_id}:${command.command_id}`)!;
+    ctx.db.factory_command.key.update({ ...row, status: outcome.status as string });
+    if (outcome.status !== 'running') for (const lock of ctx.db.factory_resource.run_id.filter(args.run_id)) {
+      if (lock.command_id === command.command_id) ctx.db.factory_resource.key.update({ ...lock, holder: '', command_id: '', expires_tick: 0 });
+    }
+  }
+  const jobs = object(state.jobs, 'observed jobs'), previous = object(parse(run.state_json, 'previous state').jobs, 'previous jobs');
+  require(Object.keys(jobs).length === Object.keys(previous).length && Object.keys(jobs).every(id => id in previous), 'Factory job inventory conflict');
+  for (const [jid, item] of Object.entries(jobs)) {
+    const job = object(item, 'observed job'), old = object(previous[jid], 'previous job');
+    text(job.stage, 'observed stage', 128);
+    const associated = outcomes.map(x => object(x, 'outcome')).filter(o => byId.get(o.command_id)!.job_id === jid);
+    if (job.stage !== old.stage) {
+      require(associated.length === 1 && associated[0].status === 'completed', 'Unobserved factory job transition');
+      const outcome = associated[0], command = byId.get(outcome.command_id)!;
+      const index = FACTORY_STAGES.indexOf(old.stage as string);
+      require(index >= 0 && index < 7 && FACTORY_STAGES[index + 1] === job.stage && FACTORY_CAPABILITIES[index] === command.capability, 'Invalid factory process transition');
+      require((command.next_stage ?? object(command.payload ?? {}, 'payload').next_stage) === job.stage && object(outcome.observed, 'skill evidence').stage === job.stage, 'Unauthorized or inconsistent job stage');
+    }
+    require(job.custodian === null || job.custodian === undefined || job.custodian === '' ||
+      (typeof job.custodian === 'string' && (!!ctx.db.factory_robot.key.find(`${args.run_id}:${job.custodian}`) ||
+        !!ctx.db.factory_resource.key.find(`${args.run_id}:${job.custodian}`))), 'Unknown job custodian');
+    if (job.custodian !== old.custodian) {
+      require(associated.length === 1 && object(associated[0].observed, 'custody evidence').custodian === job.custodian, 'Unobserved custody change');
+      const command = byId.get(associated[0].command_id)!, payload = object(command.payload ?? {}, 'transfer payload');
+      require(command.capability === 'transfer', 'Only a transfer may change cargo custody');
+      require([null, undefined, '', command.robot_id, payload.source, payload.target].includes(job.custodian), 'Custody recipient outside authorized transfer');
+    }
+  }
+  const success = Object.values(jobs).every(item => object(item, 'job').stage === 'completed');
+  require(state.success === success, 'Factory success disagrees with observed job stages');
+  factoryMessages(ctx, args.run_id, result.messages ?? [], state.tick as number);
+  ctx.db.factory_batch.key.update({ ...batch, result_json: args.result_json });
+  const status = success ? 'succeeded' : (state.tick as number) >= run.max_ticks ? 'exhausted' : 'running';
+  ctx.db.factory_run.run_id.update({ ...run, state_json: JSON.stringify(state), tick: state.tick as number,
+    revision: run.revision + 1, phase: status === 'running' ? 'ready' : 'terminal', status, updated_at: ctx.timestamp });
+});
+
+
+export const abort_factory_run = spacetime.reducer({
+  run_id: t.string(), worker_id: t.string(), reason: t.string(),
+}, (ctx, args) => {
+  const run = factoryRun(ctx, args.run_id, args.worker_id);
+  text(args.reason, 'factory abort reason', 2048);
+  const state = parse(run.state_json, 'factory state');
+  if (run.status === 'failed') { require(state.abort_reason === args.reason, 'Conflicting duplicate abort'); return; }
+  require(run.status === 'running', 'Cannot abort terminal factory run');
+  for (const lock of ctx.db.factory_resource.run_id.filter(args.run_id)) {
+    ctx.db.factory_resource.key.update({ ...lock, holder: '', command_id: '', expires_tick: 0 });
+  }
+  for (const command of ctx.db.factory_command.run_id.filter(args.run_id)) {
+    if (['authorized', 'running'].includes(command.status)) ctx.db.factory_command.key.update({ ...command, status: 'aborted' });
+  }
+  ctx.db.factory_run.run_id.update({ ...run, status: 'failed', phase: 'terminal',
+    state_json: JSON.stringify({ ...state, abort_reason: args.reason }), updated_at: ctx.timestamp });
 });
