@@ -23,6 +23,7 @@ from relay_lab.llm import MODEL_ID, MODEL_REVISION, LocalLLM
 from relay_lab.spacetime import _identifier
 
 from .artifacts import ArtifactRegistry
+from .telemetry import TelemetryStore
 
 MODES = ("mediated", "orchestrated", "latent", "hybrid")
 ROBOTS = ("arm", "mobile", "humanoid", "drone", "custom")
@@ -186,6 +187,7 @@ class StudioService:
         self.llm = llm or LocalLLM(python=self.root / ".venv-llm/bin/python", max_tokens=180)
         self.lock, self.sessions = threading.RLock(), {}
         self.artifacts = ArtifactRegistry(self.root)
+        self.telemetry = TelemetryStore(self.storage)
 
     def workspace(self):
         path = self.storage / "workspace.json"
@@ -335,7 +337,7 @@ class StudioService:
             "hardware_execution": False,
         }
 
-    def connect(self, workspace):
+    def connect(self, workspace, *, model_release=None):
         workspace = self.validate(workspace, complete=True)
         if workspace["mode"] in ("latent", "hybrid") and not matched_pair(workspace):
             raise ValueError(
@@ -356,6 +358,7 @@ class StudioService:
             "studio_protocol": 2,
             "created_at": time.time(),
             "adapter": policy.model_info if policy else None,
+            "model_release": copy.deepcopy(model_release),
         }
         coordinator.create(
             run_id,
@@ -423,6 +426,7 @@ class StudioService:
                     "phase": row["phase"],
                     "resumable": row["phase"] == "ready" and state.get("studio_protocol") == 2,
                     "updated_at": state.get("updated_at", state.get("created_at")),
+                    "model_release": copy.deepcopy(state.get("model_release")),
                 }
             )
         sessions.sort(key=lambda s: s["updated_at"] or 0, reverse=True)
@@ -552,6 +556,7 @@ class StudioService:
             "results": copy.deepcopy(session["results"][-50:]),
             "failed": session["failed"],
             "workspace": copy.deepcopy(session["workspace"]),
+            "model_release": copy.deepcopy(session["state"].get("model_release")),
             "tick": tick,
             "status": "failed" if session["failed"] else "channel_open",
             "recovered": session["recovered"],
@@ -580,6 +585,7 @@ class StudioService:
             "results": [],
             "failed": snapshot["status"] == "failed",
             "workspace": validate_workspace(state["workspace"], complete=True),
+            "model_release": copy.deepcopy(state.get("model_release")),
             "tick": tick,
             "status": "inspect_only",
             "recovered": False,
@@ -856,6 +862,7 @@ class StudioService:
             session["sequences"][sender] += 1
         session["results"].append(result)
         session["requests"][request_id] = (signature, result)
+        self.telemetry.record(session_id, workspace["direction"], result)
         return result
 
     @staticmethod

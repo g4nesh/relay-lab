@@ -29,6 +29,19 @@ weights or drive hardware. The supported SmolVLA/X-VLA example tests communicati
 using captured features and fresh Qwen/adapter inference; other models can use
 the local report API through their own runtime adapters.
 
+Studio now has individual **manager and employee accounts**. Managers register,
+release and retire exact model configurations; employees run approved pairs and
+submit change requests. First launch requires the private setup code at
+`.relay-lab/studio/setup-code`. See the [roles and setup guide](docs/studio.md).
+
+Open **Analytics** in Studio for matched communication experiments, per-mode
+latency and timing coverage, model-release counts, and an editable engineering
+effort scenario. Evidence artifacts and filtered exports accompany the charts.
+The [analytics guide](docs/studio-analytics.md) explains the populations and
+limits.
+Measured robot outcomes, database latency, and assumed labor savings remain
+separate.
+
 ## Learned messages between different VLA families
 
 The new [learned adapter experiment](docs/latent-coordination.md) uses **actual

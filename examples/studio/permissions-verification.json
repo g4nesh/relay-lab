@@ -1,0 +1,56 @@
+{
+  "checked_at": 1792898723.7935848,
+  "backend": "actual SpacetimeDB",
+  "inference": "actual learned adapter on captured frozen features",
+  "session_id": "studio-ff0d7424aa424170",
+  "employee_workspace_write": 403,
+  "released_employee_exchange": 200,
+  "readback_verified": true,
+  "database_ms": 33.68054190650582,
+  "model_release_persisted": {
+    "version": 1,
+    "registry_id": "registry_7d58699395204c2a82d669e65e7baacf",
+    "models": [
+      {
+        "id": "mdl_b83d0feb3801d514e1345d30fe5feb8cfaf342cfa1fc15cad0c15272d0e038c0",
+        "revision": 4,
+        "spec": {
+          "id": "left",
+          "name": "Left arm",
+          "robot": "arm",
+          "family": "smolvla",
+          "source": {
+            "kind": "huggingface",
+            "ref": "HuggingFaceVLA/smolvla_libero",
+            "revision": "6721902bc4d61e50a3bfdb11dfb4cb626f05d102"
+          },
+          "rig": "",
+          "action_contract": "Cartesian target xyz (m) + gripper boolean"
+        }
+      },
+      {
+        "id": "mdl_77f367e9e979986b291c2ac96248b0b1699520a5087ae0c461d3961faf084372",
+        "revision": 2,
+        "spec": {
+          "id": "right",
+          "name": "Right arm",
+          "robot": "arm",
+          "family": "xvla",
+          "source": {
+            "kind": "huggingface",
+            "ref": "lerobot/xvla-folding",
+            "revision": "c87d6e8fcf47fb19d6aac8b67d35dd20d74bbc8d"
+          },
+          "rig": "",
+          "action_contract": "Cartesian target xyz (m) + gripper boolean"
+        }
+      }
+    ]
+  },
+  "retired_exchange": 403,
+  "retired_resume": 403,
+  "tick_before_retirement": 1,
+  "tick_after_blocked_exchange": 1,
+  "rerelease_old_session": 403,
+  "hardware_execution": false
+}

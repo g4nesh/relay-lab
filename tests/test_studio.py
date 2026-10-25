@@ -10,6 +10,8 @@ from types import SimpleNamespace
 import pytest
 
 from relay_lab.llm import Generation
+from relay_lab.studio.access import AccessStore
+from relay_lab.studio.governance import ModelRegistry
 from relay_lab.studio.server import StudioHandler, validate_safetensors
 from relay_lab.studio.service import (
     StudioService,
@@ -280,8 +282,22 @@ class MemorySocket:
 
 @pytest.fixture
 def http(studio):
+    access = AccessStore(studio.storage)
+    credentials = access.setup(
+        access.setup_path.read_text().strip(), "test-manager", "Test Manager", "test passphrase 123"
+    )
+    registry = ModelRegistry(studio.storage)
+    registry.sync_workspace(credentials["user"], studio.workspace())
+
     def request(path="/", method="GET", data=None, headers=None):
-        h = {"Host": "127.0.0.1:8770", "Connection": "close", **(headers or {})}
+        h = {
+            "Host": "127.0.0.1:8770",
+            "Connection": "close",
+            "Cookie": "relay_studio_8770=" + credentials["token"],
+            **(headers or {}),
+        }
+        if h.get("X-Relay-Token") == "test-token":
+            h["X-Relay-Token"] = credentials["csrf"]
         if data is not None:
             h["Content-Length"] = str(len(data))
         lines = [f"{method} {path} HTTP/1.1", *(f"{k}: {v}" for k, v in h.items())]
@@ -291,7 +307,8 @@ def http(studio):
             ("127.0.0.1", 1),
             SimpleNamespace(server_port=8770),
             service=studio,
-            token="test-token",
+            access=access,
+            registry=registry,
         )
         response = HTTPResponse(MemorySocket(bytes(socket.sent)), method=method)
         response.begin()
