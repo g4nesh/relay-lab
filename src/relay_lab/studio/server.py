@@ -5,23 +5,21 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import os
 import re
 import secrets
 import struct
 import uuid
 from datetime import datetime
-from functools import partial
 from http.cookies import SimpleCookie
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
-from .access import AccessStore, AuthenticationError
+from .access import AuthenticationError
 from .analytics import AnalyticsService, estimate_effort
-from .governance import ModelRegistry, RegistryConflict
+from .governance import RegistryConflict
 from .profiles import ProfileStore
-from .service import StudioService, example_workspace
+from .service import CONTROL_PLANE_REASON, example_workspace
 from .tasks import TaskConflict, TaskService
 from .workers import WorkerStore
 
@@ -36,7 +34,18 @@ ASSETS = {
     "/tasks.css": ("tasks.css", "text/css"),
     "/profiles.js": ("profiles.js", "text/javascript"),
     "/profiles.css": ("profiles.css", "text/css"),
+    "/hosted.css": ("hosted.css", "text/css"),
+    "/local.css": ("local.css", "text/css"),
+    "/workspace-design.css": ("workspace-design.css", "text/css"),
+    "/coordination-design.css": ("coordination-design.css", "text/css"),
+    "/assets/relay-logo-exact.png": ("assets/relay-logo-exact.png", "image/png"),
+    "/assets/fonts/LICENSE-OFL.txt": ("assets/fonts/LICENSE-OFL.txt", "text/plain"),
 }
+for _font in (
+    "ibm-plex-sans-latin-400", "ibm-plex-sans-latin-500", "ibm-plex-sans-latin-600",
+    "ibm-plex-mono-latin-400", "ibm-plex-mono-latin-500",
+):
+    ASSETS[f"/assets/fonts/{_font}.woff2"] = (f"assets/fonts/{_font}.woff2", "font/woff2")
 MAX_UPLOAD = 4 * 1024**3
 SESSION_ROUTE = r"/api/sessions/(studio-[a-f0-9]{16})"
 
@@ -83,6 +92,8 @@ class StudioHandler(BaseHTTPRequestHandler):
         deployment=None,
         tasks=None,
         workers=None,
+        coordination=None,
+        realtime=None,
         simulations=None,
         **kwargs,
     ):
@@ -91,6 +102,8 @@ class StudioHandler(BaseHTTPRequestHandler):
         self.deployment = deployment
         self.tasks = tasks
         self.workers = workers
+        self.coordination = coordination
+        self.realtime = realtime
         self.simulations = simulations
         self.identity = None
         super().__init__(*args, **kwargs)
@@ -218,7 +231,7 @@ class StudioHandler(BaseHTTPRequestHandler):
         # Check identity *after* entering the governance boundary. A request
         # queued behind inference must not retain a role revoked while waiting.
         # Team updates share this boundary so a committed demotion cannot race
-        # an approved write. Logout remains immediate; uploads recheck on audit.
+        # an approved write. Logout remains immediate; uploads recheck before publication.
         serialized = mutation and path not in (
             "/api/auth/login",
             "/api/auth/setup",
@@ -283,6 +296,22 @@ class StudioHandler(BaseHTTPRequestHandler):
         if path.startswith("/api/agent/"):
             return self.agent_request(path, mutation)
         actor = self.authenticate(mutation)
+        if not self.service.experiments_enabled:
+            if path == "/api/simulations" and not mutation:
+                return self.respond(
+                    {
+                        "available": False,
+                        "profile": "control-plane",
+                        "runs": [],
+                        "active": None,
+                        "reason": CONTROL_PLANE_REASON,
+                    }
+                )
+            if (
+                path in ("/api/upload", "/api/sessions", "/api/simulations")
+                or path.startswith(("/api/samples/", "/api/sessions/", "/api/simulations/"))
+            ):
+                raise PermissionError(CONTROL_PLANE_REASON)
         if not mutation:
             if path == "/api/simulations":
                 return self.respond(self.simulation_service.list(actor))
@@ -299,6 +328,12 @@ class StudioHandler(BaseHTTPRequestHandler):
                 return self.respond(self.task_service.get(actor, match[1]))
             if path == "/api/workers":
                 return self.respond(self.worker_store.list(actor))
+            if path == "/api/coordination":
+                if self.coordination is None:
+                    return self.respond({"enabled": False, "available": False,
+                                         "presence": [], "attention": [], "jobs": [], "rollups": [],
+                                         "realtime": {"state": "unavailable"}})
+                return self.respond(self.coordination.snapshot(self.realtime))
             if path == "/api/analytics":
                 analytics = self.analytics or AnalyticsService(
                     self.service.root, self.service, self.registry, self.access
@@ -312,7 +347,7 @@ class StudioHandler(BaseHTTPRequestHandler):
                         "user": actor,
                         "permissions": self.identity["permissions"],
                         "workspace": workspace,
-                        "example": example_workspace(),
+                        "example": example_workspace() if self.service.experiments_enabled else None,
                         "capabilities": self.service.capabilities(),
                         **self.registry.catalog(actor),
                         **self.release_status(actor, workspace),
@@ -360,6 +395,16 @@ class StudioHandler(BaseHTTPRequestHandler):
                 self.require("models.manage")
                 return self.upload()
             value = self.body()
+            if path in ("/api/coordination/jobs", "/api/coordination/jobs/run"):
+                self.require("models.manage")
+                if self.coordination is None:
+                    return self.respond({"error": "Scheduled coordination is unavailable"}, 503)
+                result = (self.coordination.run_job(value) if path.endswith("/run")
+                          else self.coordination.configure_job(value))
+                self.access.audit(actor, "coordination.job_run" if path.endswith("/run")
+                                  else "coordination.job_configured", value["job_id"],
+                                  {"schedule": value.get("schedule"), "enabled": value.get("enabled")})
+                return self.respond(result)
             if path == "/api/simulations":
                 self.require("models.manage")
                 return self.respond(
@@ -480,6 +525,7 @@ class StudioHandler(BaseHTTPRequestHandler):
     @property
     def simulation_service(self):
         # Share one process supervisor across request-handler instances.
+        self.service.require_experiments()
         from .simulations import SimulationService
 
         with self.registry.lock:
@@ -616,13 +662,19 @@ class StudioHandler(BaseHTTPRequestHandler):
                 "tensors": tensors,
                 "loaded": False,
             }
-            path.with_suffix(".json").write_text(json.dumps(metadata))
-            self.access.audit(
-                self.identity["user"],
-                "model.uploaded",
-                asset,
-                {"sha256": metadata["sha256"], "bytes": length},
-            )
+            # Receiving, copying and validating weights can outlive the
+            # original session or manager role. Publish only after checking
+            # current authority inside the same boundary as team changes.
+            with self.registry.lock:
+                self.authenticate(True)
+                self.require("models.manage")
+                path.with_suffix(".json").write_text(json.dumps(metadata))
+                self.access.audit(
+                    self.identity["user"],
+                    "model.uploaded",
+                    asset,
+                    {"sha256": metadata["sha256"], "bytes": length},
+                )
             self.respond(metadata, 201)
         except Exception:
             path.unlink(missing_ok=True)
@@ -662,37 +714,16 @@ class StudioHandler(BaseHTTPRequestHandler):
 
 
 def serve_studio(root=None, port=8770):
-    if type(port) is not int or not 0 <= port <= 65535:
-        raise ValueError("Invalid Studio port")
-    service = StudioService(root or Path.cwd())
-    access = (
-        AccessStore if os.environ.get("RELAY_STUDIO_PASSWORD_LOGIN") == "1" else ProfileStore
-    )(service.storage)
-    registry = ModelRegistry(service.storage)
-    if isinstance(access, ProfileStore):
-        manager = next((p for p in access.profiles()["profiles"] if p["role"] == "manager"), None)
-        if manager:
-            registry.sync_workspace(manager, service.workspace())
-    analytics = AnalyticsService(service.root, service, registry, access)
-    tasks = TaskService(service, registry)
-    workers = WorkerStore(service.storage, access, registry, service)
-    handler = partial(
-        StudioHandler,
-        service=service,
-        access=access,
-        registry=registry,
-        analytics=analytics,
-        tasks=tasks,
-        workers=workers,
-    )
-    try:
-        with ThreadingHTTPServer(("127.0.0.1", port), handler) as server:
-            print(f"Relay Studio: http://127.0.0.1:{server.server_port}/", flush=True)
-            if access.status()["setup_required"]:
-                print(f"First manager setup code: {service.storage / 'setup-code'}", flush=True)
-            server.serve_forever()
-    finally:
-        service.close()
+    # Import lazily: the ASGI adapter reuses StudioHandler for ordinary requests.
+    from .asgi import create_app, serve_app
+    from .deployment import DeploymentConfig
+
+    config = DeploymentConfig(root=Path(root or Path.cwd()).resolve(), port=port)
+    app = create_app(config=config)
+    print(f"Relay Studio: http://127.0.0.1:{config.port}/", flush=True)
+    if app.runtime["access"].status()["setup_required"]:
+        print(f"First manager setup code: {app.runtime['service'].storage / 'setup-code'}", flush=True)
+    serve_app(app, config=config)
 
 
 if __name__ == "__main__":

@@ -6,10 +6,10 @@ const icon = (name) => `<svg aria-hidden="true"><use href="#i-${name}"/></svg>`;
 const families = {smolvla: "SmolVLA", xvla: "X-VLA", openvla: "OpenVLA", groot: "GR00T", custom: "Custom VLA"};
 const robotNames = {arm: "Robot arm", mobile: "Drive unit", humanoid: "Humanoid", drone: "Drone", custom: "Custom"};
 const modes = {
-  mediated: {title: "LLM mediator", description: "Turns each local report into useful peer context.", route: "A’s report → Qwen → B<br>B’s report → Qwen → A", label: "Peer context"},
-  orchestrated: {title: "LLM orchestrator", description: "Reads both reports and assigns the next instructions.", route: "A + B → <b>Qwen planner</b><br>Individual instructions → A + B", label: "Shared planning"},
-  latent: {title: "Learned latents", description: "Exchanges features through trained CoLA-inspired adapters.", route: "Native features → <b>64D message</b><br>Peer decoder → 32D context", label: "Learned interface"},
-  hybrid: {title: "Hybrid", description: "Delivers Qwen instructions alongside learned messages.", route: "<b>Qwen instructions</b> + <b>64D latents</b><br>Two parallel paths to each receiver", label: "Two channels"},
+  mediated: {title: "LLM mediator", description: "Turns each local report into useful peer context.", route: "A’s report → Qwen → B<br>B’s report → Qwen → A", label: "PEER CONTEXT"},
+  orchestrated: {title: "LLM orchestrator", description: "Reads both reports and assigns the next instructions.", route: "A + B → <b>Qwen planner</b><br>Individual instructions → A + B", label: "SHARED PLANNING"},
+  latent: {title: "Learned latents", description: "Exchanges features through trained CoLA-inspired adapters.", route: "Native features → <b>64D message</b><br>Peer decoder → 32D context", label: "LEARNED INTERFACE"},
+  hybrid: {title: "Hybrid", description: "Delivers Qwen instructions alongside learned messages.", route: "<b>Qwen instructions</b> + <b>64D latents</b><br>Two parallel paths to each receiver", label: "TWO CHANNELS"},
 };
 const robotPaths = {
   arm: `<ellipse cx="65" cy="85" rx="33" ry="5" fill="currentColor" opacity=".07"/><path d="M39 81h43l-4-8H44l-5 8Z" fill="#e5ebde"/><path d="M48 73V57l14-20 16 8-15 19v9" stroke-width="10" stroke="#e5ebde"/><path d="m53 58 15-20 19-20 10 9-20 22-15 14M51 72V60m11 13V61"/><path d="m88 19 12 8 9-8-12-8-9 8Z" fill="#e6ecdf"/><path d="m108 19 8 6-4 8m-10-9 6 5-4 7M49 73h16"/><circle cx="57" cy="58" r="8" fill="#f9fbf6"/><circle cx="57" cy="58" r="3"/><circle cx="72" cy="40" r="8" fill="#f7faf2"/><circle cx="72" cy="40" r="3"/><circle cx="92" cy="22" r="6" fill="#f7faf2"/><path d="M44 81v3h34v-3M97 15l7-4 9 5-5 4"/>`,
@@ -50,15 +50,49 @@ function clearSession() {
   state.session = null; state.sessionReleaseReady = false; state.results = []; state.history = null; state.selectedMessage = null; state.readOnly = false; state.failed = false; state.diagnostics = null; clearInterval(polling);
   $("receiver-panel").hidden = true;
   void refreshDiagnostics();
-  $("stream-events").replaceChildren(); $("stream-count").textContent = "0 packets";
+  $("stream-events").replaceChildren(); $("stream-count").textContent = "0 PACKETS";
   $("stream-empty").hidden = false; $("stream-metrics").hidden = true;
 }
 function changed() { clearSession(); state.dirty = true; $("notice").hidden = true; render(); }
+const experimentsEnabled = () => state.capabilities.experiments_enabled !== false;
 function isExample() {
-  return state.workspace.agents.length === 2 && state.workspace.agents.every((a, i) => {
+  return experimentsEnabled() && !!state.example && state.workspace.agents.length === 2 && state.workspace.agents.every((a, i) => {
     const b = state.example.agents[i];
     return a.id === b.id && a.robot === "arm" && a.family === b.family && JSON.stringify(a.source) === JSON.stringify(b.source);
   });
+}
+function applyDeploymentProfile() {
+  const research = experimentsEnabled();
+  document.body.classList.toggle("control-plane", !research);
+  $("deployment-guide").hidden = research;
+  const copy = (selector, text) => {
+    const node = document.querySelector(selector); if (!node) return;
+    if (node.dataset.researchCopy === undefined) node.dataset.researchCopy = node.innerHTML;
+    if (research) node.innerHTML = node.dataset.researchCopy; else node.textContent = text;
+  };
+  copy("#nav-team > span", "Models & channels");
+  copy(".page-heading h1", "Workspace");
+  copy(".page-heading p", "Register your policies, approve revisions, and connect the runtimes that do the work.");
+  copy(".page-heading .preview-tag", "PRIVATE WORKSPACE");
+  copy(".release-heading p", "Approve each model configuration before assigning goals to its runtime.");
+  copy(".release-footnote > span:last-child", "EXACT CONFIGURATION · MANAGER APPROVED");
+  copy(".canvas-caption .mono", "YOUR POLICIES / SHARED TASK STATE");
+  copy(".canvas-coordinate", "CUSTOMER WORKSPACE");
+  copy(".canvas-safe", "INFERENCE ON AGENT HOSTS");
+  copy(".connection-summary > div > span", "Objective → scoped assignment → observed outcome");
+  copy(".bridge-section h2", "Keep your models close to the work.");
+  copy(".bridge-section p", "Your agent bridge connects outward to this workspace. It receives assigned goals and reports progress from your own policy or simulator.");
+  copy(".bridge-code .code-comment", "# Your agents. One shared task state.");
+  copy(".bridge-code code", "receive(goal) → execute() → report()");
+  copy(".bridge-code > div", "SCOPED CREDENTIALS · PERSISTENT FEEDBACK");
+  copy("#workspace-view > footer > span:last-child", "Model inference runs on your agent hosts. Task outcomes are reported by those agents.");
+  copy(".permission-matrix article:last-child h3", "Operate approved agents.");
+  copy(".permission-matrix article:last-child p", "Assign objectives, inspect agent progress, and request changes to model configurations and releases.");
+  copy("#model-dialog .rig-details .field-help", "Saved for your runtime adapter. The dashboard does not connect to the rig or load its policy.");
+  copy("#bridge-dialog .eyebrow", "OUTBOUND AGENT BRIDGE / v1");
+  copy("#bridge-dialog .dialog-subtitle", "Create a runtime connection in Tasks, then install the agent bridge beside your policy. Your adapter owns inference, execution, and observed results.");
+  $("source-kind").querySelector('[value="upload"]').disabled = !research;
+  $("source-kind").querySelector('[value="upload"]').hidden = !research;
 }
 function renderModel(arm) {
   const a = state.workspace.agents.find((m) => m.id === arm), label = arm === "left" ? "A" : "B";
@@ -68,11 +102,11 @@ function renderModel(arm) {
   }
   const available = isExample() && state.capabilities.sample_available;
   const native = available ? (state.capabilities.adapter?.source_dimensions?.[arm] || (arm === "left" ? 960 : 1024)) : null;
-  $(`slot-${arm}`).innerHTML = `<article class="model-card" data-agent="${arm}"><div class="model-card-top"><span class="agent-letter">${label}</span><strong>${esc(a.name)}</strong><button class="edit-button" data-edit="${arm}" aria-label="Edit ${esc(a.name)}">···</button></div><div class="robot-illustration">${robot(a.robot)}</div><div class="model-spec"><div class="model-family">${families[a.family]}<span>${a.source.kind === "upload" ? "Weights" : "Policy"}</span></div><div class="model-repo" title="${esc(a.source.ref)}">${esc(a.source.ref)}</div><div class="model-native"><span>Feature contract</span><strong>${native ? `${native}D → 64D` : "Unconfigured"}</strong></div></div><div class="model-card-footer"><span><i class="status-dot ${available ? "" : "neutral"}"></i>${available ? "Pinned feature contract" : "Registered · not loaded"}</span><span>${a.rig ? "Rig registered" : "No live rig"}</span></div></article>`;
+  $(`slot-${arm}`).innerHTML = `<article class="model-card" data-agent="${arm}"><div class="model-card-top"><span class="agent-letter">${label}</span><strong>${esc(a.name)}</strong><button class="edit-button" data-edit="${arm}" aria-label="Edit ${esc(a.name)}">···</button></div><div class="robot-illustration">${robot(a.robot)}</div><div class="model-spec"><div class="model-family">${families[a.family]}<span>${a.source.kind === "upload" ? "WEIGHTS" : "POLICY"}</span></div><div class="model-repo" title="${esc(a.source.ref)}">${esc(a.source.ref)}</div><div class="model-native"><span>${experimentsEnabled() ? "FEATURE CONTRACT" : "EXECUTION"}</span><strong>${experimentsEnabled() ? (native ? `${native}D → 64D` : "UNCONFIGURED") : "YOUR RUNTIME"}</strong></div></div><div class="model-card-footer"><span><i class="status-dot ${available ? "" : "neutral"}"></i>${available ? "Pinned feature contract" : "Registered · not loaded"}</span><span>${a.rig ? "Rig registered" : "No live rig"}</span></div></article>`;
 }
 function render() {
   if (!state.authenticated || !state.workspace) return;
-  renderAccessIdentity(); renderReleases(); renderRequestModels();
+  applyDeploymentProfile(); renderAccessIdentity(); renderReleases(); renderRequestModels();
   const w = state.workspace, mode = modes[w.mode], exact = isExample();
   const activeSession = !!state.session && !state.readOnly && !state.failed && state.sessionReleaseReady;
   const releaseBlocked = !!state.session && !state.sessionReleaseReady;
@@ -93,7 +127,7 @@ function render() {
   $("contract-message").textContent = latentPath ? "64 dimensions" : "Qwen text";
   $("contract-context").textContent = latentPath ? "32 dimensions" : "Worker supplied";
   $("contract-preview").textContent = latentPath ? "Replacement head" : "Not evaluated";
-  $("session-badge").textContent = state.readOnly ? "Archived view" : releaseBlocked ? "Release blocked" : state.failed ? "Channel stopped" : state.session ? "Channel open" : "Draft";
+  $("session-badge").textContent = state.readOnly ? "ARCHIVED VIEW" : releaseBlocked ? "RELEASE BLOCKED" : state.failed ? "CHANNEL STOPPED" : state.session ? "CHANNEL OPEN" : "DRAFT";
   $("connection-state").textContent = state.readOnly ? "Read-only history" : releaseBlocked ? "Model approval changed" : state.session ? "Session confirmed" : "Not connected";
   $("canvas-status").textContent = state.readOnly ? "Read-only journal · open a new channel to exchange" : releaseBlocked ? "Model approval changed · this session cannot exchange" : state.failed ? "Channel stopped · open a new session to continue" : state.session ? "Communication session open · hardware inactive" : w.agents.length === 2 ? (["latent", "hybrid"].includes(w.mode) && !exact ? "A trained adapter is needed for this pair" : (currentPairReleased() ? "Approved pair · ready to open a channel" : "Pair configured · manager release required")) : "Add two models to create a channel";
   $("canvas-status-dot").classList.toggle("neutral", !state.session);
@@ -121,9 +155,19 @@ function render() {
   });
   $("connect-button").title = !currentPairReleased() ? "A manager must release both exact model revisions first" : "Start an approved communication session";
   $("probe-button").title = state.session && !state.sessionReleaseReady ? "This session uses a model revision that is no longer released" : "Run a communication exchange";
+  if (!experimentsEnabled()) {
+    $("channel-label").textContent = "Shared task state";
+    $("direction-label").textContent = "A ↔ workspace ↔ B";
+    $("session-badge").textContent = currentPairReleased() ? "RELEASED" : "CONFIGURATION";
+    $("canvas-status").textContent = currentPairReleased() ? "Approved models · connect your runtimes in Tasks" : "Register and release the models that will receive your tasks";
+    $("connection-state").textContent = "Runtime connections in Tasks";
+    $("channel-node").setAttribute("aria-label", "Open runtime connections");
+    $("connect-button").disabled = true; $("probe-button").disabled = true;
+  }
   updateProbeSource();
 }
 function updateProbeSource() {
+  if (!experimentsEnabled()) { $("observations-panel").hidden = true; $("probe-button").disabled = true; return; }
   const captured = $("probe-source").value === "captured";
   $("condition-field").hidden = !captured;
   $("manual-reports").hidden = captured;
@@ -149,7 +193,7 @@ function sourceFields() {
   $("revision-field").hidden = source !== "huggingface";
   $("source-ref").required = source !== "upload";
   $("source-ref-label").textContent = {huggingface: "Repository ID", local: "Checkpoint path", endpoint: "Inference endpoint", upload: "Weights"}[source];
-  $("source-ref").placeholder = {huggingface: "owner/model", local: "/path/to/weights-or-model-directory", endpoint: "http://127.0.0.1:8000/policy", upload: ""}[source];
+  $("source-ref").placeholder = {huggingface: "owner/model", local: "/path/on-your-agent-host/model", endpoint: experimentsEnabled() ? "http://127.0.0.1:8000/policy" : "https://your-policy-service.example/infer", upload: ""}[source];
 }
 function editModel(arm) {
   if (!allowed("models.manage")) return;
@@ -158,7 +202,7 @@ function editModel(arm) {
   $("agent-id").value = arm; $("model-dialog-slot").textContent = `MODEL ${arm === "left" ? "A" : "B"}`;
   $("agent-name").value = a?.name || ""; state.robot = a?.robot || "arm";
   $("agent-family").value = a?.family || "smolvla";
-  $("source-kind").value = a?.source.kind || "huggingface";
+  $("source-kind").value = !experimentsEnabled() && a?.source.kind === "upload" ? "local" : a?.source.kind || "huggingface";
   $("source-ref").value = a?.source.ref || ""; $("source-revision").value = a?.source.revision || "";
   $("rig-endpoint").value = a?.rig || ""; $("action-contract").value = a?.action_contract || "";
   $("form-error").hidden = true; $("remove-model").hidden = !a;
@@ -173,6 +217,7 @@ async function register(event) {
   event.preventDefault(); $("register-model").disabled = true; $("form-error").hidden = true;
   try {
     const kind = $("source-kind").value;
+    if (!experimentsEnabled() && kind === "upload") throw new Error("Register a policy on your agent host or an inference endpoint.");
     if (kind === "upload" && !state.upload) throw new Error("Choose and upload your safetensors weights first.");
     const a = {id: $("agent-id").value, name: $("agent-name").value.trim(), robot: state.robot,
       family: $("agent-family").value, source: {kind, ref: kind === "upload" ? state.upload.asset : $("source-ref").value.trim(), revision: kind === "huggingface" ? $("source-revision").value.trim() : ""},
@@ -185,7 +230,7 @@ async function register(event) {
   finally { $("register-model").disabled = false; }
 }
 function upload(file) {
-  if (!file || !allowed("models.manage")) return;
+  if (!experimentsEnabled() || !file || !allowed("models.manage")) return;
   if (!file.name.endsWith(".safetensors") || file.size > 4 * 1024 ** 3) {
     $("form-error").textContent = "Choose a .safetensors file under 4 GiB, or register a local path."; $("form-error").hidden = false; return;
   }
@@ -223,7 +268,7 @@ function renderHistory(data) {
   if (signature === historySignature) return;
   historySignature = signature;
   const messages = data.messages || [];
-  $("stream-count").textContent = `${messages.length} packets`;
+  $("stream-count").textContent = `${messages.length} PACKETS`;
   $("stream-empty").hidden = messages.length > 0;
   if (messages.length) {
     if (!messages.some((m) => m.message_id === state.selectedMessage)) state.selectedMessage = messages.at(-1).message_id;
@@ -248,7 +293,7 @@ function renderPackets() {
   const names = Object.fromEntries(state.workspace.agents.map((a) => [a.id, a.name]));
   const selected = messages.find((m) => m.message_id === state.selectedMessage);
   const recent = messages.slice(-8).reverse();
-  $("stream-events").innerHTML = `<div class="packet-toolbar"><span>Committed message log</span><span>${messages.length > 8 ? "LATEST 8 OF " : ""}${messages.length} RECORDS</span></div><div class="packet-list">${recent.map((m) => `<button class="packet-row ${m.message_id === state.selectedMessage ? "active" : ""}" data-packet="${esc(m.message_id)}" aria-pressed="${m.message_id === state.selectedMessage}"><span class="agent-letter ${m.sender === "right" ? "agent-b" : ""}">${m.sender === "left" ? "A" : "B"}</span><span><strong>${esc(names[m.sender] || m.sender)} <span class="muted">→</span> ${esc(names[m.recipient] || m.recipient)}</strong><small>${esc(modes[m.payload.mode]?.title || m.payload.mode)} · ${m.payload.vector ? `${m.payload.vector.length}D latent` : "Text context"}</small></span><span class="packet-status">Committed</span><span class="packet-order">EX ${esc(m.payload.exchange)}</span></button>`).join("")}</div><div id="selected-packet"></div>`;
+  $("stream-events").innerHTML = `<div class="packet-toolbar"><span>COMMITTED MESSAGE LOG</span><span>${messages.length > 8 ? "LATEST 8 OF " : ""}${messages.length} RECORDS</span></div><div class="packet-list">${recent.map((m) => `<button class="packet-row ${m.message_id === state.selectedMessage ? "active" : ""}" data-packet="${esc(m.message_id)}" aria-pressed="${m.message_id === state.selectedMessage}"><span class="agent-letter ${m.sender === "right" ? "agent-b" : ""}">${m.sender === "left" ? "A" : "B"}</span><span><strong>${esc(names[m.sender] || m.sender)} <span class="muted">→</span> ${esc(names[m.recipient] || m.recipient)}</strong><small>${esc(modes[m.payload.mode]?.title || m.payload.mode)} · ${m.payload.vector ? `${m.payload.vector.length}D latent` : "Text context"}</small></span><span class="packet-status">Committed</span><span class="packet-order">EX ${esc(m.payload.exchange)}</span></button>`).join("")}</div><div id="selected-packet"></div>`;
   if (!selected) return;
   const p = selected.payload;
   const adapter = p.adapter || {};
@@ -258,7 +303,7 @@ function renderPackets() {
   renderExchange(result);
   const conditionLabel = {left_obstacle: "Obstacle visible to A", right_obstacle: "Obstacle visible to B", clear: "Both views clear"}[result?.condition];
   const observed = result?.source === "captured" ? `Captured · ${conditionLabel || "Condition not retained"}` : result?.source === "manual" ? "Supplied local reports" : "Recorded session";
-  $("selected-packet").innerHTML = `<article class="packet-inspector"><div class="packet-inspector-header"><strong>Message ${esc(selected.message_id)}</strong><span>${esc(observed)}</span></div><div class="packet-body"><div class="packet-facts"><span>Sequence <b>${esc(selected.sequence)}</b></span><span>Route <b>${selected.sender === "left" ? "A → B" : "B → A"}</b></span>${checkpoint ? `<span>Adapter <b>${esc(checkpoint.slice(0,12))}…</b></span>` : ""}</div>${p.context ? `<div class="packet-context-label">Delivered language context</div><p class="event-message">${esc(p.context)}</p>` : ""}${vector ? `<div class="packet-context-label">LEARNED MESSAGE / ${vector.length} DIMENSIONS</div><div class="vector-display" id="selected-vector" aria-label="Signed learned message components"></div><div class="vector-label"><span>64D encoded → 32D receiver context</span><span class="vector-scale">−1 <i></i> +1</span></div>` : ""}${p.safety_facts && Object.keys(p.safety_facts).length ? `<details class="event-details"><summary>Structured safety context</summary><pre>${esc(JSON.stringify(p.safety_facts, null, 2))}</pre></details>` : ""}<details class="event-details"><summary>Inspect full committed packet</summary><pre>${esc(JSON.stringify(selected, null, 2))}</pre></details></div><div class="receipt-strip">${icon("check")}<span>${result?.readback_verified ? "Exact packet independently verified after SpacetimeDB commit" : "Read from the SpacetimeDB message journal"}</span></div></article>`;
+  $("selected-packet").innerHTML = `<article class="packet-inspector"><div class="packet-inspector-header"><strong>Message ${esc(selected.message_id)}</strong><span>${esc(observed)}</span></div><div class="packet-body"><div class="packet-facts"><span>SEQUENCE <b>${esc(selected.sequence)}</b></span><span>ROUTE <b>${selected.sender === "left" ? "A → B" : "B → A"}</b></span>${checkpoint ? `<span>ADAPTER <b>${esc(checkpoint.slice(0,12))}…</b></span>` : ""}</div>${p.context ? `<div class="packet-context-label">DELIVERED LANGUAGE CONTEXT</div><p class="event-message">${esc(p.context)}</p>` : ""}${vector ? `<div class="packet-context-label">LEARNED MESSAGE / ${vector.length} DIMENSIONS</div><div class="vector-display" id="selected-vector" aria-label="Signed learned message components"></div><div class="vector-label"><span>64D encoded → 32D receiver context</span><span class="vector-scale">−1 <i></i> +1</span></div>` : ""}${p.safety_facts && Object.keys(p.safety_facts).length ? `<details class="event-details"><summary>Structured safety context</summary><pre>${esc(JSON.stringify(p.safety_facts, null, 2))}</pre></details>` : ""}<details class="event-details"><summary>Inspect full committed packet</summary><pre>${esc(JSON.stringify(selected, null, 2))}</pre></details></div><div class="receipt-strip">${icon("check")}<span>${result?.readback_verified ? "Exact packet independently verified after SpacetimeDB commit" : "Read from the SpacetimeDB message journal"}</span></div></article>`;
   if (vector) for (let i = 0; i < vector.length; i++) {
     const v = vector[i], cell = document.createElement("i"); cell.className = "vector-cell";
     const magnitude = Math.min(1, Math.abs(v));
@@ -278,7 +323,7 @@ function renderReceivers(result) {
   $("receiver-cards").innerHTML = Object.entries(decisions).map(([arm,d]) => {
     const p = d.prediction || {}, held = p.learned_hold || p.missing_message_hold;
     const target = Array.isArray(d.action?.target) ? d.action.target : [];
-    return `<article class="receiver-card"><div class="receiver-card-heading"><span class="agent-letter ${arm === "right" ? "agent-b" : ""}">${arm === "left" ? "A" : "B"}</span><strong>${esc(names[arm] || arm)}</strong></div><div class="action-state ${held ? "hold" : ""}"><strong>${held ? "Hold" : "Move"}</strong><span>${p.missing_message_hold ? "No peer message" : "Learned head"}</span></div><div class="action-components">${["X","Y","Z"].map((axis,i) => `<div><span>${axis} TARGET / m</span><strong>${Number.isFinite(target[i]) ? target[i].toFixed(4) : "—"}</strong></div>`).join("")}</div><p class="receiver-caption">Gripper ${d.action?.grip ? "closed" : "open"} · Peer age ${p.peer_age_ticks == null ? "unavailable" : `${p.peer_age_ticks} ticks`}</p><details class="event-details"><summary>Raw head & action</summary><pre>${esc(JSON.stringify(d,null,2))}</pre></details></article>`;
+    return `<article class="receiver-card"><div class="receiver-card-heading"><span class="agent-letter ${arm === "right" ? "agent-b" : ""}">${arm === "left" ? "A" : "B"}</span><strong>${esc(names[arm] || arm)}</strong></div><div class="action-state ${held ? "hold" : ""}"><strong>${held ? "HOLD" : "MOVE"}</strong><span>${p.missing_message_hold ? "NO PEER MESSAGE" : "LEARNED HEAD"}</span></div><div class="action-components">${["X","Y","Z"].map((axis,i) => `<div><span>${axis} TARGET / m</span><strong>${Number.isFinite(target[i]) ? target[i].toFixed(4) : "—"}</strong></div>`).join("")}</div><p class="receiver-caption">Gripper ${d.action?.grip ? "closed" : "open"} · Peer age ${p.peer_age_ticks == null ? "unavailable" : `${p.peer_age_ticks} ticks`}</p><details class="event-details"><summary>Raw head & action</summary><pre>${esc(JSON.stringify(d,null,2))}</pre></details></article>`;
   }).join("");
 }
 async function refreshStream() {
@@ -288,6 +333,7 @@ async function refreshStream() {
   catch (error) { if (error.stale || epoch !== authEpoch) return; clearInterval(polling); notify(`Could not refresh the durable stream: ${error.message}`); }
 }
 async function connect() {
+  if (!experimentsEnabled()) return;
   state.busy = true; $("notice").hidden = true; render();
   $("connect-button").textContent = "Opening channel…";
   try {
@@ -303,6 +349,7 @@ async function connect() {
   finally { state.busy = false; render(); }
 }
 async function probe() {
+  if (!experimentsEnabled()) return;
   state.busy = true; $("notice").hidden = true; render();
   $("probe-button").textContent = state.workspace.mode === "latent" ? "Encoding & committing…" : "Qwen is processing…";
   try {
@@ -325,6 +372,35 @@ function exportWorkspace() {
   toast("Workspace configuration exported");
 }
 function showBridge() {
+  if (!experimentsEnabled()) {
+    $("api-example").textContent = `# Save as your_module.py on the host running your policy.
+# Create a scoped connection in Tasks and save its token privately.
+# Install the relay-studio package on this host, then run:
+# chmod 600 ./worker-token
+# python -m relay_lab.studio.worker --url ${location.origin} \\
+#   --token-file ./worker-token --handler your_module:handle
+
+def handle(context):
+    task = context["task"]
+    # task contains the assigned objective, success criteria,
+    # and peer feedback. Inspect context["worker"] for your identity.
+    # Check context["should_stop"]() before and during bounded actions.
+    # Call your local policy here; return its observed outcome.
+    # This unconfigured adapter deliberately reports a blocked task.
+    return {
+        "status": "blocked",
+        "progress": 0,
+        "summary": "Policy adapter needs configuration.",
+        "evidence": [],
+    }
+
+# Valid statuses: running, blocked, succeeded, failed.
+# Only report succeeded with progress 100 after checking the criteria.
+# Keep worker-token and the worker's recovery journal private.
+`;
+    $("bridge-dialog").showModal();
+    return;
+  }
   $("api-example").textContent = `import getpass, json, uuid
 from http.cookiejar import CookieJar
 from urllib.request import Request, build_opener, HTTPCookieProcessor
@@ -366,14 +442,14 @@ call("/api/auth/logout", {}, boot["token"])
 function bind() {
   const localWorkspace = ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname);
   $("workspace-environment").textContent = localWorkspace ? "Local environment" : "Private workspace";
-  $("environment-location").textContent = localWorkspace ? "Local" : "Private";
-  $("auth-environment").textContent = `${localWorkspace ? "Local" : "Private"} WORKSPACE · INDIVIDUAL ACCOUNTS`;
+  $("environment-location").textContent = localWorkspace ? "LOCAL" : "PRIVATE";
+  $("auth-environment").textContent = `${localWorkspace ? "LOCAL" : "PRIVATE"} WORKSPACE · INDIVIDUAL ACCOUNTS`;
   if (!localWorkspace) {
     document.querySelector(".second-label").hidden = true;
     document.querySelectorAll('a[href^="http://127.0.0.1:"]').forEach((link) => { link.hidden = true; });
   }
-  window.RelayAnalytics.mount({api, notify: toast, authenticated: () => state.authenticated});
-  window.RelayTasks.mount({api, notify: toast, authenticated: () => state.authenticated, context: () => ({workspace: state.savedWorkspace, models: state.models, user: state.user, permissions: state.permissions}), onWorkspace: async (savedWorkspace = null) => {
+  window.RelayAnalytics.mount({api, notify: toast, authenticated: () => state.authenticated, experimentsEnabled});
+  window.RelayTasks.mount({api, notify: toast, authenticated: () => state.authenticated, context: () => ({workspace: state.savedWorkspace, models: state.models, user: state.user, permissions: state.permissions, capabilities: state.capabilities}), onWorkspace: async (savedWorkspace = null) => {
     if (savedWorkspace) {
       state.workspace = structuredClone(savedWorkspace);
       state.savedWorkspace = structuredClone(savedWorkspace);
@@ -405,10 +481,11 @@ function bind() {
     catch (error) { $("form-error").textContent = error.message; $("form-error").hidden = false; }
   });
   $("example-button").addEventListener("click", async () => {
+    if (!experimentsEnabled() || !state.example) return;
     try { const value = await api("/api/workspace", state.example); state.workspace = value; state.savedWorkspace = structuredClone(value); clearSession(); state.dirty = false; await refreshModels(); $("probe-source").value = "captured"; $("notice").hidden = true; render(); toast("Example pair loaded · weights are not loaded into memory"); }
     catch (error) { notify(error.message); }
   });
-  $("save-button").addEventListener("click", async () => { try { await save(); toast("Workspace saved locally"); } catch (e) { notify(e.message); } });
+  $("save-button").addEventListener("click", async () => { try { await save(); toast("Workspace saved"); } catch (e) { notify(e.message); } });
   $("export-button").addEventListener("click", exportWorkspace);
   $("connect-button").addEventListener("click", connect); $("probe-button").addEventListener("click", probe);
   $("probe-source").addEventListener("change", updateProbeSource);
@@ -418,7 +495,7 @@ function bind() {
   $("session-list").addEventListener("click", (event) => { const b = event.target.closest("[data-session]"); if (b && !state.busy) void openSession(b.dataset.session, b.dataset.resume === "true"); });
   $("stream-events").addEventListener("click", (event) => { const b = event.target.closest("[data-packet]"); if (b) { state.selectedMessage = b.dataset.packet; renderPackets(); } });
   $("nav-history").addEventListener("click", () => $("session-section").scrollIntoView({behavior:"smooth", block:"start"}));
-  $("channel-node").addEventListener("click", () => { $("mode-options").scrollIntoView({behavior: "smooth", block: "center"}); $("mode-options").querySelector("button.active")?.focus(); });
+  $("channel-node").addEventListener("click", () => { if (!experimentsEnabled()) { setStudioView("tasks"); $("tk-runtime-title").scrollIntoView({behavior:"smooth",block:"start"}); return; } $("mode-options").scrollIntoView({behavior: "smooth", block: "center"}); $("mode-options").querySelector("button.active")?.focus(); });
   $("nav-team").addEventListener("click", () => {
     if (state.session && !state.dirty && state.savedWorkspace) { state.workspace = structuredClone(state.savedWorkspace); clearSession(); render(); }
     window.scrollTo({top: 0, behavior: "smooth"});
@@ -470,7 +547,7 @@ function setStudioView(view, updateHash = true) {
 }
 function renderPipeline() {
   const latent = ["latent","hybrid"].includes(state.workspace.mode);
-  const nodes = latent ? [["Frozen backbone","960 / 1024D"],["Trained encoder","64D message"],["SPACETIMEDB","Commit + verify"],["Peer decoder","32D context"],["Replacement head","Action preview"]] : [["Local evidence","Text reports"],["Qwen 3",state.workspace.mode === "orchestrated" ? "Joint plan" : "Peer context"],["SPACETIMEDB","Commit + verify"],["Policy worker","Receive text"]];
+  const nodes = !experimentsEnabled() ? [["APPROVED MODELS","Exact revisions"],["TASK OBJECTIVE","Scoped assignment"],["SPACETIMEDB","Commit + verify"],["YOUR RUNTIME","Infer + report"]] : latent ? [["FROZEN BACKBONE","960 / 1024D"],["TRAINED ENCODER","64D message"],["SPACETIMEDB","Commit + verify"],["PEER DECODER","32D context"],["REPLACEMENT HEAD","Action preview"]] : [["LOCAL EVIDENCE","Text reports"],["QWEN 3",state.workspace.mode === "orchestrated" ? "Joint plan" : "Peer context"],["SPACETIMEDB","Commit + verify"],["POLICY WORKER","Receive text"]];
   $("pipeline").innerHTML = nodes.map(([label,value],i) => `${i ? "<i>→</i>" : ""}<div class="pipeline-node ${i === 2 ? "emphasis" : ""}"><span>${label}</span><strong>${value}</strong></div>`).join("");
 }
 function updateObservations() {
@@ -500,17 +577,18 @@ async function refreshHealth() {
     $("health-adapter").title = health.adapter?.error || "Pinned 960D / 1024D feature contracts · learned 64D messages";
     $("health-qwen").textContent = llm ? (health.llm.loaded ? "Qwen runtime loaded" : "Qwen runtime installed") : "Qwen setup needed";
     for (const [key,ready] of [["db",db],["adapter",adapter],["qwen",llm]]) { $(`health-${key}-dot`).classList.toggle("neutral", !ready); $(`health-${key}-dot`).classList.toggle("error", !ready); }
-    $("sidebar-db-dot").classList.toggle("neutral", !db); $("sidebar-db-label").textContent = db ? "SpacetimeDB online" : "Database offline";
+    $("sidebar-db-dot").classList.toggle("neutral", !db); $("sidebar-db-label").textContent = db ? "SPACETIMEDB ONLINE" : "DATABASE OFFLINE";
     if (health.adapter) state.capabilities.adapter = health.adapter;
     render();
   } catch (error) {
     if (error.stale) return;
     $("health-db").textContent = "Readiness check failed"; $("health-db").title = error.message;
     $("health-adapter").textContent = "Readiness unavailable"; $("health-qwen").textContent = "Readiness unavailable";
-    $("sidebar-db-label").textContent = "Check unavailable";
+    $("sidebar-db-label").textContent = "CHECK UNAVAILABLE";
   } finally { $("refresh-health").disabled = false; }
 }
 async function refreshDiagnostics() {
+  if (!experimentsEnabled()) return;
   if (!state.workspace) return;
   const revision = ++diagnosticRevision;
   try {
@@ -525,6 +603,7 @@ async function refreshDiagnostics() {
   } catch (error) { if (revision === diagnosticRevision) { state.diagnostics = null; $("compatibility").querySelector("p").textContent = `Preflight could not be checked: ${error.message}`; } }
 }
 async function refreshSessions() {
+  if (!experimentsEnabled()) return;
   $("refresh-sessions").disabled = true;
   try { const data = await api("/api/sessions"); state.sessions = data.sessions || []; renderSessions(); }
   catch (error) { if (error.stale) return; $("session-list").innerHTML = `<p class="empty-history session-error">Could not read session history: ${esc(error.message)}</p>`; }
@@ -539,6 +618,7 @@ function renderSessions() {
   $("session-list").innerHTML = state.sessions.length ? state.sessions.slice(0,12).map((s) => `<article class="session-row ${s.session_id === state.session ? "current" : ""}"><div><strong>${esc(s.name)}</strong><small>${esc(sessionDate(s.updated_at))} · ${esc(s.session_id.slice(-8))}</small></div><div class="session-mode">${esc(modes[s.mode]?.title || s.mode)}<small>${s.direction === "both" ? "A ↔ B" : s.direction === "left" ? "A → B" : "B → A"} · ${esc(s.resumable ? "Resumable" : "Read only")}</small></div><span class="session-count">${s.tick} exchange${s.tick === 1 ? "" : "s"}</span><button class="button" data-session="${esc(s.session_id)}" data-resume="${!!s.resumable}" ${state.busy ? "disabled" : ""}>${s.session_id === state.session ? "Open" : s.resumable ? "Resume" : "Inspect"}${icon("arrow")}</button></article>`).join("") : '<p class="empty-history">No saved sessions yet. Connect a pair to create the first durable channel.</p>';
 }
 async function openSession(id, resume) {
+  if (!experimentsEnabled()) return;
   state.busy = true; render();
   try {
     const data = await api(`/api/sessions/${id}${resume ? "/resume" : ""}`, resume ? {} : undefined);
@@ -577,7 +657,7 @@ function showAuth(mode = "login", message = "") {
   $("objective").value = ""; $("report-left").value = ""; $("report-right").value = "";
   $("breadcrumb-name").textContent = "Workspace"; $("account-name").textContent = "Account"; $("account-avatar").textContent = "?";
   $("probe-source").value = "captured";
-  for (const [id, value] of Object.entries({"nav-model-count":"0", "model-count":"0 / 2 models", "stream-count":"0 packets", "request-count":"Requests", "team-count":"", "save-state":"Sign in required", "role-badge":"Account", "account-role":"Signed out", "session-badge":"Draft", "connection-state":"Not connected", "canvas-status":"Sign in to use this workspace", "metric-roundtrip":"—", "metric-db":"—", "metric-llm":"—", "metric-bytes":"—"})) $(id).textContent = value;
+  for (const [id, value] of Object.entries({"nav-model-count":"0", "model-count":"0 / 2 models", "stream-count":"0 PACKETS", "request-count":"REQUESTS", "team-count":"", "save-state":"Sign in required", "role-badge":"ACCOUNT", "account-role":"Signed out", "session-badge":"DRAFT", "connection-state":"Not connected", "canvas-status":"Sign in to use this workspace", "metric-roundtrip":"—", "metric-db":"—", "metric-llm":"—", "metric-bytes":"—"})) $(id).textContent = value;
   for (const id of ["stream-metrics", "receiver-panel", "observations-panel", "preflight-details"]) $(id).hidden = true;
   for (const arm of ["left", "right"]) $("observation-" + arm).removeAttribute("src");
   document.querySelectorAll("dialog[open]").forEach((dialog) => dialog.close());
@@ -591,7 +671,7 @@ function setAuthMode(mode) {
   state.authMode = mode;
   const setup = mode === "setup", join = mode === "join";
   $("auth-tabs").hidden = setup;
-  $("auth-eyebrow").textContent = setup ? "First-time workspace setup" : join ? "YOU’RE INVITED" : "Workspace access";
+  $("auth-eyebrow").textContent = setup ? "FIRST-TIME WORKSPACE SETUP" : join ? "YOU’RE INVITED" : "WORKSPACE ACCESS";
   $("auth-title").textContent = setup ? "Create the first manager." : join ? "Join your team." : "Welcome back.";
   $("auth-subtitle").textContent = setup ? "The local setup code gives the workspace owner its first manager account." : join ? "Use the one-time invitation your manager shared with you. Your role is assigned by the invitation." : "Sign in with the account created for this workspace.";
   $("auth-code-field").hidden = !(setup || join); $("auth-code").required = setup || join;
@@ -649,7 +729,7 @@ function renderAccessIdentity() {
   $("account-role").textContent = user.role === "manager" ? "Manager" : "Employee";
   $("role-badge").textContent = String(user.role || "employee").toUpperCase(); $("role-badge").className = `role-badge ${user.role === "manager" ? "manager" : "employee"}`;
   $("permission-title").textContent = manager ? "Manager access" : "Employee access";
-  $("permission-detail").textContent = manager ? "Register policies, release reviewed revisions, and manage your team. Changes are recorded in the audit trail." : "Run approved pairs, inspect exchanges, and request model changes. Managers control configuration, releases, and team access.";
+  $("permission-detail").textContent = manager ? "Register policies, release reviewed revisions, and manage your team. Changes are recorded in the audit trail." : (experimentsEnabled() ? "Run approved pairs, inspect exchanges, and request model changes. Managers control configuration, releases, and team access." : "Assign tasks to approved models, follow agent reports, and request changes. Managers control model releases and team access.");
   $("manager-access").hidden = !allowed("team.manage"); $("access-limited").hidden = allowed("team.manage");
   $("refresh-access").disabled = state.busy;
   $("refresh-access").title = allowed("team.manage") ? "Refresh requests, team membership, and audit trail" : "Refresh your change requests";
@@ -657,14 +737,14 @@ function renderAccessIdentity() {
 function renderReleases() {
   if (!state.workspace) return;
   const released = currentPairReleased(), manager = allowed("models.release");
-  $("release-summary").textContent = released ? "Pair released" : "Approval required";
+  $("release-summary").textContent = released ? "PAIR RELEASED" : "APPROVAL REQUIRED";
   $("release-summary").classList.toggle("ready", released);
-  $("release-help").textContent = state.dirty ? "Save your changes before reviewing the model revisions." : !currentWorkspaceSelected() ? "Viewing a saved session configuration. Select Team workspace to return to the current pair." : manager ? "Review each policy revision before approving it for Studio sessions." : "A manager must release both exact model revisions before you can connect.";
+  $("release-help").textContent = state.dirty ? "Save your changes before reviewing the model revisions." : !currentWorkspaceSelected() ? "Viewing a saved session configuration. Select Team workspace to return to the current pair." : manager ? "Review each policy revision before approving it for workspace use." : "A manager must release both exact model revisions before you can assign tasks.";
   $("release-list").innerHTML = state.workspace.agents.length ? state.workspace.agents.map((agent) => {
     const model = modelFor(agent), status = model?.status || "draft", action = status === "released" ? "retire" : "release";
     const canChange = manager && !!model && !state.dirty && !state.busy;
     const approval = model?.updated_at ? sessionDate(model.updated_at) : "";
-    return `<article class="release-card"><div class="release-card-top"><span class="agent-letter ${agent.id === "right" ? "agent-b" : ""}">${agent.id === "left" ? "A" : "B"}</span><strong>${esc(agent.name)}</strong><span class="lifecycle-tag ${status === "released" ? "released" : status === "retired" ? "retired" : ""}">${esc(status.toUpperCase())}</span></div><div class="release-source" title="${esc(agent.source.ref)}">${esc(agent.source.ref)}</div><div class="release-meta">${model ? `Revision ${esc(model.revision)} · ${status === "released" ? "Approved for Studio use" : status === "retired" ? "Removed from active use" : "Awaiting manager review"}` : "Save workspace to register this revision"}${approval ? ` · ${esc(typeof approval === "object" ? approval.name || approval.username || "Manager" : approval)}` : ""}</div><div class="release-card-bottom"><span>${status === "released" ? "Exact model configuration approved" : "Unreleased models cannot start sessions"}</span><button class="button ${action === "release" ? "primary" : ""}" data-lifecycle="${action}" data-model-id="${esc(model?.id || "")}" ${canChange ? "" : "disabled"} title="${manager ? model ? state.dirty ? "Save workspace changes first" : action === "release" ? "Review and release this revision" : "Retire this revision from active use" : "Save this model first" : "Only managers may release or retire models"}">${action === "release" ? "Review & release" : "Retire release"}</button></div></article>`;
+    return `<article class="release-card"><div class="release-card-top"><span class="agent-letter ${agent.id === "right" ? "agent-b" : ""}">${agent.id === "left" ? "A" : "B"}</span><strong>${esc(agent.name)}</strong><span class="lifecycle-tag ${status === "released" ? "released" : status === "retired" ? "retired" : ""}">${esc(status.toUpperCase())}</span></div><div class="release-source" title="${esc(agent.source.ref)}">${esc(agent.source.ref)}</div><div class="release-meta">${model ? `Revision ${esc(model.revision)} · ${status === "released" ? "Approved for Studio use" : status === "retired" ? "Removed from active use" : "Awaiting manager review"}` : "Save workspace to register this revision"}${approval ? ` · ${esc(typeof approval === "object" ? approval.name || approval.username || "Manager" : approval)}` : ""}</div><div class="release-card-bottom"><span>${status === "released" ? "Exact model configuration approved" : "Unreleased models cannot receive tasks"}</span><button class="button ${action === "release" ? "primary" : ""}" data-lifecycle="${action}" data-model-id="${esc(model?.id || "")}" ${canChange ? "" : "disabled"} title="${manager ? model ? state.dirty ? "Save workspace changes first" : action === "release" ? "Review and release this revision" : "Retire this revision from active use" : "Save this model first" : "Only managers may release or retire models"}">${action === "release" ? "Review & release" : "Retire release"}</button></div></article>`;
   }).join("") : '<p class="release-empty">Add a policy to begin its review and release workflow.</p>';
 }
 async function refreshApprovalState() {
@@ -680,7 +760,7 @@ function reviewRelease(id, action) {
   const model = state.models.find((item) => item.id === id); if (!model) return;
   state.pendingRelease = {id, action, revision: model.revision};
   $("release-dialog-title").textContent = action === "release" ? "Release this revision?" : "Retire this release?";
-  $("release-dialog-description").textContent = action === "release" ? "Approve this exact model configuration for communication sessions in Studio. This does not deploy weights or enable robot actuation." : "Block this revision from further Studio exchanges. Its existing session history remains available for inspection.";
+  $("release-dialog-description").textContent = action === "release" ? "Approve this exact model configuration for workspace use. This does not deploy weights or enable robot actuation." : "Block this revision from new assignments and runtime access. Existing task history is retained.";
   $("release-review").innerHTML = `<strong>${esc(model.spec.name)} · Revision ${esc(model.revision)}</strong><code>${esc(model.spec.source.ref)}${model.spec.source.revision ? `<br>Source revision: ${esc(model.spec.source.revision)}` : ""}</code><p>${esc(families[model.spec.family] || model.spec.family)} · ${esc(robotNames[model.spec.robot] || model.spec.robot)} · ${esc(model.spec.source.kind)}<br>${esc(model.spec.action_contract || "No action contract attached")}</p>`;
   $("release-reason").value = ""; $("release-error").hidden = true;
   $("confirm-release").textContent = action === "release" ? "Release revision" : "Retire release";
@@ -694,7 +774,7 @@ async function changeRelease(event) {
     $("release-dialog").close(); await refreshModels();
     if (state.session) { const history = await api(`/api/sessions/${state.session}`); renderHistory(history); }
     await refreshDiagnostics(); void refreshAccess(); render();
-    toast(pending.action === "release" ? "Revision released for Studio use" : "Release retired · new exchanges are blocked");
+    toast(pending.action === "release" ? "Revision released for Studio use" : "Release retired · new assignments are blocked");
   } catch (error) { $("release-error").textContent = error.message; $("release-error").hidden = false; if (!$("release-dialog").open) notify(error.message); }
   finally { $("confirm-release").disabled = false; }
 }
@@ -796,7 +876,7 @@ function openAccess() { $("access-section").scrollIntoView({behavior:"smooth", b
 function showAccessRecovery(message) {
   clearInterval(polling); document.body.classList.add("auth-pending");
   $("auth-screen").hidden = false; $("auth-screen").classList.add("auth-recovery");
-  $("auth-eyebrow").textContent = "Connection needs attention"; $("auth-title").textContent = "Let’s reconnect.";
+  $("auth-eyebrow").textContent = "CONNECTION NEEDS ATTENTION"; $("auth-title").textContent = "Let’s reconnect.";
   $("auth-subtitle").textContent = "Your account has not been changed. Retry when the local Studio backend is available.";
   $("auth-error").textContent = message; $("auth-error").hidden = false; $("auth-retry").hidden = false;
   $("auth-recovery-logout").hidden = !state.token; $("auth-submit").disabled = true;

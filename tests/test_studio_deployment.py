@@ -47,7 +47,7 @@ def request(app, path="/api/auth/status", *, method="GET", body=b"", headers=Non
 
 @pytest.fixture
 def runtime(tmp_path):
-    service = StudioService(tmp_path)
+    service = StudioService(tmp_path, experiments=False)
     access = AccessStore(service.storage)
     registry = ModelRegistry(service.storage)
     return {
@@ -108,6 +108,92 @@ def test_public_assets_and_authenticated_private_routes(app):
     assert request(app, "/api/auth/status")[0] == 200
     assert request(app, "/api/analytics")[0] == 401
     assert request(app, "/api/team")[0] == 401
+    assert request(app, "/api/coordination")[0] == 401
+
+
+def test_scheduled_jobs_require_manager_and_csrf(app, runtime):
+    access = runtime["access"]
+    owner = access.setup(
+        (runtime["service"].storage / "setup-code").read_text().strip(),
+        "owner",
+        "Owner",
+        "correct horse robot battery",
+    )
+    invite = access.invite(owner["user"], "operator", "Operator", "employee")
+    operator = access.accept_invite(invite["code"], "another robot battery password")
+    calls = []
+
+    class Coordination:
+        def snapshot(self, realtime):
+            return {"enabled": True, "jobs": []}
+
+        def configure_job(self, value):
+            calls.append(("configure", value))
+            return value
+
+        def run_job(self, value):
+            calls.append(("run", value))
+            return value
+
+        def close(self):
+            pass
+
+    runtime["coordination"] = Coordination()
+    for credentials in (operator, owner):
+        auth = [(b"authorization", ("Bearer " + credentials["token"]).encode())]
+        assert request(app, "/api/coordination", headers=auth)[0] == 200
+        for route in ("/api/coordination/jobs", "/api/coordination/jobs/run"):
+            payload = json.dumps({"job_id": "health", "enabled": False}).encode()
+            assert request(app, route, method="POST", body=payload, headers=auth)[0] == 403
+            assert (
+                request(
+                    app,
+                    route,
+                    method="POST",
+                    body=payload,
+                    headers=[*auth, (b"x-relay-token", b"invalid")],
+                )[0]
+                == 403
+            )
+            status, _, _ = request(
+                app,
+                route,
+                method="POST",
+                body=payload,
+                headers=[
+                    *auth,
+                    (b"content-type", b"application/json"),
+                    (b"x-relay-token", credentials["csrf"].encode()),
+                ],
+            )
+            assert status == (200 if credentials is owner else 403)
+    assert [kind for kind, _ in calls] == ["configure", "run"]
+    assert (
+        len(
+            [
+                event
+                for event in access.audit_log(owner["user"])["events"]
+                if event["action"].startswith("coordination.")
+            ]
+        )
+        == 2
+    )
+    access.logout(owner["token"])
+    for route in ("/api/coordination/jobs", "/api/coordination/jobs/run"):
+        assert (
+            request(
+                app,
+                route,
+                method="POST",
+                body=b'{"job_id":"health"}',
+                headers=[
+                    (b"authorization", ("Bearer " + owner["token"]).encode()),
+                    (b"x-relay-token", owner["csrf"].encode()),
+                ],
+            )[0]
+            == 401
+        )
+    assert len(calls) == 2
 
 
 def test_wrong_host_and_forwarded_spoof_rejected(app):

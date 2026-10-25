@@ -1,0 +1,23 @@
+[build-system]
+requires = ["hatchling>=1.25,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "relay-studio"
+version = "0.1.0"
+description = "Private robot coordination dashboard and SpacetimeDB control plane"
+requires-python = ">=3.12"
+dependencies = ["uvicorn==0.53.0", "click==8.5.0", "h11==0.16.0"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<10", "ruff>=0.9,<1"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[project.scripts]
+relay-studio = "relay_lab.studio.asgi:main"
+relay-agent = "relay_lab.studio.worker:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/relay_lab"]

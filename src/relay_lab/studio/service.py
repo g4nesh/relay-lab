@@ -19,10 +19,8 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from relay_lab.factory.spacetime import SpacetimeCoordinator
-from relay_lab.llm import MODEL_ID, MODEL_REVISION, LocalLLM
 from relay_lab.spacetime import _identifier
 
-from .artifacts import ArtifactRegistry
 from .telemetry import TelemetryStore
 
 MODES = ("mediated", "orchestrated", "latent", "hybrid")
@@ -33,6 +31,10 @@ SOURCES = {
     "smolvla": ("HuggingFaceVLA/smolvla_libero", "6721902bc4d61e50a3bfdb11dfb4cb626f05d102"),
     "xvla": ("lerobot/xvla-folding", "c87d6e8fcf47fb19d6aac8b67d35dd20d74bbc8d"),
 }
+CONTROL_PLANE_REASON = (
+    "Local research previews are disabled in this deployment. "
+    "Connect an agent host to receive objectives and report outcomes."
+)
 
 
 def bounded(value, label, limit=200, empty=False):
@@ -177,22 +179,64 @@ def captured_report(local):
 
 
 class StudioService:
-    def __init__(self, root, *, coordinator_factory=SpacetimeCoordinator, llm=None):
+    def __init__(self, root, *, coordinator_factory=SpacetimeCoordinator, llm=None, experiments=True):
+        if type(experiments) is not bool:
+            raise TypeError("experiments must be a boolean")
+        self.experiments_enabled = experiments
         self.root = Path(root).resolve()
         self.storage = self.root / ".relay-lab" / "studio"
         self.storage.mkdir(parents=True, exist_ok=True)
         self.uploads = self.storage / "uploads"
         self.uploads.mkdir(exist_ok=True)
         self.factory = coordinator_factory
-        self.llm = llm or LocalLLM(python=self.root / ".venv-llm/bin/python", max_tokens=180)
+        self.llm, self.artifacts = None, None
+        if experiments:
+            from relay_lab.llm import LocalLLM
+
+            from .artifacts import ArtifactRegistry
+
+            self.llm = llm or LocalLLM(python=self.root / ".venv-llm/bin/python", max_tokens=180)
+            self.artifacts = ArtifactRegistry(self.root)
         self.lock, self.sessions = threading.RLock(), {}
-        self.artifacts = ArtifactRegistry(self.root)
         self.telemetry = TelemetryStore(self.storage)
+
+    def require_experiments(self):
+        if not self.experiments_enabled:
+            raise PermissionError(CONTROL_PLANE_REASON)
+
+    def disable_experiments(self):
+        """Apply the hosted boundary before this service starts accepting requests."""
+        if self.sessions or hasattr(self, "simulations"):
+            raise RuntimeError("Start a fresh service before switching to the control plane")
+        if self.llm is not None:
+            self.llm.close()
+        self.llm, self.artifacts = None, None
+        self.experiments_enabled = False
+
+    def adapter_status(self):
+        if self.experiments_enabled:
+            return self.artifacts.describe()
+        return {
+            "available": False,
+            "verified": False,
+            "profile": "control-plane",
+            "checkpoints": {},
+            "error": CONTROL_PLANE_REASON,
+        }
 
     def workspace(self):
         path = self.storage / "workspace.json"
         if path.exists():
             return validate_workspace(json.loads(path.read_text()))
+        if not self.experiments_enabled:
+            return {
+                "version": 1,
+                "name": "Untitled team",
+                "objective": "Coordinate connected agents on a shared objective.",
+                "mode": "mediated",
+                "direction": "both",
+                "agents": [],
+            }
         return {**example_workspace(), "name": "Untitled team", "mode": "mediated", "agents": []}
 
     def validate(self, workspace, *, complete=False):
@@ -214,15 +258,17 @@ class StudioService:
         return value
 
     def capabilities(self):
-        adapter = self.artifacts.describe()
+        adapter = self.adapter_status()
         return {
             "backend": "SpacetimeDB",
+            "experiments_enabled": self.experiments_enabled,
             "sample_available": adapter["available"],
-            "llm_available": (self.root / ".venv-llm/bin/python").is_file(),
+            "llm_available": self.experiments_enabled
+            and (self.root / ".venv-llm/bin/python").is_file(),
             "hardware_execution": False,
             "max_models": 2,
             "adapter": adapter,
-            "session_recovery": True,
+            "session_recovery": self.experiments_enabled,
             "history_window": 50,
         }
 
@@ -239,15 +285,21 @@ class StudioService:
         except Exception as error:  # noqa: BLE001 - expose a health failure, never fake readiness
             database["error"] = f"{type(error).__name__}: {error}"
         database["latency_ms"] = (time.perf_counter() - started) * 1000
+        llm = {"available": False, "loaded": False, "model_id": None, "revision": None}
+        if self.experiments_enabled:
+            from relay_lab.llm import MODEL_ID, MODEL_REVISION
+
+            llm.update(
+                available=(self.root / ".venv-llm/bin/python").is_file(),
+                loaded=getattr(self.llm, "_process", None) is not None,
+                model_id=MODEL_ID,
+                revision=MODEL_REVISION,
+            )
         return {
+            "experiments_enabled": self.experiments_enabled,
             "database": database,
-            "adapter": self.artifacts.describe(),
-            "llm": {
-                "available": (self.root / ".venv-llm/bin/python").is_file(),
-                "loaded": getattr(self.llm, "_process", None) is not None,
-                "model_id": MODEL_ID,
-                "revision": MODEL_REVISION,
-            },
+            "adapter": self.adapter_status(),
+            "llm": llm,
             "hardware_execution": False,
         }
 
@@ -286,7 +338,7 @@ class StudioService:
         )
         mode = workspace["mode"] if workspace else None
         matched = bool(workspace and matched_pair(workspace))
-        if mode in ("latent", "hybrid"):
+        if self.experiments_enabled and mode in ("latent", "hybrid"):
             available = matched and health["adapter"]["available"]
             detail = "Pinned SmolVLA and X-VLA pair; bundle integrity verified"
             if not matched:
@@ -309,7 +361,7 @@ class StudioService:
                     "detail": detail,
                 }
             )
-        if mode in ("mediated", "orchestrated", "hybrid"):
+        if self.experiments_enabled and mode in ("mediated", "orchestrated", "hybrid"):
             checks.append(
                 {
                     "id": "llm",
@@ -325,7 +377,9 @@ class StudioService:
                 "id": "actuation",
                 "label": "Execution boundary",
                 "status": "info",
-                "detail": "Communication and action previews only. Hardware is inactive.",
+                "detail": "Communication and action previews only. Hardware is inactive."
+                if self.experiments_enabled
+                else "Models execute on connected agent hosts; this service dispatches objectives and records reports.",
             }
         )
         return {
@@ -333,11 +387,13 @@ class StudioService:
             "checks": checks,
             "mode": mode,
             "matched_pair": matched,
-            "adapter": self.artifacts.describe(),
+            "adapter": self.adapter_status(),
+            "experiments_enabled": self.experiments_enabled,
             "hardware_execution": False,
         }
 
     def connect(self, workspace, *, model_release=None):
+        self.require_experiments()
         workspace = self.validate(workspace, complete=True)
         if workspace["mode"] in ("latent", "hybrid") and not matched_pair(workspace):
             raise ValueError(
@@ -433,6 +489,7 @@ class StudioService:
         return {"sessions": sessions, "backend": "SpacetimeDB", "limit": 200}
 
     def recover(self, session_id):
+        self.require_experiments()
         _identifier(session_id, "Studio session")
         if not re.fullmatch(r"studio-[a-f0-9]{16}", session_id):
             raise ValueError("Unknown Studio session identifier")
@@ -600,6 +657,7 @@ class StudioService:
 
     def sample(self, condition):
         """Validate cache provenance once; reuse actual held-out local observations."""
+        self.require_experiments()
         if condition not in ("clear", "left_obstacle", "right_obstacle"):
             raise ValueError("Unknown captured condition")
         rows, sources, vectors, _ = self.artifacts.samples()
@@ -626,6 +684,7 @@ class StudioService:
         }
 
     def sample_image(self, condition, arm):
+        self.require_experiments()
         from PIL import Image
 
         if arm not in ARMS:
@@ -637,6 +696,7 @@ class StudioService:
         return output.getvalue()
 
     def exchange(self, session_id, request):
+        self.require_experiments()
         # One ordered commit at a time. Reads remain available during Qwen inference.
         with self.session(session_id)["lock"]:
             return self._exchange(session_id, request)
@@ -863,6 +923,8 @@ class StudioService:
         session["results"].append(result)
         session["requests"][request_id] = (signature, result)
         self.telemetry.record(session_id, workspace["direction"], result)
+        if getattr(self, "coordination", None) is not None:
+            self.coordination.record_exchange(session_id, result)
         return result
 
     @staticmethod
@@ -925,4 +987,5 @@ class StudioService:
     def close(self):
         if hasattr(self, "simulations"):
             self.simulations.close()
-        self.llm.close()
+        if self.llm is not None:
+            self.llm.close()

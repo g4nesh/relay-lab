@@ -22,7 +22,7 @@ from urllib.error import HTTPError
 from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "2.10.0"
+VERSION = "2.13.0"
 PRIVATE = ROOT / ".relay-lab"
 STATE = PRIVATE / "spacetime"
 CLI_ROOT = STATE / "cli"
@@ -31,7 +31,7 @@ TOKEN_FILE = PRIVATE / "spacetime-token"
 URL = "http://127.0.0.1:3000"
 DATABASE = "relay-lab"
 MODULE = ROOT / "spacetimedb"
-INSTALLER_SHA256_MAC_ARM = "729d0330cae4b3a6058a2257d594c4e0c3ef3c2f6ad44b249d7788f51a5f0c4c"
+INSTALLER_SHA256_MAC_ARM = "9094d2d76075a7e79e27d354575920cbd5186262a3966ede4fe3a8f6eb9ef380"
 
 
 class NoRedirect(HTTPRedirectHandler):

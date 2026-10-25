@@ -1,5 +1,39 @@
 # Deploy a customer workspace
 
+For Render Free, use [the Spacetime-only storage guide](render-free.md). The
+persistent-volume instructions below apply to conventional Docker hosts.
+Both deployment profiles share the same dashboard and experiment-free package;
+[the synchronization guide](studio-sync.md) describes how that package is kept
+aligned with Relay Lab.
+
+## Start from this repository
+
+If you cloned `g4nesh/relay-studio`, the dashboard is already isolated. Run the
+deployment commands from this repository root; continue at **Prepare the
+database** below. No files from the research repository are required.
+
+### Optional: create another export from the research checkout
+
+From the research checkout, export a standalone project:
+
+```bash
+python3 scripts/export_studio.py
+cd dist/relay-studio
+```
+
+That folder contains the customer web app, its minimal backend and worker SDK,
+independent Python dependencies, Docker/Compose configuration, and Spacetime module
+source. You can copy it to a new repository or hosting build context. It contains
+no simulator, training code, checkpoints, datasets, recordings, existing customer
+state or Git history. `export-manifest.json` records the exact included files and
+hashes. The exporter refuses to overwrite an existing folder; use `--output` with
+a fresh path for the next snapshot. The original source remains in this checkout.
+
+The instructions below work from the standalone folder. They also work from the
+research root: its Docker allowlist selects the same small backend and independent
+deployment manifest. Changes to the main application should be followed by a new
+export, not manual edits to both copies.
+
 Relay Studio can run as one private installation for one customer. The web app,
 identity database, model approvals, scoped agent credentials and workspace files
 belong to that installation. Its SpacetimeDB database holds task state and
@@ -20,13 +54,15 @@ supported way to share one database.
 | --- | --- | --- |
 | Caddy | Public HTTPS, certificate renewal, request size limit | TLS certificates |
 | Studio / Uvicorn | Login, manager approvals, objective routing, scoped agent API | `/data/.relay-lab/` |
-| Private SpacetimeDB database | Authoritative tasks, commands, reports and peer messages | Your database provider |
+| Node SDK bridge (child process) | Private subscriptions and live invalidation delivery | No independent state |
+| Private SpacetimeDB database | Authoritative task journal, presence deadlines, scheduled maintenance and measured rollups | Your database provider |
 | Customer agent host | Local model inference and robot-specific validation/execution | Model files and robot runtime |
 
 The small container deliberately installs no Torch, MuJoCo or MLX. Customer
 agents run their own inference runtime and connect using scoped worker credentials.
-The captured-feature preview requires repository artifacts and a separate model
-runtime; it will correctly report unavailable in this image. Registering a model
+Research previews, probe sessions, local simulations and archived experiment
+analytics are disabled by the control-plane profile before optional imports.
+Registering a model
 does not download or execute arbitrary weights. Hosted model uploads are disabled;
 keep weights on the agent host and register their model reference in Studio.
 
@@ -34,17 +70,25 @@ keep weights on the agent host and register their model reference in Studio.
 
 Use a dedicated database with this repository's private module, published under
 the owner identity whose credential Studio will use. Tables remain private;
-workers and browsers never receive the database owner token. See the
-[SpacetimeDB setup guide](spacetime.md) for the module and local development setup.
+workers and browsers never receive the database owner token. The module source
+and package lock are included under `spacetimedb/` in the standalone export.
 
-The repository pins the TypeScript SDK and local CLI to 2.10.0. Use that CLI to
+The repository pins the TypeScript SDK and local CLI to 2.13.0. Use that CLI to
 build `spacetimedb/`, then publish the generated JavaScript bundle to a compatible
 server. Verify compatibility in a staging database before upgrading a server or
 module. The deployment does not automatically change or clear an existing database.
 
 ```bash
-# Install/build using the pinned project CLI described in docs/spacetime.md.
-.relay-lab/spacetime/cli/bin/2.10.0/spacetimedb-cli build --module-path spacetimedb
+# Install the official Spacetime CLI 2.13.0 and Node.js 22+ on the build host.
+# Confirm the CLI version before compiling the pinned module.
+spacetime --version
+npm --prefix spacetimedb ci
+npm --prefix spacetimedb run check
+spacetime build --module-path spacetimedb
+
+# Install this standalone package to run the publishing helper.
+python3 -m venv .venv
+.venv/bin/python -m pip install .
 
 # Existing owner token: a private, user-owned regular file with mode 0600.
 # The helper reads the token from that file; it never appears in arguments or logs.
@@ -59,6 +103,14 @@ The helper uses the authenticated publish API with `clear=false`. It does not
 create a cloud account or bypass your provider's access controls. Obtain the owner
 credential through your provider's normal administration flow. Remote Spacetime
 connections require HTTPS; plain HTTP is accepted only on loopback for development.
+
+Publish the current module before updating the app: readiness now checks its
+presence, job and task-watch tables. The Docker build includes the Node 22 SDK
+subscription bridge. For a Python-only installation, also build `subscriptions/`
+and set `RELAY_STUDIO_SUBSCRIPTION_BRIDGE` to its `src/bridge.cjs` path. See
+[coordination and scheduling](coordination.md) for deadlines, supported calendar
+schedules, bounded retention, validation and rollback. The app creates missing
+maintenance jobs but preserves manager changes to existing jobs.
 
 ## Start the installation
 
@@ -114,7 +166,9 @@ mutations retain per-session CSRF validation. The local development server remai
 loopback-only with its existing local cookie behavior.
 
 The ASGI entry point is `python -m relay_lab.studio.asgi` (or `relay-studio` after
-installing the `deploy` extra). It runs one Uvicorn process with eight bounded
+installing the standalone package; the research checkout uses its `deploy` extra).
+Hosted mode always disables experiments. For a loopback-only standalone preview,
+set `RELAY_STUDIO_EXPERIMENTS=0`. It runs one Uvicorn process with eight bounded
 application slots, 32 connection slots, a 128 KiB body limit, a 15-second body
 deadline, a 120-second operation-response deadline, and five-second keepalive.
 No inference threads or work queues are created without bounds. An expired

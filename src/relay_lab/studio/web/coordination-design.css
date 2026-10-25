@@ -1,0 +1,94 @@
+/* Standalone coordination extensions to the GitHub workspace design.
+   The upstream layers are preserved in hosted.css, local.css and
+   workspace-design.css (relay-lab 0d73b38). This file only covers the
+   customer deployment and the new live/scheduled coordination controls. */
+
+/* Visibility is functional state, including auth recovery and profile limits. */
+html:not(#_) body [hidden],
+html:not(#_) body.control-plane [data-research],
+html:not(#_) body.control-plane #tk-simulation,
+html:not(#_) body.control-plane #tk-simulation-error,
+html:not(#_) body.control-plane #tk-simulation-run { display:none!important; }
+html:not(#_) body #notice:not([hidden]) { display:block!important; }
+html:not(#_) body .health-refresh { display:block!important; }
+html:not(#_) body.control-plane .health-strip { grid-template-columns:minmax(0,1fr) 34px!important; }
+html:not(#_) body .health-item .status-dot { display:block!important; }
+html:not(#_) body .health-item .status-dot:not(.neutral):not(.error):not(.warning) { background:var(--ok)!important; }
+
+/* Preserve the connection indicator when the legacy preview decoration hides. */
+html:not(#_) body .tk-state-line {
+  display:flex!important; flex-wrap:wrap; gap:12px;
+  margin:0 0 20px; padding:0; border:0; color:var(--muted);
+  font-family:var(--font); font-size:12px; line-height:1.5;
+}
+html:not(#_) body .tk-live { color:var(--warn); font:12px/1.5 var(--font); }
+html:not(#_) body .tk-live.ready { color:var(--ok); }
+
+/* Private workspaces use the same card and type system as the upstream UI. */
+html:not(#_) body .deployment-guide {
+  background:var(--surface); color:var(--ink-2); border:1px solid var(--line);
+  border-radius:var(--r-lg); padding:24px;
+}
+html:not(#_) body .deployment-guide h2 { margin:0 0 24px; }
+html:not(#_) body .deployment-guide li>span { font:12px/1.5 var(--mono); color:var(--faint); }
+html:not(#_) body .deployment-guide li strong { font-size:14px; color:var(--ink); }
+html:not(#_) body .deployment-guide li p,
+html:not(#_) body .deployment-boundary p { font-size:13px!important; }
+html:not(#_) body .deployment-boundary { color:var(--brand); border-color:var(--line); }
+html:not(#_) body .profile-dialog { background:var(--surface); border-color:var(--line); border-radius:var(--r-lg); }
+html:not(#_) body .profile-choice { border-color:var(--line); color:var(--ink); }
+html:not(#_) body .profile-choice:hover { background:var(--subtle); border-color:var(--line-strong); }
+html:not(#_) body .profile-choice[aria-pressed=true] { background:var(--brand-soft); border-color:var(--brand); }
+html:not(#_) body .profile-avatar { background:var(--brand-soft); color:var(--brand); }
+
+/* Scheduled maintenance is part of Tasks, with the same neutral surfaces. */
+html:not(#_) body .tk-coordination { overflow:hidden; }
+html:not(#_) body .tk-coordination .tk-panel-heading { border-color:var(--line); gap:16px; }
+html:not(#_) body .tk-coordination .tk-panel-heading p { margin:6px 0 0; }
+html:not(#_) body .tk-coordination-badge {
+  background:var(--warn-soft); border-color:var(--warn-line); color:var(--warn);
+  border-radius:999px; padding:3px 9px; font:500 12px/1.5 var(--font); letter-spacing:0;
+}
+html:not(#_) body .tk-coordination-badge.ready { background:var(--ok-soft); border-color:transparent; color:var(--ok); }
+html:not(#_) body .tk-coordination-summary { background:var(--surface); border-color:var(--line); padding:20px; gap:20px; }
+html:not(#_) body .tk-coordination-summary>div { border-color:var(--line); }
+html:not(#_) body .tk-coordination-summary span { font:500 13px/1.5 var(--font); letter-spacing:0; color:var(--muted); }
+html:not(#_) body .tk-coordination-summary strong { color:var(--ink); font-size:28px; font-weight:600; letter-spacing:0; }
+html:not(#_) body .tk-coordination-summary em { color:var(--faint); font-size:18px; }
+html:not(#_) body .tk-coordination-summary small { line-height:1.5; }
+html:not(#_) body .tk-attention, html:not(#_) body .tk-jobs { padding:20px; border-color:var(--line); min-width:0; }
+html:not(#_) body .tk-coordination h3 { margin:0 0 16px; }
+html:not(#_) body .tk-jobs h3>span { color:var(--faint); font:12px/1.5 var(--font); }
+html:not(#_) body .tk-attention article { border-color:var(--line); }
+html:not(#_) body .tk-attention article strong { color:var(--warn); font-size:13px; line-height:1.5; }
+html:not(#_) body .tk-alert-marker { background:var(--warn); }
+html:not(#_) body .tk-attention article small { font-family:var(--font); line-height:1.5; }
+html:not(#_) body .tk-attention-clear svg { color:var(--ok); }
+html:not(#_) body .tk-attention-clear strong { color:var(--ink); font-size:14px; }
+html:not(#_) body .tk-coordination-note { font-size:12px!important; border-color:var(--line); }
+html:not(#_) body .tk-coordination>.tk-coordination-note { padding:12px 20px; margin:0; background:var(--warn-soft); color:var(--warn)!important; }
+html:not(#_) body .tk-job { border-color:var(--line); padding:16px 0; }
+html:not(#_) body .tk-job strong { color:var(--ink); font-size:14px; text-transform:none; }
+html:not(#_) body .tk-job small { line-height:1.5; }
+html:not(#_) body .tk-job-controls { gap:12px; }
+html:not(#_) body .tk-job-enabled { color:var(--ink-2); }
+html:not(#_) body .tk-job-enabled input { width:15px; height:15px; }
+html:not(#_) body .tk-job-error { color:var(--warn)!important; font-size:12px!important; }
+html:not(#_) body .tk-rollups { background:var(--subtle); border-color:var(--line); padding:20px; }
+html:not(#_) body .tk-rollups h3 { margin-bottom:6px; }
+html:not(#_) body .tk-rollups p { font-size:13px!important; }
+html:not(#_) body .tk-rollup-items strong { color:var(--ink); font-size:24px; font-weight:600; }
+html:not(#_) body .tk-rollup-items strong>em { color:var(--faint); font:12px var(--font); }
+html:not(#_) body .tk-rollup-items span { color:var(--muted); font-size:13px; }
+html:not(#_) body .tk-coordination-unavailable { background:var(--subtle); padding:20px; }
+html:not(#_) body .tk-coordination-unavailable svg { color:var(--faint); }
+
+@media(max-width:600px) {
+  html:not(#_) body .tk-coordination .tk-panel-heading { flex-wrap:wrap; }
+  html:not(#_) body .tk-coordination-summary { grid-template-columns:1fr; padding:16px; gap:16px; }
+  html:not(#_) body .tk-coordination-summary>div { border-right:0; padding:0 0 16px; border-bottom:1px solid var(--line); }
+  html:not(#_) body .tk-coordination-summary>div:last-child { padding:0; border:0; }
+  html:not(#_) body .tk-attention,html:not(#_) body .tk-jobs,
+  html:not(#_) body .tk-rollups,html:not(#_) body .tk-coordination-unavailable { padding:16px; }
+  html:not(#_) body .deployment-guide { padding:20px; }
+}

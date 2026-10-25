@@ -1,0 +1,438 @@
+/* Relay workspace design layer.
+   Loaded last on Studio and the cloth pages; it owns type, color and surfaces.
+   One family (IBM Plex Sans, Plex Mono for code), one type scale, neutral
+   surfaces, one brand accent, and color only where it carries meaning. */
+
+@font-face{font-family:"IBM Plex Sans";font-style:normal;font-weight:400;font-display:swap;src:url("/assets/fonts/ibm-plex-sans-latin-400.woff2") format("woff2")}
+@font-face{font-family:"IBM Plex Sans";font-style:normal;font-weight:500;font-display:swap;src:url("/assets/fonts/ibm-plex-sans-latin-500.woff2") format("woff2")}
+@font-face{font-family:"IBM Plex Sans";font-style:normal;font-weight:600;font-display:swap;src:url("/assets/fonts/ibm-plex-sans-latin-600.woff2") format("woff2")}
+@font-face{font-family:"IBM Plex Mono";font-style:normal;font-weight:400;font-display:swap;src:url("/assets/fonts/ibm-plex-mono-latin-400.woff2") format("woff2")}
+@font-face{font-family:"IBM Plex Mono";font-style:normal;font-weight:500;font-display:swap;src:url("/assets/fonts/ibm-plex-mono-latin-500.woff2") format("woff2")}
+
+:root{
+  --font:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --relay-font:var(--font);
+
+  --ink:#15191c;          /* headings, primary text */
+  --ink-2:#394148;        /* body text */
+  --muted:#646d74;        /* secondary text */
+  --faint:#8a9399;        /* captions, placeholders */
+  --line:#e3e6e9;
+  --line-strong:#cfd4d8;
+  --surface:#fff;
+  --subtle:#f7f8f9;
+  --hover:#f0f2f4;
+
+  --brand:#183e4a;        /* Relay teal: primary actions and selection */
+  --brand-hover:#11303a;
+  --brand-soft:#eaf1f2;
+  --teal:var(--brand);
+
+  --ok:#1e7a4c;  --ok-soft:#e8f4ee;
+  --warn:#8a5a00; --warn-soft:#fdf5e4; --warn-line:#f0dfb6;
+  --bad:#b42318; --bad-soft:#fdeeec;
+
+  --r-sm:6px; --r:8px; --r-lg:12px;
+  color-scheme:light;
+}
+
+/* ---------- Base ---------- */
+html body,html:not(#_) body #analytics-view{
+  font-family:var(--font)!important;font-size:14px;line-height:1.5;
+  background:var(--surface)!important;color:var(--ink-2)!important;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+}
+html:not(#_) body *,html:not(#_) body *::before,html:not(#_) body *::after{background-image:none!important;box-shadow:none!important;text-shadow:none!important}
+html:not(#_) body button,html:not(#_) body input,html:not(#_) body select,html:not(#_) body textarea,html:not(#_) body label,html:not(#_) body table,html:not(#_) body .nav-item,html:not(#_) body #analytics-view text,html:not(#_) body svg text{font-family:var(--font)!important;letter-spacing:0!important}
+html:not(#_) body code,html:not(#_) body pre,html:not(#_) body kbd,html:not(#_) body .mono,html:not(#_) body .code,html:not(#_) body .bridge-code,html:not(#_) body .bridge-code *{font-family:var(--mono)!important;font-size:12px!important;letter-spacing:0!important}
+
+/* One type scale: 28 / 20 / 16 / 14 / 13 / 12. Weights 400 / 500 / 600. */
+html:not(#_) body h1,html:not(#_) body #analytics-view h1{font-family:var(--font)!important;font-size:28px!important;font-weight:600!important;line-height:1.2!important;letter-spacing:-.015em!important;color:var(--ink)!important;margin:0 0 6px!important}
+html:not(#_) body h1 span{color:inherit!important;margin:0!important}
+html:not(#_) body h2,html:not(#_) body #analytics-view h2{font-family:var(--font)!important;font-size:20px!important;font-weight:600!important;line-height:1.3!important;letter-spacing:-.01em!important;color:var(--ink)!important}
+html:not(#_) body h3,html:not(#_) body #analytics-view h3,html:not(#_) body h4{font-family:var(--font)!important;font-size:16px!important;font-weight:600!important;line-height:1.4!important;letter-spacing:0!important;color:var(--ink)!important}
+html:not(#_) body p,html:not(#_) body #analytics-view p{font-size:14px!important;line-height:1.55!important;color:var(--muted)!important;letter-spacing:0!important}
+html:not(#_) body small{font-size:12px!important;color:var(--faint)!important;font-weight:400!important}
+html:not(#_) body strong,html:not(#_) body b{font-weight:600!important}
+html:not(#_) body a{color:inherit}
+html:not(#_) body :focus-visible{outline:2px solid var(--brand)!important;outline-offset:2px!important}
+
+/* Overlines and decorative eyebrows: headings carry the hierarchy. */
+html:not(#_) body .eyebrow,html:not(#_) body .section-overline,html:not(#_) body .quiet-label,html:not(#_) body .latent-section-number{font-family:var(--font)!important;font-size:12px!important;font-weight:500!important;letter-spacing:0!important;text-transform:none!important;color:var(--muted)!important}
+html:not(#_) body .an-heading .section-overline,html:not(#_) body .an-heading .eyebrow,html:not(#_) body .an-section-heading>span,html:not(#_) body .an-section-heading .section-overline,html:not(#_) body .an-reading .section-overline,html:not(#_) body .tk-heading .eyebrow,html:not(#_) body .tk-heading .section-overline{display:none!important}
+
+/* Numbers line up in every table, card and chart. */
+html:not(#_) body strong,html:not(#_) body td,html:not(#_) body dd{font-variant-numeric:tabular-nums}
+
+/* ---------- Shell ---------- */
+html:not(#_) body .application,html:not(#_) body .application main,html:not(#_) body .topbar{background:var(--surface)!important}
+html:not(#_) body .sidebar{background:var(--subtle)!important;border:0!important;border-right:1px solid var(--line)!important}
+@media (min-width:1181px){html:not(#_) body .sidebar{padding:20px 12px 0!important}}
+html:not(#_) body .sidebar .brand{margin:0 8px 20px!important;font-size:16px!important;font-weight:600!important;color:var(--ink)!important;letter-spacing:-.01em!important}
+html:not(#_) body .sidebar .brand-light{color:var(--faint)!important;font-weight:400!important}
+html:not(#_) body .workspace-switch{background:var(--surface)!important;border:1px solid var(--line)!important;border-radius:var(--r)!important;padding:8px 10px!important;margin-bottom:16px!important}
+html:not(#_) body .workspace-switch *{font-size:13px!important}
+html:not(#_) body .workspace-switch small,html:not(#_) body .workspace-switch .muted{font-size:12px!important;color:var(--faint)!important}
+html:not(#_) body .workspace-avatar,html:not(#_) body .account-avatar{background:var(--brand-soft)!important;color:var(--brand)!important;border:0!important;font-weight:600!important;font-size:12px!important}
+html:not(#_) body .sidebar .nav-caption,html:not(#_) body .sidebar .section-label,html:not(#_) body .sidebar .nav-section-title{font-size:12px!important;font-weight:500!important;letter-spacing:0!important;text-transform:none!important;color:var(--faint)!important;margin:16px 10px 4px!important;padding:0!important}
+html:not(#_) body .sidebar .nav-item,html:not(#_) body .sidebar a.nav-item{font-size:14px!important;font-weight:400!important;line-height:20px!important;border-radius:var(--r-sm)!important;padding:6px 10px!important;margin:1px 0!important;color:var(--ink-2)!important;background:transparent!important;gap:10px!important}
+html:not(#_) body .sidebar .nav-item svg{width:16px!important;height:16px!important;color:var(--faint)!important}
+html:not(#_) body .sidebar .nav-item:hover{background:var(--hover)!important;color:var(--ink)!important}
+html:not(#_) body .sidebar .nav-item.selected,html:not(#_) body .sidebar a.selected,html:not(#_) body .sidebar .nav-item[aria-current="page"]{background:var(--surface)!important;color:var(--ink)!important;font-weight:500!important;box-shadow:inset 0 0 0 1px var(--line)!important}
+html:not(#_) body .sidebar .nav-item.selected svg,html:not(#_) body .sidebar a.selected svg{color:var(--brand)!important}
+html:not(#_) body .sidebar .nav-item.selected *,html:not(#_) body .sidebar a.selected span{color:inherit!important}
+html:not(#_) body .small-count{background:var(--hover)!important;color:var(--muted)!important;font-size:12px!important;font-weight:500!important;border-radius:999px!important}
+html:not(#_) body .sidebar .sidebar-footer,html:not(#_) body .sidebar .account,html:not(#_) body .sidebar .experiment-links{border:0!important}
+html:not(#_) body .sidebar .sidebar-footer{border-top:1px solid var(--line)!important}
+
+html:not(#_) body .topbar{border-bottom:1px solid var(--line)!important}
+html:not(#_) body .breadcrumb,html:not(#_) body .breadcrumb *{font-size:13px!important;color:var(--muted)!important}
+html:not(#_) body .breadcrumb strong{color:var(--ink)!important;font-weight:500!important}
+html:not(#_) body .application main{padding:28px 40px 48px!important}
+html:not(#_) body .experiment-active main{padding:12px 16px!important}
+
+/* Page headings */
+html:not(#_) body .an-heading,html:not(#_) body .page-heading,html:not(#_) body .tk-heading{margin:0 0 24px!important;align-items:flex-end!important}
+html:not(#_) body .an-heading p,html:not(#_) body .page-heading p,html:not(#_) body .tk-heading p{margin:0!important;max-width:640px}
+html:not(#_) body .an-snapshot{border:0!important;padding:0 0 16px!important;margin:0!important}
+html:not(#_) body .an-snapshot,html:not(#_) body .an-snapshot *{font-size:12px!important;color:var(--faint)!important}
+
+/* ---------- Controls ---------- */
+html:not(#_) body .button,html:not(#_) body .tk-button,html:not(#_) body .connect-button{
+  font-family:var(--font)!important;font-size:13px!important;font-weight:500!important;letter-spacing:0!important;
+  min-height:34px!important;padding:0 14px!important;border-radius:var(--r-sm)!important;
+  background:var(--surface)!important;color:var(--ink)!important;border:1px solid var(--line-strong)!important;
+  display:inline-flex!important;align-items:center!important;justify-content:center;gap:6px!important;transition:background-color .12s,border-color .12s;filter:none!important}
+html:not(#_) body .button:hover:not(:disabled),html:not(#_) body .tk-button:hover:not(:disabled){background:var(--hover)!important}
+html:not(#_) body .button.primary,html:not(#_) body .tk-primary,html:not(#_) body .tk-button.primary,html:not(#_) body .connect-button,html:not(#_) body .an-effort .button{background:var(--brand)!important;color:#fff!important;border-color:var(--brand)!important}
+html:not(#_) body .button.primary:hover:not(:disabled),html:not(#_) body .tk-primary:hover:not(:disabled),html:not(#_) body .connect-button:hover:not(:disabled){background:var(--brand-hover)!important;border-color:var(--brand-hover)!important}
+html:not(#_) body .button.primary *,html:not(#_) body .tk-primary *,html:not(#_) body .connect-button *{color:#fff!important}
+html:not(#_) body .button:disabled,html:not(#_) body .tk-button:disabled{opacity:1!important;background:var(--subtle)!important;border-color:var(--line)!important;color:var(--faint)!important}
+html:not(#_) body .button:disabled *{color:var(--faint)!important}
+html:not(#_) body .button svg{width:14px!important;height:14px!important}
+html:not(#_) body .text-button{background:none!important;border:0!important;padding:0!important;min-height:0!important;color:var(--brand)!important;font-weight:500!important;font-size:13px!important}
+html:not(#_) body .text-button:hover{text-decoration:underline}
+html:not(#_) body .icon-button,html:not(#_) body .health-refresh,html:not(#_) body .release-refresh{background:var(--surface)!important;border:1px solid var(--line)!important;border-radius:var(--r-sm)!important;color:var(--muted)!important}
+html:not(#_) body .icon-button:hover,html:not(#_) body .health-refresh:hover,html:not(#_) body .release-refresh:hover{background:var(--hover)!important}
+
+html:not(#_) body input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),html:not(#_) body select,html:not(#_) body textarea{
+  font-family:var(--font)!important;font-size:14px!important;color:var(--ink)!important;
+  background:var(--surface)!important;border:1px solid var(--line-strong)!important;border-radius:var(--r-sm)!important;
+  padding:8px 10px!important;min-height:36px;line-height:1.4!important;transition:border-color .12s}
+html:not(#_) body input:hover,html:not(#_) body select:hover,html:not(#_) body textarea:hover{border-color:#b9c0c6!important}
+html:not(#_) body input:focus,html:not(#_) body select:focus,html:not(#_) body textarea:focus{border-color:var(--brand)!important;outline:none!important;box-shadow:0 0 0 3px var(--brand-soft)!important}
+html:not(#_) body ::placeholder{color:var(--faint)!important;opacity:1}
+html:not(#_) body label,html:not(#_) body .field-label,html:not(#_) body .an-filters label,html:not(#_) body .tk-compose label{font-size:13px!important;font-weight:500!important;color:var(--ink-2)!important;text-transform:none!important;letter-spacing:0!important}
+html:not(#_) body .field-help,html:not(#_) body .tk-field-help,html:not(#_) body .auth-field-help,html:not(#_) body .tk-compose-footer>span{font-size:12px!important;color:var(--faint)!important;line-height:1.5!important}
+html:not(#_) body input[type=checkbox],html:not(#_) body input[type=radio]{accent-color:var(--brand)}
+
+/* Tags and badges: sentence case, one size, color only for state. */
+html:not(#_) body .an-chip,html:not(#_) body .mini-tag,html:not(#_) body .preview-tag,html:not(#_) body .role-badge,html:not(#_) body .tk-status,html:not(#_) body .tk-approved,html:not(#_) body .tk-pending,html:not(#_) body .release-summary,html:not(#_) body .tk-chip,html:not(#_) body .tk-sim-tags span,html:not(#_) body .chip,html:not(#_) body .tag{
+  font-family:var(--font)!important;font-size:12px!important;font-weight:500!important;line-height:18px!important;letter-spacing:0!important;text-transform:none!important;
+  padding:1px 8px!important;border-radius:999px!important;border:1px solid var(--line)!important;background:var(--subtle)!important;color:var(--muted)!important}
+html:not(#_) body .role-badge.manager{background:var(--brand-soft)!important;border-color:transparent!important;color:var(--brand)!important}
+html:not(#_) body .tk-approved{background:var(--ok-soft)!important;border-color:transparent!important;color:var(--ok)!important}
+html:not(#_) body .tk-pending{background:var(--warn-soft)!important;border-color:transparent!important;color:var(--warn)!important}
+
+/* Status dots: green only when healthy, red only when failing. */
+html:not(#_) body .status-dot{background:var(--faint)!important}
+html:not(#_) body .status-dot.ok,html:not(#_) body .status-dot.ready,html:not(#_) body .status-dot.success,html:not(#_) body .status-dot.online{background:var(--ok)!important}
+html:not(#_) body .status-dot.error,html:not(#_) body .status-dot.failed{background:var(--bad)!important}
+html:not(#_) body .status-dot.warning,html:not(#_) body .status-dot.pending{background:#c98a00!important}
+
+/* Notices */
+html:not(#_) body .notice,html:not(#_) body .tk-error,html:not(#_) body .an-error,html:not(#_) body .tk-sim-availability{
+  background:var(--warn-soft)!important;border:1px solid var(--warn-line)!important;border-radius:var(--r)!important;font-size:13px!important;padding:10px 14px!important}
+html:not(#_) body .notice,html:not(#_) body .notice *,html:not(#_) body .tk-error,html:not(#_) body .tk-error *,html:not(#_) body .an-error,html:not(#_) body .an-error *,html:not(#_) body .tk-sim-availability,html:not(#_) body .tk-sim-availability *{color:var(--warn)!important;font-size:13px!important}
+html:not(#_) body .permission-banner{background:var(--subtle)!important;border:1px solid var(--line)!important;border-radius:var(--r)!important}
+html:not(#_) body .permission-banner,html:not(#_) body .permission-banner *{color:var(--muted)!important;font-size:13px!important}
+
+/* ---------- Surfaces ---------- */
+/* Every card and panel: white, hairline border, one radius. No tinted fills. */
+html:not(#_) body .tk-panel,html:not(#_) body .tk-compose,html:not(#_) body .tk-team,html:not(#_) body .tk-task-list,html:not(#_) body .tk-detail,html:not(#_) body .tk-runtime,html:not(#_) body .tk-simulation,html:not(#_) body .tk-worker-form,html:not(#_) body .tk-task-row,
+html:not(#_) body .an-panel,html:not(#_) body .an-reading,html:not(#_) body .an-latency-card,html:not(#_) body .an-inventory-strip,
+html:not(#_) body .release-card,html:not(#_) body .model-card,html:not(#_) body .release-section,html:not(#_) body .workcell-panel,html:not(#_) body .stream-panel,html:not(#_) body .observations-panel,html:not(#_) body .session-section,html:not(#_) body .access-section,html:not(#_) body .bridge-section,html:not(#_) body .request-form,html:not(#_) body .invite-form,html:not(#_) body .invitation-result,html:not(#_) body .receiver-panel,html:not(#_) body .route-preview,html:not(#_) body .stream-metrics,
+html:not(#_) body .latent-model,html:not(#_) body .arm-card,html:not(#_) body .outcome-chart,html:not(#_) body .analytic-card{
+  background:var(--surface)!important;border:1px solid var(--line)!important;border-radius:var(--r-lg)!important;color:var(--ink-2)!important}
+html:not(#_) body .tk-task-row:hover{border-color:var(--line-strong)!important}
+html:not(#_) body .tk-empty,html:not(#_) body .tk-detail-empty,html:not(#_) body .tk-runtime-empty,html:not(#_) body .empty-card,html:not(#_) body .audit-empty,html:not(#_) body .empty-history,html:not(#_) body .tk-credential-scope,html:not(#_) body .tk-cancel-target{background:var(--subtle)!important;border:1px dashed var(--line-strong)!important;border-radius:var(--r-lg)!important;color:var(--muted)!important}
+html:not(#_) body .tk-panel-heading,html:not(#_) body .an-panel-heading{padding:16px 20px!important}
+html:not(#_) body .tk-panel-heading h2,html:not(#_) body .an-panel-heading h2{font-size:16px!important;font-weight:600!important;margin:0!important}
+html:not(#_) body .tk-team p,html:not(#_) body .tk-team .tk-agent-meta,html:not(#_) body .tk-team .tk-agent>div>span,html:not(#_) body .tk-team .tk-routing-note p{color:var(--muted)!important}
+html:not(#_) body .tk-team strong,html:not(#_) body .tk-team h2,html:not(#_) body .tk-team .tk-panel-heading h2{color:var(--ink)!important}
+html:not(#_) body .tk-team .tk-agent{background:transparent!important}
+html:not(#_) body .tk-team #tk-configure{background:var(--subtle)!important;color:var(--brand)!important;border-top:1px solid var(--line)!important;border-radius:0 0 var(--r-lg) var(--r-lg)!important;font-size:13px!important;font-weight:500!important;padding:12px 20px!important}
+html:not(#_) body .tk-team #tk-configure *{color:var(--brand)!important}
+html:not(#_) body .tk-agent-letter,html:not(#_) body .objective-number,html:not(#_) body .audit-mark,html:not(#_) body .add-mark{background:var(--brand-soft)!important;color:var(--brand)!important;border:0!important;font-weight:600!important}
+
+/* Stat cards (Tasks overview, workspace health, analytics headline). */
+html:not(#_) body .tk-overview{gap:12px!important;padding:0 0 24px!important}
+html:not(#_) body .tk-overview>div,html:not(#_) body .tk-kpi,html:not(#_) body .health-item,html:not(#_) body .an-metric{
+  background:var(--surface)!important;border:1px solid var(--line)!important;border-radius:var(--r-lg)!important;padding:16px 18px!important;min-height:0!important;color:var(--ink-2)!important}
+html:not(#_) body .tk-overview>div span,html:not(#_) body .an-metric-label,html:not(#_) body .health-item span:not(.status-dot):not(.health-icon){font-family:var(--font)!important;font-size:13px!important;font-weight:500!important;letter-spacing:0!important;text-transform:none!important;color:var(--muted)!important}
+html:not(#_) body .tk-overview strong,html:not(#_) body .an-metric>strong{display:block;font-size:28px!important;font-weight:600!important;line-height:1.15!important;letter-spacing:-.02em!important;color:var(--ink)!important;margin:8px 0 6px!important}
+html:not(#_) body .health-item strong{font-size:14px!important;font-weight:600!important;color:var(--ink)!important}
+html:not(#_) body .tk-overview small,html:not(#_) body .an-metric p{font-size:12px!important;color:var(--faint)!important;line-height:1.5!important}
+html:not(#_) body .health-strip{padding:0!important;border:0!important;background:none!important;gap:12px!important}
+html:not(#_) body .health-icon{color:var(--muted)!important;background:var(--subtle)!important;border-radius:var(--r-sm)!important}
+html:not(#_) body .an-metrics{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px!important}
+html:not(#_) body .an-reading{padding:20px!important}
+html:not(#_) body .an-reading>strong{font-size:20px!important;color:var(--ink)!important;margin:0 0 8px!important}
+html:not(#_) body .an-reading p{color:var(--muted)!important}
+html:not(#_) body .an-latency-grid,html:not(#_) body .an-operations-grid{gap:12px!important}
+html:not(#_) body .an-latency-card{padding:16px!important}
+html:not(#_) body .an-latency-card dt,html:not(#_) body .an-latency-card dd{font-size:13px!important}
+html:not(#_) body .an-latency-card strong{color:var(--ink)!important}
+
+/* Workspace: model graph, settings and inspector */
+html:not(#_) body .canvas{background:var(--subtle)!important;border:1px solid var(--line)!important;border-radius:var(--r-lg)!important}
+html:not(#_) body .canvas-toolbar,html:not(#_) body .canvas-footer,html:not(#_) body .connection-summary{background:var(--surface)!important;border-color:var(--line)!important}
+html:not(#_) body .channel-node,html:not(#_) body .pipeline-node.emphasis{background:var(--brand)!important;color:#fff!important;border-color:var(--brand)!important}
+html:not(#_) body .connector-line{background:var(--line-strong)!important}
+html:not(#_) body .canvas-dot{background:var(--brand)!important}
+html:not(#_) body .inspector,html:not(#_) body .inspector-heading,html:not(#_) body .inspector-content,html:not(#_) body .inspector-bottom,html:not(#_) body .channel-config,html:not(#_) body .channel-settings{background:var(--surface)!important;color:var(--ink-2)!important;border-color:var(--line)!important}
+html:not(#_) body .inspector{border:1px solid var(--line)!important;border-radius:var(--r-lg)!important;overflow:hidden}
+html:not(#_) body .inspector h2,html:not(#_) body .inspector h3,html:not(#_) body .inspector strong{color:var(--ink)!important}
+html:not(#_) body .inspector p,html:not(#_) body .inspector small,html:not(#_) body .channel-config p,html:not(#_) body .channel-settings p{color:var(--muted)!important}
+html:not(#_) body .inspector label,html:not(#_) body .inspector span{color:var(--ink-2)!important}
+html:not(#_) body .inspector-heading{border-bottom:1px solid var(--line)!important}
+html:not(#_) body .inspector-divider{background:var(--line)!important}
+html:not(#_) body .mode-option{background:var(--surface)!important;border:1px solid var(--line)!important;border-radius:var(--r)!important;color:var(--ink-2)!important}
+html:not(#_) body .mode-option:hover{border-color:var(--line-strong)!important}
+html:not(#_) body .mode-option.active{background:var(--brand-soft)!important;border-color:var(--brand)!important}
+html:not(#_) body .mode-option strong{color:var(--ink)!important}
+html:not(#_) body .mode-option p{color:var(--muted)!important}
+html:not(#_) body .radio-mark{background:var(--surface)!important;border:1.5px solid var(--line-strong)!important}
+html:not(#_) body .mode-option.active .radio-mark{border:4px solid var(--brand)!important}
+html:not(#_) body .compatibility{background:var(--subtle)!important;border:1px solid var(--line)!important;border-radius:var(--r)!important;color:var(--muted)!important}
+html:not(#_) body .compatibility *{color:var(--muted)!important}
+html:not(#_) body .camera-frame{background:#1b2023!important;border-radius:var(--r)!important}
+html:not(#_) body .camera-label,html:not(#_) body .camera-record{background:rgba(15,18,20,.72)!important;color:#fff!important;font-size:12px!important}
+html:not(#_) body .tiny-square{background:var(--brand)!important}
+html:not(#_) body .empty-stream-icon,html:not(#_) body .an-effort-symbol{background:var(--subtle)!important;color:var(--faint)!important}
+
+/* Tables */
+html:not(#_) body table{border-collapse:collapse}
+html:not(#_) body .an-table th,html:not(#_) body table th{font-size:12px!important;font-weight:500!important;text-transform:none!important;letter-spacing:0!important;color:var(--muted)!important;border:0!important;border-bottom:1px solid var(--line)!important;padding:10px 12px!important;background:none!important}
+html:not(#_) body .an-table td,html:not(#_) body table td{font-size:13px!important;color:var(--ink-2)!important;border:0!important;border-bottom:1px solid var(--line)!important;padding:12px!important}
+html:not(#_) body .an-table td small{font-size:12px!important}
+html:not(#_) body table tr:last-child td{border-bottom:0!important}
+
+/* Analytics filters, charts and effort model */
+html:not(#_) body .an-section-heading{margin:40px 0 16px!important;align-items:flex-end}
+html:not(#_) body .an-section-heading h2{margin:0 0 4px!important}
+html:not(#_) body .an-panel{overflow:visible!important}
+html:not(#_) body .an-filters{padding:0 0 16px!important;gap:16px!important;background:none!important}
+html:not(#_) body .an-filter-scope{border:0!important;font-size:12px!important;color:var(--faint)!important}
+html:not(#_) body .an-comparison-grid{padding:0!important;gap:24px!important;grid-template-columns:minmax(0,2fr) minmax(240px,1fr)!important}
+html:not(#_) body .an-chart-caption strong,html:not(#_) body .an-chart-caption>span{font-size:12px!important;letter-spacing:0!important;text-transform:none!important;color:var(--muted)!important}
+html:not(#_) body .an-svg-label,html:not(#_) body svg text{font-size:12px!important}
+html:not(#_) body .an-effort{padding:20px 0 0!important}
+html:not(#_) body .an-effort-assumptions,html:not(#_) body .an-bottom-note{border:0!important;color:var(--faint)!important;font-size:12px!important}
+html:not(#_) body .an-heading-actions{display:flex;gap:8px}
+
+/* Cloth workcell and learned-adapter pages */
+html:not(#_) body .metric-strip strong,html:not(#_) body .analytic-kpis strong{font-weight:600!important;letter-spacing:-.02em!important;color:var(--ink)!important}
+html:not(#_) body .analytic-kpis,html:not(#_) body .metric-strip,html:not(#_) body .arm-grid{gap:12px!important}
+html:not(#_) body .analytic-card{padding:20px!important}
+html:not(#_) body .outcome-chart p,html:not(#_) body .latent-model p,html:not(#_) body .arm-card p{color:var(--muted)!important}
+html:not(#_) body .metric-bar>span,html:not(#_) body .metric-bar>b{font-size:13px!important}
+
+/* ---------- Text color and size floor ---------- */
+/* Base styles tint hundreds of single-class text rules olive green. This rule
+   (one class, no !important) outranks those but loses to two-class state rules
+   such as status pills, so semantic colors survive. */
+html body .application *,html body .sidebar *{color:inherit}
+html body .application :is(small,p,dd,figcaption,.muted,[class*="meta"],[class*="help"],[class*="caption"],[class*="note"],[class*="subtitle"],[class*="hint"]){color:var(--muted)}
+
+/* Labels the base styles set at 6–11px. Nothing in the UI is smaller than 12px. */
+html:not(#_) body .nav-label{font-size:12px!important;font-weight:500!important;color:var(--faint)!important;letter-spacing:0!important;margin:16px 10px 4px!important}
+html:not(#_) body .account-card strong{font-size:13px!important;font-weight:500!important;color:var(--ink)!important}
+html:not(#_) body .account-card span,html:not(#_) body .account-card small{font-size:12px!important;color:var(--faint)!important}
+html:not(#_) body .workspace-switch div{font-weight:500!important}
+html:not(#_) body .tk-sim-scene span{font-family:var(--font)!important;font-size:12px!important;letter-spacing:0!important;color:var(--faint)!important}
+html:not(#_) body .tk-sim-stack span{font-family:var(--font)!important;font-size:12px!important;font-weight:500!important;letter-spacing:0!important;padding:1px 8px!important;border-radius:999px!important;border:1px solid var(--line)!important;background:var(--subtle)!important;color:var(--muted)!important}
+html:not(#_) body label span,html:not(#_) body .optional{font-size:12px!important;font-weight:400!important;color:var(--faint)!important;text-transform:none!important;letter-spacing:0!important}
+html:not(#_) body .tk-agent span,html:not(#_) body .tk-agent-meta span{font-family:var(--font)!important;font-size:12px!important;letter-spacing:0!important;color:var(--muted)!important}
+html:not(#_) body .tk-agent .tk-pending,html:not(#_) body .tk-agent .tk-approved{font-size:12px!important}
+html:not(#_) body .tk-routing-note strong{font-size:13px!important;color:var(--ink)!important}
+html:not(#_) body .tk-empty strong,html:not(#_) body .tk-runtime-empty strong,html:not(#_) body .tk-detail-empty strong{font-size:14px!important;color:var(--ink)!important}
+html:not(#_) body .tk-empty svg,html:not(#_) body .tk-detail-empty svg,html:not(#_) body .tk-runtime-empty svg{color:var(--faint)!important}
+html:not(#_) body .tk-detail .tk-detail-empty{border:0!important;background:none!important}
+html:not(#_) body .tk-sim-illustration svg,html:not(#_) body .tk-sim-scene svg{filter:grayscale(1) contrast(.9)}
+
+/* Workspace graph, inspector and footers (base sizes 7–11px). */
+html:not(#_) body .save-state,html:not(#_) body .request-form-footer span,html:not(#_) body .canvas-caption,html:not(#_) body .canvas-footer span{font-size:12px!important;color:var(--faint)!important}
+html:not(#_) body .channel-column span,html:not(#_) body .channel-db-name,html:not(#_) body .channel-db-name span{font-size:12px!important;letter-spacing:0!important;color:var(--muted)!important}
+html:not(#_) body .pipeline-node span{font-size:12px!important;font-family:var(--font)!important;letter-spacing:0!important;text-transform:none!important;color:var(--faint)!important}
+html:not(#_) body .pipeline-node strong{font-size:13px!important;font-family:var(--font)!important;font-weight:500!important;color:var(--ink)!important}
+html:not(#_) body .pipeline-node.emphasis span,html:not(#_) body .pipeline-node.emphasis strong{color:#fff!important}
+html:not(#_) body .pipeline-node.emphasis span{opacity:.75}
+html:not(#_) body .empty-steps span,html:not(#_) body .empty-steps i{font-size:12px!important;font-family:var(--font)!important;letter-spacing:0!important;color:var(--faint)!important}
+html:not(#_) body .inspector-content :is(span,strong,summary,a,em,dt,dd,li),html:not(#_) body .inspector-heading span,html:not(#_) body .runtime-heading,html:not(#_) body .route-preview{font-size:12px!important;letter-spacing:0!important}
+html:not(#_) body .inspector-content strong{color:var(--ink)!important;font-weight:500!important}
+html:not(#_) body .inspector-content .mode-option strong{font-size:14px!important;font-weight:600!important}
+html:not(#_) body .inspector-content .mode-option em{font-style:normal!important;color:var(--faint)!important}
+html:not(#_) body .inspector-content .mode-option p{font-size:13px!important}
+html:not(#_) body .inspector-bottom a,html:not(#_) body .inspector-bottom a *{color:var(--brand)!important;font-weight:500!important}
+html:not(#_) body .runtime-heading,html:not(#_) body .runtime-heading span{text-transform:none!important;color:var(--muted)!important;font-weight:500!important}
+html:not(#_) body .route-preview{font-family:var(--mono)!important;color:var(--muted)!important;background:var(--subtle)!important}
+html:not(#_) body .inspector-heading h2{font-size:16px!important}
+html:not(#_) body .session-row *{font-size:13px!important;letter-spacing:0!important}
+html:not(#_) body .session-row :is(.session-mode,.session-count){font-size:12px!important;font-family:var(--font)!important;color:var(--muted)!important}
+html:not(#_) body .session-row:hover{background:var(--subtle)!important}
+html:not(#_) body .inspector-bottom :is(a,span){font-size:12px!important}
+html:not(#_) body .inspector-bottom p{font-size:13px!important}
+html:not(#_) body .inspector-heading span,html:not(#_) body .runtime-heading,html:not(#_) body .runtime-heading span,html:not(#_) body .channel-db-name,html:not(#_) body .channel-db-name span,html:not(#_) body .mode-option em,html:not(#_) body .stream-count,html:not(#_) body .session-badge{font-family:var(--font)!important}
+
+/* Analytics: captions, notes and legends (base sizes 7–11px). */
+html:not(#_) body :is(.an-chart-key,.an-detail-caption,.an-method-details,.an-caveats,.an-inline-note,.an-inventory-legend,.an-estimate-actions,.an-bottom-note,.an-latency-card,.an-session-health,.an-panel-heading) :is(span,li,summary,small,em,code),
+html:not(#_) body :is(.an-method-details>summary,.an-caveats li,.an-bottom-note,.an-inline-note){font-size:12px!important;font-family:var(--font)!important;letter-spacing:0!important;text-transform:none!important;line-height:1.5!important}
+html:not(#_) body .an-caveats li,html:not(#_) body .an-inline-note,html:not(#_) body .an-chart-key span,html:not(#_) body .an-detail-caption span{color:var(--muted)!important}
+html:not(#_) body .an-inventory-legend strong{font-size:12px!important;font-family:var(--font)!important;color:var(--ink)!important}
+html:not(#_) body .an-latency-card>div>span,html:not(#_) body .an-latency-card header span{color:var(--faint)!important}
+
+/* Analytics bar chart: neutral SVG text, figures in the UI font. */
+html:not(#_) body .an-bar-chart text{font-family:var(--font)!important;fill:var(--muted)!important}
+html:not(#_) body .an-bar-chart .an-svg-label{fill:var(--ink-2)!important;font-size:13px!important}
+html:not(#_) body .an-bar-chart :is(.an-svg-small,.an-svg-axis){fill:var(--faint)!important;font-size:12px!important}
+html:not(#_) body .an-bar-chart .an-svg-value{fill:var(--ink)!important;font-size:13px!important;font-weight:500}
+html:not(#_) body .an-chart-mark:is(:hover,:focus) rect:first-of-type{fill:var(--hover)!important}
+html:not(#_) body .an-chart-caption strong{font-family:var(--font)!important;font-weight:500!important}
+
+html:not(#_) body #analytics-view td small{font-family:var(--font)!important}
+html:not(#_) body .an-session-stats span{font-size:12px!important;color:var(--faint)!important}
+html:not(#_) body .an-panel-heading :is(strong,b,dd){color:var(--ink)!important}
+
+/* Analytics planning calculator: a light panel, not a dark slab. */
+html:not(#_) body .an-effort{background:var(--subtle)!important;border:1px solid var(--line)!important;border-radius:var(--r-lg)!important;padding:24px!important;color:var(--ink-2)!important}
+html:not(#_) body .an-effort :is(h2,h3,strong){color:var(--ink)!important}
+html:not(#_) body .an-effort :is(p,li,small,summary,.an-estimate-actions span){color:var(--muted)!important}
+html:not(#_) body .an-effort label,html:not(#_) body .an-effort label span{color:var(--ink-2)!important}
+html:not(#_) body .an-effort input{background:var(--surface)!important;color:var(--ink)!important}
+html:not(#_) body .an-effort input+span,html:not(#_) body .an-effort label em{color:var(--faint)!important;font-family:var(--font)!important;font-size:12px!important}
+html:not(#_) body .an-effort :is([class*="result"],[class*="estimate-empty"],[class*="output"]){background:var(--surface)!important;border:1px solid var(--line)!important;border-radius:var(--r-lg)!important;color:var(--ink-2)!important}
+html:not(#_) body .an-effort .an-chip,html:not(#_) body .an-effort .an-chip.scenario{background:var(--surface)!important}
+html:not(#_) body .an-effort .icon-button,html:not(#_) body .an-effort [class*="symbol"]{background:var(--surface)!important;border:1px solid var(--line)!important;color:var(--muted)!important}
+
+/* Cloth workcell page: overrides for the older dark bento theme. */
+html:not(#_) body .bento-welcome em{color:var(--brand)!important}
+html:not(#_) body .bento-outcome>strong{color:var(--ok)!important;font-weight:600!important}
+html:not(#_) body .arm-card.bento-selected{outline:2px solid var(--brand)!important}
+html:not(#_) body .controller-card *,html:not(#_) body .bento-tile *{color:inherit}
+html:not(#_) body .controller-card strong,html:not(#_) body .bento-tile strong{color:var(--ink)}
+html:not(#_) body :is(.nav-count,.local-label,.subtle-link,.seed-label,.bento-eyebrow,.stack-caption,.camera-label,.time-label,.metric-label,.arm-state,.eyebrow){font-size:12px!important;font-family:var(--font)!important;letter-spacing:0!important;text-transform:none!important}
+html:not(#_) body :is(.controller-card,.bento-trace,.bento-tile,.arm-facts,.channel-stats,.stage-topline,.timeline,.video-card,.arm-card) :is(span,b,small,a){font-size:12px!important;letter-spacing:0!important}
+html:not(#_) body .arm-facts b,html:not(#_) body .channel-stats b,html:not(#_) body .channel-stats strong{color:var(--ink)!important;font-family:var(--mono)!important}
+html:not(#_) body .camera-label{background:rgba(15,18,20,.72)!important;color:#fff!important;padding:2px 8px!important;border-radius:4px!important}
+html:not(#_) body .camera-dot{background:var(--ok)!important}
+html:not(#_) body .arm-dot.left{background:var(--brand)!important}
+html:not(#_) body .arm-dot.right{background:#5b97a6!important}
+html:not(#_) body .nav-count{background:var(--hover)!important;color:var(--muted)!important;border-radius:999px!important;padding:0 6px!important}
+html:not(#_) body .metric-strip>div>div{background:var(--hover)!important}
+html:not(#_) body .metric-strip>div>div>i,html:not(#_) body .metric-strip>div>div>span:not([class]){background:var(--brand)!important}
+
+html:not(#_) body .bento-strip button{background:var(--brand-soft)!important;border:0!important;border-radius:3px!important;padding:0!important;min-height:0!important}
+html:not(#_) body .bento-strip button:is(:hover,.active,.selected,[aria-pressed="true"]){background:var(--brand)!important}
+html:not(#_) body .nav-button{align-self:center!important;height:auto!important;min-height:32px!important}
+
+/* Learned-adapter page: it redefines the tokens on body.latent-page; take them back. */
+html:not(#_) body,html:not(#_) body.latent-page{
+  --ink:#15191c!important;--ink-2:#394148!important;--muted:#646d74!important;--faint:#8a9399!important;
+  --line:#e3e6e9!important;--surface:#fff!important;--bg:#fff!important;--accent:#183e4a!important;--soft:#eaf1f2!important}
+html:not(#_) body .latent-nav{align-self:center!important;height:auto!important;min-height:32px!important}
+html:not(#_) body.latent-page :is(header,.topbar,.latent-model,.latent-scope,.latent-direction b,.latent-arm-letter){background:var(--surface)!important}
+html:not(#_) body.latent-page :is(h1,h2,h3){color:var(--ink)!important}
+html:not(#_) body.latent-page :is(.latent-width strong,.latent-method-note strong,.latent-scope-foot strong){color:var(--ink)!important}
+html:not(#_) body.latent-page :is(.latent-scope-top,.latent-scope-foot,.latent-model-top,.latent-width,.latent-direction,.latent-database,.latent-method-note) :is(span,b,small,strong):not(.latent-width strong),
+html:not(#_) body.latent-page :is(.latent-mode,.latent-data-status,.latent-arm-letter,.latent-note-symbol),
+html:not(#_) body.latent-page .latent-model :is(span,small),
+html:not(#_) body.latent-page th span{font-size:12px!important;letter-spacing:0!important;text-transform:none!important;font-family:var(--font)!important}
+html:not(#_) body.latent-page .latent-model strong:not(.latent-width strong){font-size:13px!important}
+html:not(#_) body.latent-page :is(.latent-direction b,.latent-arm-letter){color:var(--brand)!important;border:1px solid var(--line)!important}
+html:not(#_) body.latent-page .latent-data-status{background:var(--ok-soft)!important;color:var(--ok)!important;border-radius:999px!important;padding:1px 8px!important}
+html:not(#_) body.latent-page .latent-dot,html:not(#_) body .local-label i{background:var(--ok)!important}
+html:not(#_) body.latent-page .latent-mode-dot{background:var(--faint)!important}
+
+html:not(#_) body:not(:has(.application)) :is(.provenance,.event-list,.evidence-note,.detail-card,.comparison-limit,.empty-comparison,.analytic-card,.analytic-kpis,.pair-metrics,.outcome-chart,.video-card) :is(a,span,small,b,li,summary,em,p),
+html:not(#_) body:not(:has(.application)) :is(th,th *){font-size:12px!important;letter-spacing:0!important;text-transform:none!important}
+
+/* Brand mark */
+html:not(#_) body .brand-logo{background-image:url("/assets/relay-logo-exact.png")!important;background-size:contain!important;background-position:center!important;background-repeat:no-repeat!important}
+
+@media (prefers-reduced-motion:reduce){html:not(#_) body *{transition:none!important;animation:none!important}}
+@media (max-width:1180px){html:not(#_) body .sidebar .nav-item{justify-content:center!important;padding:8px!important}}
+@media (max-width:1100px){html:not(#_) body .application main{padding:24px!important}}
+@media (max-width:900px){
+  html:not(#_) body .an-metrics{grid-template-columns:1fr!important}
+  .an-comparison-grid{grid-template-columns:1fr!important}
+  .an-latency-grid{grid-template-columns:1fr 1fr!important}
+  html:not(#_) body .application main{padding:20px 16px!important}
+}
+@media (max-width:600px){
+  .an-latency-grid,.an-operations-grid{grid-template-columns:1fr!important}
+  html:not(#_) body h1,html:not(#_) body #analytics-view h1{font-size:24px!important}
+  .an-heading{display:block!important}
+  .an-heading-actions{margin-top:16px}
+}
+
+/* Bordered section cards: hosted.css strips heading/footnote side padding for its
+   older flat layout. These sections are cards again, so restore the inner gutter
+   (matching .release-list) instead of letting text sit on the border. */
+html:not(#_) body .release-section>.release-heading,
+html:not(#_) body .release-section>.release-footnote,
+html:not(#_) body .release-section>.release-list,
+html:not(#_) body .stream-panel>.panel-title,
+html:not(#_) body .session-section>.panel-title,
+html:not(#_) body .access-section>.panel-title{padding-left:24px!important;padding-right:24px!important}
+html:not(#_) body .observations-panel{padding:20px 24px!important}
+html:not(#_) body .an-panel.an-coordination{padding:20px!important}
+html:not(#_) body .an-model-inventory .an-donut{padding-left:20px!important;padding-right:20px!important}
+html:not(#_) body .tk-worker-form{padding:16px 20px!important}
+/* Long single tokens: keep them inside their card. */
+html:not(#_) body .model-repo{display:block;max-width:100%;min-width:0}
+html:not(#_) body .bridge-code{overflow-x:auto!important;max-width:100%}
+/* Cloth workcell: the provenance disclosure is a bordered card (workspace-white.css);
+   the phase readout wraps instead of cutting long phase names. */
+html:not(#_) body .provenance{padding:14px 16px!important}
+html:not(#_) body #phase-value{white-space:normal!important;overflow-wrap:anywhere;line-height:1.15!important}
+html:not(#_) body.latent-page .topbar>nav{flex-wrap:wrap!important;min-width:0!important;row-gap:6px!important}
+html:not(#_) body .metric-strip{padding:16px!important}
+/* Cloth workcell: the inspector is a column of bordered cards, not a card itself. */
+html:not(#_) body .workspace-grid>.inspector{border:0!important;background:transparent!important;box-shadow:none!important}
+html:not(#_) body .workspace-grid>.inspector>.evidence-note{padding:16px 4px!important}
+html:not(#_) body .latent-method-note{padding:16px 18px!important}
+html:not(#_) body .tk-team #tk-configure{width:100%}
+html:not(#_) body .tk-empty,html:not(#_) body .tk-detail-empty,html:not(#_) body .tk-runtime-empty,
+html:not(#_) body .empty-card,html:not(#_) body .audit-empty,html:not(#_) body .empty-history{padding-left:16px!important;padding-right:16px!important}
+@media (max-width:600px){
+  html:not(#_) body .release-section>.release-heading,
+  html:not(#_) body .release-section>.release-footnote,
+  html:not(#_) body .release-section>.release-list,
+  html:not(#_) body .stream-panel>.panel-title,
+  html:not(#_) body .session-section>.panel-title,
+  html:not(#_) body .access-section>.panel-title{padding-left:16px!important;padding-right:16px!important}
+  html:not(#_) body .observations-panel{padding:16px!important}
+  html:not(#_) body .pipeline-node strong,html:not(#_) body .pipeline-node span{white-space:normal!important;overflow-wrap:break-word}
+}
+
+/* Models and communication card: inset the header, canvas and pipeline by the
+   same 24px gutter as the Models card, so the canvas border, status dot and
+   "Draft" tag sit inside the card instead of on its border, and give every
+   pipeline step the same padding and height. */
+html:not(#_) body .workcell-panel>.canvas-toolbar{padding:18px 24px 14px!important}
+html:not(#_) body .workcell-panel>.canvas{margin:0 24px!important}
+html:not(#_) body .workcell-panel .canvas-footer{padding:12px 20px!important}
+html:not(#_) body .workcell-panel>.pipeline{padding:18px 24px 24px!important;align-items:stretch!important}
+html:not(#_) body .workcell-panel .pipeline-node{display:flex!important;flex-direction:column!important;justify-content:center!important;gap:4px;padding:10px 12px!important;min-height:64px;text-align:center}
+html:not(#_) body .workcell-panel .pipeline-node>span{margin:0!important}
+@media (max-width:600px){
+  html:not(#_) body .workcell-panel>.canvas-toolbar{padding:16px 16px 12px!important}
+  html:not(#_) body .workcell-panel>.canvas{margin:0 16px!important}
+  html:not(#_) body .workcell-panel>.pipeline{padding:16px!important;flex-direction:column!important;align-items:stretch!important;gap:6px!important}
+  html:not(#_) body .workcell-panel .pipeline>i{transform:rotate(90deg);align-self:center}
+  html:not(#_) body .workcell-panel .pipeline-node{min-height:0;width:100%}
+  /* Stack the two model cards with the SpacetimeDB link between them. */
+  html:not(#_) body .workcell-panel .graph{grid-template-columns:minmax(0,1fr)!important;row-gap:12px;padding:16px!important}
+}

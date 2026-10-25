@@ -40,7 +40,12 @@ def _locked(method):
     def run(self, *args, **kwargs):
         # Match the server's lock order, including release retirement.
         with self.registry.lock, self.lock:
-            return method(self, *args, **kwargs)
+            result = method(self, *args, **kwargs)
+            if self.coordination is not None and method.__name__ in (
+                "create", "claim", "report", "cancel", "supervisor_cancel"
+            ) and isinstance(result, dict) and "id" in result:
+                self.coordination.observe_task(result, metrics=True)
+            return result
 
     return run
 
@@ -82,6 +87,7 @@ class TaskService:
         self.lock = threading.RLock()
         self.worker_id = WORKER + "-" + _signature(registry.registry_id)[:12]
         self._cache = {}
+        self.coordination = None
 
     def _coordinator(self, task_id):
         coordinator = self.studio.factory()
@@ -176,6 +182,12 @@ class TaskService:
             "success_criteria": criteria,
             "target": target,
         }
+        timeout = value.get("timeout_seconds", 1800)
+        if type(timeout) is not int or not 60 <= timeout <= 86400:
+            raise ValueError("Task attention deadline must be 60–86400 seconds")
+        # Keep old creation receipts compatible when no deadline was specified.
+        if "timeout_seconds" in value:
+            normalized["timeout_seconds"] = timeout
         signature = _signature(normalized)
         task_id = "goal-" + _signature([self.registry.registry_id, actor["id"], request_id])[:16]
         coordinator = self._coordinator(task_id)
@@ -219,6 +231,7 @@ class TaskService:
         goal = {
             "id": task_id,
             **normalized,
+            "timeout_seconds": timeout,
             "status": "queued",
             "created_by": actor["id"],
             "created_at": now,
