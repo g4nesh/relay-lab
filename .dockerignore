@@ -49,6 +49,7 @@
 !src/relay_lab/studio/workers.py
 !src/relay_lab/studio/coordination.py
 !src/relay_lab/studio/realtime.py
+!src/relay_lab/studio/schedules.py
 !subscriptions/package.json
 !subscriptions/package-lock.json
 !subscriptions/tsconfig.json

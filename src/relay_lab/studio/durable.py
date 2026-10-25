@@ -44,6 +44,10 @@ FENCED = frozenset(
         "prepare_factory_batch",
         "commit_factory_batch",
         "abort_factory_run",
+        "create_task_schedule",
+        "cancel_task_schedule",
+        "resolve_task_dispatch",
+        "remove_task_schedule",
     }
 )
 

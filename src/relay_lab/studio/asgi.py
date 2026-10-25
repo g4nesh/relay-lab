@@ -412,6 +412,9 @@ class StudioApplication:
                             await asyncio.to_thread(coordination.start)
                         except Exception:  # noqa: BLE001, S110 - degraded status is reported separately
                             pass  # Coordination exposes degraded status; ordinary requests still work.
+                    schedules = self.runtime.get("schedules")
+                    if schedules is not None:
+                        schedules.start()
                     await send({"type": "lifespan.startup.complete"})
                 elif event["type"] == "lifespan.shutdown":
                     await self.close()
@@ -541,6 +544,9 @@ class StudioApplication:
         coordination = self.runtime.get("coordination")
         if coordination is not None and hasattr(coordination, "request_stop"):
             coordination.request_stop()
+        schedules = self.runtime.get("schedules")
+        if schedules is not None:
+            schedules.request_stop()
         errors = []
         # Drain request holders before joining the background writer. One failed
         # cleanup must not strand either executor; retain the workspace lock if
@@ -550,6 +556,7 @@ class StudioApplication:
             lambda: asyncio.to_thread(self.auth_executor.shutdown, wait=True, cancel_futures=True),
             lambda: asyncio.to_thread(self.executor.shutdown, wait=True, cancel_futures=True),
             *([lambda: asyncio.to_thread(coordination.close)] if coordination is not None else []),
+            *([lambda: asyncio.to_thread(schedules.close)] if schedules is not None else []),
         ):
             try:
                 await cleanup()
@@ -596,6 +603,7 @@ def create_app(*, config=None, runtime=None):
 
 def _create_runtime(root, config, coordinator_factory, durable=None):
     from .coordination import CoordinationService
+    from .schedules import ScheduleService
     from .tasks import TaskService
     from .workers import WorkerStore
 
@@ -624,6 +632,7 @@ def _create_runtime(root, config, coordinator_factory, durable=None):
         "service": service, "access": access, "registry": registry,
         "analytics": AnalyticsService(root, service, registry, access),
         "tasks": tasks,
+        "schedules": ScheduleService(tasks, access, durable=durable),
         "workers": workers,
     }
 

@@ -117,7 +117,40 @@ const studio_lease = table({ public: false }, {
   id: t.u8().primaryKey(), holder: t.string(), expires_us: t.u64(), last_operation: t.string(),
 });
 
-const spacetime = schema({ studio_lease, studio_state, module_owner, task, assignment, plan_frame, action_frame, feedback_frame, factory_run, factory_robot, factory_batch, factory_command, factory_resource, factory_event, factory_embedding_space, factory_embedding, factory_semantic_channel, factory_semantic_packet, cloth_channel, cloth_frame, cloth_packet, ...studioTables });
+// Scheduled objectives. A timer row fires a reducer at a set time; the
+// reducer only enqueues a due dispatch. Studio then re-checks the account and
+// the current model releases before creating the objective, so no scheduled
+// reducer can bypass governance or write the factory_run journal.
+const task_schedule = table({ public: false }, {
+  schedule_key: t.string().primaryKey(), worker_id: t.string().index('btree'),
+  created_by: t.string(), request_json: t.string(),
+  first_due_micros: t.i64(), interval_micros: t.i64(), max_runs: t.u32(),
+  fired_runs: t.u32(), skipped_runs: t.u32(), next_due_micros: t.i64(), last_fired_micros: t.i64(),
+  status: t.string(), reason: t.string(), created_micros: t.i64(), updated_micros: t.i64(),
+});
+const task_schedule_timer = table({ public: false }, {
+  scheduled_id: t.u64().primaryKey().autoInc(), scheduled_at: t.scheduleAt(),
+  schedule_key: t.string().index('btree'), due_micros: t.i64(),
+});
+const task_dispatch = table({ public: false }, {
+  dispatch_key: t.string().primaryKey(), schedule_key: t.string().index('btree'),
+  worker_id: t.string().index('btree'), run_number: t.u32(), due_micros: t.i64(), fired_micros: t.i64(),
+  status: t.string(), task_id: t.string(), reason: t.string(), updated_micros: t.i64(),
+});
+
+// Retired: objective deadlines now use studio_task_watch attention deadlines.
+// These tables stay so a database that published the earlier schedule module
+// upgrades without a client-breaking migration. No new rows are written.
+const task_deadline = table({ public: false }, {
+  task_id: t.string().primaryKey(), worker_id: t.string().index('btree'),
+  deadline_micros: t.i64(), status: t.string(), checked_micros: t.i64(), detail: t.string(),
+});
+const task_deadline_timer = table({ public: false }, {
+  scheduled_id: t.u64().primaryKey().autoInc(), scheduled_at: t.scheduleAt(),
+  task_id: t.string().index('btree'),
+});
+
+const spacetime = schema({ studio_lease, studio_state, module_owner, task, assignment, plan_frame, action_frame, feedback_frame, factory_run, factory_robot, factory_batch, factory_command, factory_resource, factory_event, factory_embedding_space, factory_embedding, factory_semantic_channel, factory_semantic_packet, cloth_channel, cloth_frame, cloth_packet, task_schedule, task_schedule_timer, task_dispatch, task_deadline, task_deadline_timer, ...studioTables });
 
 export default spacetime;
 type Ctx = ReducerCtx<typeof spacetime.schemaType>;
@@ -1296,4 +1329,191 @@ export const studio_finish_read = spacetime.reducer({
   if (lease?.last_operation === args.holder) return;
   const held = studioLease(ctx, args.holder);
   ctx.db.studio_lease.id.update({ ...held, holder: '', expires_us: 0n, last_operation: args.holder });
+});
+
+// ---- Scheduled objectives (scheduled reducers) ----
+// Attention deadlines for the objectives these runs create use the
+// studio_task_watch watchdog above; schedules only decide when to create them.
+const MICROS_PER_SECOND = 1_000_000n;
+const SCHEDULE_MIN_INTERVAL = 300n * MICROS_PER_SECOND;        // 5 minutes
+const SCHEDULE_MAX_INTERVAL = 7n * 86_400n * MICROS_PER_SECOND; // 7 days
+const SCHEDULE_MAX_LEAD = 30n * 86_400n * MICROS_PER_SECOND;    // 30 days
+const SCHEDULE_MAX_RUNS = 20;
+const SCHEDULE_MAX_ACTIVE = 20;
+const UNFENCED = 'Studio storage requires a fenced request';
+
+function scheduleKey(value: string): void {
+  require(/^sched-[a-f0-9]{16}$/.test(value), 'Invalid schedule key');
+}
+
+const create_task_schedule_args = {
+  schedule_key: t.string(), worker_id: t.string(), created_by: t.string(), request_json: t.string(),
+  first_due_micros: t.i64(), interval_micros: t.i64(), max_runs: t.u32(),
+};
+function create_task_schedule_handler(ctx: Ctx, args: { schedule_key: string; worker_id: string; created_by: string;
+  request_json: string; first_due_micros: bigint; interval_micros: bigint; max_runs: number }) {
+  owner(ctx); scheduleKey(args.schedule_key); identifier(args.worker_id, 'schedule worker');
+  identifier(args.created_by, 'schedule creator');
+  require(args.request_json.length <= 16_384, 'Scheduled objective is too large');
+  const request = parse(args.request_json, 'scheduled objective');
+  text(request.objective, 'scheduled objective text', 2000);
+  const prior = ctx.db.task_schedule.schedule_key.find(args.schedule_key);
+  if (prior) {
+    // Exact retries are idempotent; a reused key with different content is rejected.
+    require(prior.worker_id === args.worker_id && prior.created_by === args.created_by &&
+      prior.request_json === args.request_json && prior.first_due_micros === args.first_due_micros &&
+      prior.interval_micros === args.interval_micros && prior.max_runs === args.max_runs,
+    'Schedule key was reused for a different schedule');
+    return;
+  }
+  const now = ctx.timestamp.microsSinceUnixEpoch;
+  require(args.first_due_micros >= now - 300n * MICROS_PER_SECOND && args.first_due_micros <= now + SCHEDULE_MAX_LEAD,
+    'Schedule start must be within the next 30 days');
+  if (args.interval_micros === 0n) require(args.max_runs === 1, 'A one-time schedule runs exactly once');
+  else {
+    require(args.interval_micros >= SCHEDULE_MIN_INTERVAL && args.interval_micros <= SCHEDULE_MAX_INTERVAL,
+      'Repeat interval must be between 5 minutes and 7 days');
+    require(args.max_runs >= 2 && args.max_runs <= SCHEDULE_MAX_RUNS, 'A repeating schedule runs 2 to 20 times');
+  }
+  const active = [...ctx.db.task_schedule.worker_id.filter(args.worker_id)].filter(s => s.status === 'active').length;
+  require(active < SCHEDULE_MAX_ACTIVE, 'This workspace already has 20 active schedules');
+  const due = args.first_due_micros > now ? args.first_due_micros : now;
+  ctx.db.task_schedule.insert({ ...args, fired_runs: 0, skipped_runs: 0, next_due_micros: due,
+    last_fired_micros: 0n, status: 'active', reason: '', created_micros: now, updated_micros: now });
+  ctx.db.task_schedule_timer.insert({ scheduled_id: 0n, scheduled_at: ScheduleAt.time(due),
+    schedule_key: args.schedule_key, due_micros: due });
+}
+export const create_task_schedule = spacetime.reducer(create_task_schedule_args, (ctx, args) => {
+  owner(ctx); require(!ctx.db.studio_state.id.find(0), UNFENCED);
+  create_task_schedule_handler(ctx, args);
+});
+export const studio_create_task_schedule = spacetime.reducer({ holder: t.string(), ...create_task_schedule_args },
+  (ctx, { holder, ...args }) => {
+    studioLease(ctx, holder);
+    create_task_schedule_handler(ctx, args);
+  });
+
+export const fire_task_schedule = spacetime.reducer({ onSchedule: task_schedule_timer },
+  { arg: task_schedule_timer.rowType }, (ctx, { arg }) => {
+    studioScheduler(ctx);
+    const schedule = ctx.db.task_schedule.schedule_key.find(arg.schedule_key);
+    // A cancelled or superseded timer is a no-op; one-time timer rows are removed by the database.
+    if (!schedule || schedule.status !== 'active' || schedule.next_due_micros !== arg.due_micros) return;
+    const now = ctx.timestamp.microsSinceUnixEpoch, run = schedule.fired_runs + 1;
+    const pending = [...ctx.db.task_dispatch.schedule_key.filter(schedule.schedule_key)].some(d => d.status === 'pending');
+    // Coalesce: never queue a second run while Studio has not handled the previous one.
+    ctx.db.task_dispatch.insert({ dispatch_key: `${schedule.schedule_key}-r${run}`, schedule_key: schedule.schedule_key,
+      worker_id: schedule.worker_id, run_number: run, due_micros: arg.due_micros, fired_micros: now,
+      status: pending ? 'skipped' : 'pending', task_id: '',
+      reason: pending ? 'Previous run was still waiting for Studio' : '', updated_micros: now });
+    const finished = schedule.interval_micros === 0n || run >= schedule.max_runs;
+    let next = 0n;
+    if (!finished) {
+      next = arg.due_micros + schedule.interval_micros;
+      if (next <= now) next = now + schedule.interval_micros; // skip missed slots after downtime
+      ctx.db.task_schedule_timer.insert({ scheduled_id: 0n, scheduled_at: ScheduleAt.time(next),
+        schedule_key: schedule.schedule_key, due_micros: next });
+    }
+    ctx.db.task_schedule.schedule_key.update({ ...schedule, fired_runs: run,
+      skipped_runs: schedule.skipped_runs + (pending ? 1 : 0), next_due_micros: next, last_fired_micros: now,
+      status: finished ? 'completed' : 'active', updated_micros: now });
+  });
+
+const cancel_task_schedule_args = { schedule_key: t.string(), worker_id: t.string(), reason: t.string() };
+function cancel_task_schedule_handler(ctx: Ctx, args: { schedule_key: string; worker_id: string; reason: string }) {
+  owner(ctx); scheduleKey(args.schedule_key); identifier(args.worker_id, 'schedule worker');
+  text(args.reason, 'cancellation reason', 1000);
+  const schedule = ctx.db.task_schedule.schedule_key.find(args.schedule_key);
+  require(schedule && schedule.worker_id === args.worker_id, 'Unknown schedule');
+  if (schedule.status === 'cancelled') return;
+  require(schedule.status === 'active', 'Only an active schedule can be cancelled');
+  for (const timer of [...ctx.db.task_schedule_timer.schedule_key.filter(args.schedule_key)]) {
+    ctx.db.task_schedule_timer.scheduled_id.delete(timer.scheduled_id);
+  }
+  ctx.db.task_schedule.schedule_key.update({ ...schedule, status: 'cancelled', reason: args.reason,
+    next_due_micros: 0n, updated_micros: ctx.timestamp.microsSinceUnixEpoch });
+}
+export const cancel_task_schedule = spacetime.reducer(cancel_task_schedule_args, (ctx, args) => {
+  owner(ctx); require(!ctx.db.studio_state.id.find(0), UNFENCED);
+  cancel_task_schedule_handler(ctx, args);
+});
+export const studio_cancel_task_schedule = spacetime.reducer({ holder: t.string(), ...cancel_task_schedule_args },
+  (ctx, { holder, ...args }) => {
+    studioLease(ctx, holder);
+    cancel_task_schedule_handler(ctx, args);
+  });
+
+const resolve_task_dispatch_args = {
+  dispatch_key: t.string(), worker_id: t.string(), status: t.string(), task_id: t.string(), reason: t.string(),
+};
+function resolve_task_dispatch_handler(ctx: Ctx, args: { dispatch_key: string; worker_id: string; status: string;
+  task_id: string; reason: string }) {
+  owner(ctx); identifier(args.dispatch_key, 'dispatch'); identifier(args.worker_id, 'dispatch worker');
+  require(args.status === 'created' || args.status === 'blocked', 'Invalid dispatch outcome');
+  if (args.status === 'created') require(/^goal-[a-f0-9]{16}$/.test(args.task_id), 'Invalid objective identifier');
+  else require(args.task_id === '', 'A blocked run has no objective');
+  text(args.reason, 'dispatch reason', 500, args.status === 'created');
+  const dispatch = ctx.db.task_dispatch.dispatch_key.find(args.dispatch_key);
+  require(dispatch && dispatch.worker_id === args.worker_id, 'Unknown dispatch');
+  if (dispatch.status === args.status && dispatch.task_id === args.task_id) return;
+  require(dispatch.status === 'pending', 'This run was already resolved');
+  ctx.db.task_dispatch.dispatch_key.update({ ...dispatch, status: args.status, task_id: args.task_id,
+    reason: args.reason, updated_micros: ctx.timestamp.microsSinceUnixEpoch });
+}
+export const resolve_task_dispatch = spacetime.reducer(resolve_task_dispatch_args, (ctx, args) => {
+  owner(ctx); require(!ctx.db.studio_state.id.find(0), UNFENCED);
+  resolve_task_dispatch_handler(ctx, args);
+});
+export const studio_resolve_task_dispatch = spacetime.reducer({ holder: t.string(), ...resolve_task_dispatch_args },
+  (ctx, { holder, ...args }) => {
+    studioLease(ctx, holder);
+    resolve_task_dispatch_handler(ctx, args);
+  });
+
+const remove_task_schedule_args = { schedule_key: t.string(), worker_id: t.string() };
+function remove_task_schedule_handler(ctx: Ctx, args: { schedule_key: string; worker_id: string }) {
+  owner(ctx); scheduleKey(args.schedule_key); identifier(args.worker_id, 'schedule worker');
+  const schedule = ctx.db.task_schedule.schedule_key.find(args.schedule_key);
+  if (!schedule) return; // already removed
+  require(schedule.worker_id === args.worker_id, 'Unknown schedule');
+  require(schedule.status !== 'active', 'Cancel an active schedule before removing it');
+  const runs = [...ctx.db.task_dispatch.schedule_key.filter(args.schedule_key)];
+  require(runs.every(run => run.status !== 'pending'), 'A run is still waiting for Studio');
+  // Objectives the schedule created stay in their own journal; only schedule records go.
+  for (const run of runs) ctx.db.task_dispatch.dispatch_key.delete(run.dispatch_key);
+  for (const timer of [...ctx.db.task_schedule_timer.schedule_key.filter(args.schedule_key)]) {
+    ctx.db.task_schedule_timer.scheduled_id.delete(timer.scheduled_id);
+  }
+  ctx.db.task_schedule.schedule_key.delete(args.schedule_key);
+}
+export const remove_task_schedule = spacetime.reducer(remove_task_schedule_args, (ctx, args) => {
+  owner(ctx); require(!ctx.db.studio_state.id.find(0), UNFENCED);
+  remove_task_schedule_handler(ctx, args);
+});
+export const studio_remove_task_schedule = spacetime.reducer({ holder: t.string(), ...remove_task_schedule_args },
+  (ctx, { holder, ...args }) => {
+    studioLease(ctx, holder);
+    remove_task_schedule_handler(ctx, args);
+  });
+
+// Retired deadline reducers keep their published signatures (see task_deadline).
+export const set_task_deadline = spacetime.reducer({
+  task_id: t.string(), worker_id: t.string(), deadline_micros: t.i64(),
+}, ctx => {
+  owner(ctx);
+  throw new SenderError('Objective deadlines use the attention deadline on each task');
+});
+export const check_task_deadline = spacetime.reducer({ onSchedule: task_deadline_timer },
+  { timer: task_deadline_timer.rowType }, (ctx, { timer }) => {
+    studioScheduler(ctx);
+    ctx.db.task_deadline.task_id.delete(timer.task_id);
+  });
+export const clear_task_deadline = spacetime.reducer({ task_id: t.string(), worker_id: t.string() }, (ctx, args) => {
+  owner(ctx); identifier(args.task_id, 'task ID');
+  const row = ctx.db.task_deadline.task_id.find(args.task_id);
+  if (!row) return;
+  require(row.worker_id === args.worker_id, 'Unknown objective deadline');
+  for (const timer of [...ctx.db.task_deadline_timer.task_id.filter(args.task_id)])
+    ctx.db.task_deadline_timer.scheduled_id.delete(timer.scheduled_id);
+  ctx.db.task_deadline.task_id.delete(args.task_id);
 });

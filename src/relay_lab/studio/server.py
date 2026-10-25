@@ -19,6 +19,7 @@ from .access import AuthenticationError
 from .analytics import AnalyticsService, estimate_effort
 from .governance import RegistryConflict
 from .profiles import ProfileStore
+from .schedules import ScheduleService, ScheduleUnavailable
 from .service import CONTROL_PLANE_REASON, example_workspace
 from .tasks import TaskConflict, TaskService
 from .workers import WorkerStore
@@ -97,6 +98,7 @@ class StudioHandler(BaseHTTPRequestHandler):
         coordination=None,
         realtime=None,
         simulations=None,
+        schedules=None,
         **kwargs,
     ):
         self.service, self.access, self.registry = service, access, registry
@@ -107,6 +109,7 @@ class StudioHandler(BaseHTTPRequestHandler):
         self.coordination = coordination
         self.realtime = realtime
         self.simulations = simulations
+        self.schedules = schedules
         self.identity = None
         super().__init__(*args, **kwargs)
 
@@ -328,6 +331,8 @@ class StudioHandler(BaseHTTPRequestHandler):
                 return self.respond(self.task_service.list(actor))
             if match := re.fullmatch(r"/api/tasks/(goal-[a-f0-9]{16})", path):
                 return self.respond(self.task_service.get(actor, match[1]))
+            if path == "/api/schedules":
+                return self.respond(self.schedule_service.list(actor))
             if path == "/api/workers":
                 return self.respond(self.worker_store.list(actor))
             if path == "/api/coordination":
@@ -418,6 +423,15 @@ class StudioHandler(BaseHTTPRequestHandler):
             if path == "/api/tasks":
                 self.require("sessions.run")
                 return self.respond(self.task_service.create(actor, value), 201)
+            if path == "/api/schedules":
+                self.require("sessions.run")
+                return self.respond(self.schedule_service.create(actor, value), 201)
+            if match := re.fullmatch(r"/api/schedules/(sched-[a-f0-9]{16})/cancel", path):
+                self.require("sessions.run")
+                return self.respond(self.schedule_service.cancel(actor, match[1], value))
+            if match := re.fullmatch(r"/api/schedules/(sched-[a-f0-9]{16})/remove", path):
+                self.require("sessions.run")
+                return self.respond(self.schedule_service.remove(actor, match[1]))
             if match := re.fullmatch(r"/api/tasks/(goal-[a-f0-9]{16})/cancel", path):
                 self.require("sessions.run")
                 return self.respond(self.task_service.cancel(actor, match[1], value))
@@ -592,6 +606,12 @@ class StudioHandler(BaseHTTPRequestHandler):
         return self.tasks
 
     @property
+    def schedule_service(self):
+        if self.schedules is None:
+            self.schedules = ScheduleService(self.task_service, self.access)
+        return self.schedules
+
+    @property
     def worker_store(self):
         if self.workers is None:
             self.workers = WorkerStore(
@@ -690,6 +710,8 @@ class StudioHandler(BaseHTTPRequestHandler):
             self.respond({"error": str(error)}, 401)
         except (RegistryConflict, TaskConflict) as error:
             self.respond({"error": str(error)}, 409)
+        except ScheduleUnavailable as error:
+            self.respond({"error": str(error)}, 503)
         except PermissionError as error:
             self.respond({"error": str(error)}, 403)
         except (ValueError, TypeError, KeyError) as error:
