@@ -17,6 +17,9 @@ ASSETS = {
     "/index.html": "index.html",
     "/styles.css": "styles.css",
     "/app.js": "app.js",
+    "/latent": "latent.html",
+    "/latent.js": "latent.js",
+    "/latent.css": "latent.css",
 }
 EXTENSIONS = {".json", ".mp4", ".png", ".jpg", ".jpeg", ".webp", ".gz"}
 

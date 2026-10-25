@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Relay Lab · Learned communication</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/latent.css">
+  <script src="/latent.js" defer></script>
+</head>
+<body class="latent-page">
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="Relay Lab home">
+      <span class="brand-mark" aria-hidden="true">↗</span> Relay Lab
+      <span class="brand-divider"></span><span class="workspace-name">Research workcell</span>
+    </a>
+    <nav aria-label="Workspace">
+      <a class="latent-nav" href="/">Workcell</a>
+      <a class="latent-nav" href="/#comparison">PCA benchmark</a>
+      <a class="latent-nav active" href="/latent" aria-current="page">Learned communication</a>
+    </nav>
+    <span class="local-label"><i></i> Local simulation</span>
+  </header>
+
+  <main class="latent-main">
+    <div id="latent-error" class="error-banner" role="status" hidden></div>
+    <section class="latent-hero" aria-labelledby="latent-title">
+      <div class="latent-hero-copy">
+        <div class="eyebrow">EXPERIMENT 02 / MIXED VLA COMMUNICATION</div>
+        <h1 id="latent-title">Learning to share<br>what each arm sees.</h1>
+        <p>Two different robot models, separate views, and a learned channel for the information only a teammate can see.</p>
+        <div class="latent-chips">
+          <span class="tag">SmolVLA + X-VLA</span>
+          <span class="tag neutral">Frozen model features</span>
+          <span class="tag neutral">SpacetimeDB</span>
+        </div>
+      </div>
+      <aside class="latent-scope" aria-label="What this experiment measures">
+        <div class="latent-scope-top"><span class="latent-dot"></span><span>ONE-STEP COORDINATION</span></div>
+        <h2>Would both arms<br>make the right next move?</h2>
+        <p>A private obstacle changes whether the team should move or hold. We test which messages help the other arm respond.</p>
+        <div class="latent-scope-foot"><strong>Hold accuracy ≠ folding success</strong><span>This report does not establish a complete learned-policy fold.</span></div>
+      </aside>
+    </section>
+
+    <section class="latent-architecture detail-card" aria-labelledby="architecture-title">
+      <div class="section-heading">
+        <div><div class="eyebrow">THE LEARNED INTERFACE</div><h2 id="architecture-title">Two native spaces. A trained translation.</h2></div>
+        <span class="latent-section-number">01 — METHOD</span>
+      </div>
+      <div class="latent-flow">
+        <article class="latent-model left">
+          <div class="latent-model-top"><span class="latent-arm-letter">L</span><span>LEFT ARM / LOCAL VIEW</span></div>
+          <h3>SmolVLA</h3>
+          <p>Frozen vision-language features</p>
+          <div class="latent-width"><strong>960</strong><span>native dimensions</span></div>
+          <div class="latent-model-head"><span class="latent-small-arrow" aria-hidden="true">↓</span><div><strong>Learned replacement head</strong><span>Own features + local state + received context</span></div></div>
+        </article>
+        <div class="latent-channel" aria-label="Each arm learns a 64-dimensional encoder and the other arm learns its own receiver decoder">
+          <div class="latent-direction"><span>Left encoder</span><b>64D</b><span class="latent-direction-arrow" aria-hidden="true">→</span><span>Right decoder</span></div>
+          <div class="latent-database"><span class="latent-db-mark" aria-hidden="true">≋</span><div><strong>SpacetimeDB</strong><span>Recorded delivery · packet age · expiry</span></div></div>
+          <div class="latent-direction reverse"><span>Left decoder</span><span class="latent-direction-arrow" aria-hidden="true">←</span><b>64D</b><span>Right encoder</span></div>
+          <p>Separate learned mappings in each direction</p>
+        </div>
+        <article class="latent-model right">
+          <div class="latent-model-top"><span class="latent-arm-letter">R</span><span>RIGHT ARM / LOCAL VIEW</span></div>
+          <h3>X-VLA</h3>
+          <p>Frozen vision-language features</p>
+          <div class="latent-width"><strong>1,024</strong><span>native dimensions</span></div>
+          <div class="latent-model-head"><span class="latent-small-arrow" aria-hidden="true">↓</span><div><strong>Learned replacement head</strong><span>Own features + local state + received context</span></div></div>
+        </article>
+      </div>
+      <div class="latent-method-note"><span class="latent-note-symbol" aria-hidden="true">i</span><p><strong>CoLA-inspired, state-assisted.</strong> Real frozen VLA features feed trained encoders, decoders and new action heads. The original VLA action heads are not used. Local simulator measurements and phase instructions assist control.</p></div>
+    </section>
+
+    <section class="latent-results detail-card" aria-labelledby="static-title">
+      <div class="section-heading">
+        <div><div class="eyebrow">FRESH, PRIVATE OBSERVATIONS</div><h2 id="static-title">Does the message change the decision?</h2></div>
+        <span id="static-status" class="latent-data-status">Awaiting measurements</span>
+      </div>
+      <p class="latent-section-description">The same physical state is shown with a clear workspace, a left obstacle, or a right obstacle. The arm that cannot see the change needs information from its teammate.</p>
+      <div class="table-scroll">
+        <table class="latent-table">
+          <caption class="latent-sr-only">One-step held-out results and fixed-model message interventions</caption>
+          <thead><tr><th scope="col">Communication</th><th scope="col">Hold decision<br><span>overall accuracy</span></th><th scope="col">Hidden peer<br><span>accuracy</span></th><th scope="col">Action error<br><span>mean, mm ↓</span></th><th scope="col">Zero payload<br><span>hold accuracy</span></th><th scope="col">Shuffled payload<br><span>hold accuracy</span></th></tr></thead>
+          <tbody id="static-results"><tr><td colspan="6" class="latent-pending">Measurements have not loaded.</td></tr></tbody>
+        </table>
+      </div>
+      <div class="latent-table-foot"><p><strong>A correct hold is one decision.</strong> Even 100% here would not demonstrate grasping or completing a fold.</p><span>Whole-episode split · Original simulation data</span></div>
+      <details class="latent-explanation"><summary>How to read the comparison <span aria-hidden="true">+</span></summary><div><p><strong>No communication</strong> is trained separately. <strong>Zero</strong> and <strong>shuffled</strong> payloads intervene on the same trained checkpoint. They answer different questions.</p><p>Structured text carries exact local measurements as JSON. Embeddings carry a learned 64D message from the peer’s model features. Hybrid adds exact safety fields. This is a comparison of these complete interfaces, not a claim that their information content is identical.</p></div></details>
+    </section>
+
+    <section class="latent-results detail-card" aria-labelledby="transport-title">
+      <div class="section-heading">
+        <div><div class="eyebrow">CHANGING CONDITIONS / MESSAGE DELIVERY</div><h2 id="transport-title">What happens when information arrives late?</h2></div>
+        <div class="latent-scenario-field"><label for="transport-scenario">Delivery condition</label><select id="transport-scenario" disabled><option>No measurements yet</option></select></div>
+      </div>
+      <p class="latent-section-description">A changing obstacle sequence is replayed through the actual message journal. Compare missed hazards, unnecessary holds, and the bytes each method sends.</p>
+      <div class="table-scroll">
+        <table class="latent-table latent-transport-table">
+          <caption class="latent-sr-only">Communication results under the selected delivery condition</caption>
+          <thead><tr><th scope="col">Communication</th><th scope="col">Hold decision<br><span>overall accuracy</span></th><th scope="col">Hazard → hold<br><span>correct response</span></th><th scope="col">Clear → move<br><span>correct response</span></th><th scope="col">Mean packet<br><span>serialized bytes</span></th></tr></thead>
+          <tbody id="transport-results"><tr><td colspan="5" class="latent-pending">Measurements have not loaded.</td></tr></tbody>
+        </table>
+      </div>
+      <div class="latent-table-foot"><p>Missing or expired messages trigger a conservative hold in communication-enabled modes. This guard is explicit; delay robustness has not been learned.</p><span id="transport-count">No conditions loaded</span></div>
+    </section>
+
+    <section id="findings-card" class="latent-findings" aria-labelledby="findings-title" hidden>
+      <div><div class="eyebrow">OBSERVATIONS FROM THE RUN</div><h2 id="findings-title">What the evidence says</h2></div>
+      <div id="findings-content" class="latent-findings-content"></div>
+    </section>
+
+    <section class="latent-trial-grid" aria-labelledby="trial-title">
+      <div class="latent-trial-card">
+        <div class="latent-trial-top"><span><i aria-hidden="true"></i> MUJOCO / EXECUTION CHECK</span><span id="trial-duration">Short trial · duration unreported</span></div>
+        <div class="latent-video-surface">
+          <video id="latent-video" controls muted playsinline preload="metadata" aria-label="Short learned-policy execution trial" hidden></video>
+          <div id="latent-video-empty" class="latent-video-empty"><span aria-hidden="true">↔</span><strong>Recording not yet available</strong><p>A short execution check will appear here when its evidence is published.</p></div>
+        </div>
+        <div class="latent-video-caption"><span id="live-status">Trial status unreported</span><strong>Execution check, not a complete-task demonstration</strong></div>
+      </div>
+      <aside class="detail-card latent-trial-info">
+        <div class="eyebrow">REAL FEATURES / PHYSICAL ACTIONS</div>
+        <h2 id="trial-title">A small execution check.</h2>
+        <p>The bounded trial checks that current images become model features, messages reach the other arm, and learned outputs move the simulated robots.</p>
+        <dl class="latent-trial-metrics"><div><dt>Model calls per arm</dt><dd id="live-calls">Not reported</dd></div><div><dt>Physics ticks</dt><dd id="live-ticks">Not reported</dd></div><div><dt>Grasps observed</dt><dd id="live-grasps">Not reported</dd></div><div><dt>Complete fold</dt><dd id="live-fold">Not established</dd></div></dl>
+        <p class="latent-trial-limit">A short successful inference call does not establish manipulation reliability. The cloth, grasps and cameras retain the workcell’s simulation approximations.</p>
+      </aside>
+    </section>
+
+    <section class="latent-evidence detail-card" aria-labelledby="evidence-title">
+      <div><div class="eyebrow">METHODS & EVIDENCE</div><h2 id="evidence-title">Keep the experiments separate.</h2><p>The earlier PCA experiment compresses measured state. This experiment learns a channel from actual model features.</p></div>
+      <div class="latent-evidence-links"><a href="/runs/learned-latent/results.json">Raw measurements <span aria-hidden="true">↗</span></a><a href="/#comparison">Earlier PCA benchmark <span aria-hidden="true">↗</span></a><a href="https://arxiv.org/html/2610.15337v1" target="_blank" rel="noopener noreferrer">CoLA method <span aria-hidden="true">↗</span></a></div>
+      <div id="source-links" class="latent-source-links" hidden></div>
+    </section>
+  </main>
+
+  <footer><span>RELAY LAB <span class="footer-divider">/</span> LEARNED COMMUNICATION</span><span>Original simulation · Recorded measurements · Explicit limits</span></footer>
+</body>
+</html>

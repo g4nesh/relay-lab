@@ -6,11 +6,52 @@ with different local observations, moving obstacles, delayed messages, Qwen
 phase review and SpacetimeDB storage. Earlier factory and parcel workcells remain
 available as separate experiments.
 
+## Learned messages between different VLA families
+
+The new [learned adapter experiment](docs/latent-coordination.md) uses **actual
+frozen SmolVLA features (960D) and X-VLA features (1024D)**. Separate learned
+encoders send 64D messages through SpacetimeDB; receiver adapters and small
+replacement action heads learn together from original local demonstrations.
+This is a CoLA-inspired implementation, with explicit state assistance and a
+Cartesian MLP head. It is separate from the older PCA experiment below.
+
+The native foundation-model action heads are replaced in this experiment.
+VLA-Fabric's internal action-generation interactions are documented as a further
+baseline, not claimed as implemented. The tests distinguish fresh-message
+coordination, stale-message failures, and full physical folding.
+
+The [recorded learned-message results](examples/cloth-coordination/learned-latent/README.md)
+show useful peer information on the small fresh-observation test, but delayed
+reports and live scene changes still break coordination. The live trial missed
+12 of 14 required obstacle holds and did not grasp or fold. These failures are
+retained alongside the successful inference and transport evidence.
+Open `/latent` in the cloth replay UI to inspect the comparison.
+
+```bash
+uv sync --extra vla
+python3 scripts/spacetime.py publish
+uv run python -m relay_lab.cloth.latent_dataset --workers 4 --output runs/latent-data
+HF_HUB_OFFLINE=1 uv run python -m relay_lab.cloth.latent_training cache \
+  --dataset runs/latent-data --output runs/latent-features --family smolvla
+HF_HUB_OFFLINE=1 uv run python -m relay_lab.cloth.latent_training cache \
+  --dataset runs/latent-data --output runs/latent-features --family xvla
+uv run python -m relay_lab.cloth.latent_training train --dataset runs/latent-data \
+  --cache runs/latent-features --output runs/latent-adapters
+uv run python -m relay_lab.cloth.latent_experiment compare --dataset runs/latent-data \
+  --cache runs/latent-features --checkpoints runs/latent-adapters \
+  --output runs/latent-comparison --backend spacetime
+```
+
+The offline cache commands require the pinned public model weights to have been
+downloaded first; [checkpoint setup](checkpoints/cloth-policies/foundation-adaptation.md)
+describes those dependencies. Cached features are extracted one backbone at a
+time so training does not require both foundation models' gradients in memory.
+
 ## Two-arm cloth workcell
 
 The MuJoCo environment has physical flex cloth, self-contact, table/obstacle
 contact, original articulated arms and recorded sensor cameras. It compares
-**learned feature embeddings, full-precision structured text, and hybrid
+**PCA-compressed local state, full-precision structured text, and hybrid
 communication** with the same policies, scenes, delay schedules and budgets.
 
 The working controller pair uses two distinct, original task-trained neural

@@ -167,16 +167,33 @@ function clothFacts(value: unknown, keys: string[]) {
 function clothConfiguration(config_json: string) {
   const config = parse(config_json, 'cloth channel configuration');
   clothKeys(config, ['schema', 'mode', 'model', 'network', 'features', 'hybrid_fields'], 'Cloth configuration');
-  require(config.schema === 'relay.cloth.communication.v2', 'Unknown cloth channel schema');
+  const learnedLatent = config.schema === 'relay.cloth.learned-latent.v1';
+  require(learnedLatent || config.schema === 'relay.cloth.communication.v2', 'Unknown cloth channel schema');
   require(['embeddings', 'structured_text', 'hybrid', 'none'].includes(config.mode as string), 'Unknown cloth channel mode');
   require(JSON.stringify(config.features) === JSON.stringify(CLOTH_FEATURES), 'Cloth observation schema mismatch');
   require(JSON.stringify(config.hybrid_fields) === JSON.stringify(CLOTH_SAFETY), 'Cloth safety schema mismatch');
   const model = object(config.model, 'cloth feature codec');
   text(model.space_id, 'cloth codec space', 128);
   require(typeof model.checkpoint_sha256 === 'string' && /^[a-f0-9]{64}$/.test(model.checkpoint_sha256), 'Invalid cloth codec hash');
-  require(model.kind === 'standardized-pca-v1' && model.source_dimension === CLOTH_FEATURES.length &&
-    Number.isInteger(model.dimension) && (model.dimension as number) >= 1 && (model.dimension as number) < CLOTH_FEATURES.length,
-  'Invalid cloth codec dimensions');
+  if (learnedLatent) {
+    // The learned mixed-backbone protocol has its own version. The original
+    // measured-state PCA contract and all recorded channels remain unchanged.
+    require(model.kind === 'cross-vla-adapter-v1' && model.dimension === 64,
+      'Invalid learned cloth adapter kind or dimension');
+    const dimensions = object(model.source_dimensions, 'cloth backbone dimensions');
+    clothKeys(dimensions, ['left', 'right'], 'Cloth backbone dimensions');
+    require(dimensions.left === 960 && dimensions.right === 1024, 'Invalid cloth backbone dimensions');
+    const extractors = object(model.source_extractor_ids, 'cloth feature extractor identities');
+    clothKeys(extractors, ['left', 'right'], 'Cloth feature extractor identities');
+    for (const arm of ['left', 'right']) {
+      require(typeof extractors[arm] === 'string' && /^[a-f0-9]{64}$/.test(extractors[arm] as string),
+        'Invalid cloth feature extractor identity');
+    }
+  } else {
+    require(model.kind === 'standardized-pca-v1' && model.source_dimension === CLOTH_FEATURES.length &&
+      Number.isInteger(model.dimension) && (model.dimension as number) >= 1 && (model.dimension as number) < CLOTH_FEATURES.length,
+    'Invalid cloth codec dimensions');
+  }
   const network = object(config.network, 'cloth network');
   clothKeys(network, ['seed', 'min_delay_ticks', 'max_delay_ticks', 'drop_probability', 'ttl_ticks'], 'Cloth network');
   require(Number.isInteger(network.seed) && (network.seed as number) >= 0 && (network.seed as number) < 4294967296, 'Invalid network seed');
@@ -246,7 +263,8 @@ export const commit_cloth_frame = spacetime.reducer({
     clothKeys(content, config.mode === 'embeddings' ? ['vector'] : config.mode === 'structured_text' ? ['text'] : ['vector', 'text'], 'Cloth content');
     if ('vector' in content) {
       require(Array.isArray(content.vector) && content.vector.length === model.dimension, 'Invalid cloth latent dimension');
-      for (const value of content.vector) { number(value, 'cloth latent'); require(Math.abs(value) <= 1000, 'Cloth latent exceeds bounds'); }
+      const bound = config.schema === 'relay.cloth.learned-latent.v1' ? 1.00001 : 1000;
+      for (const value of content.vector) { number(value, 'cloth latent'); require(Math.abs(value) <= bound, 'Cloth latent exceeds bounds'); }
     }
     if ('text' in content) {
       text(content.text, 'cloth structured text', 6000);
