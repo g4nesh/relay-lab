@@ -20,20 +20,31 @@ const robotPaths = {
 };
 const robot = (kind) => `<svg viewBox="0 0 130 96" aria-hidden="true">${robotPaths[kind] || robotPaths.custom}</svg>`;
 let state = {workspace: null, example: null, capabilities: {}, token: "", session: null, busy: false, dirty: false, upload: null, robot: "arm", results: []};
-let toastTimer, polling, historySignature = "", activeUpload, diagnosticRevision = 0;
-Object.assign(state, {health: null, diagnostics: null, sessions: [], history: null, selectedMessage: null, readOnly: false, failed: false});
+let toastTimer, polling, historySignature = "", activeUpload, diagnosticRevision = 0, authEpoch = 0;
+Object.assign(state, {authenticated: false, user: null, permissions: [], models: [], team: [], requests: [], savedWorkspace: null, release_ready: false, sessionReleaseReady: false, authMode: "login", health: null, diagnostics: null, sessions: [], history: null, selectedMessage: null, readOnly: false, failed: false});
 
 async function api(path, body) {
-  const response = await fetch(path, body === undefined ? {} : {method: "POST", headers: {"Content-Type": "application/json", "X-Relay-Token": state.token}, body: JSON.stringify(body)});
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.error || `Request failed (${response.status})`);
+  const epoch = authEpoch;
+  let response, data;
+  try {
+    response = await fetch(path, body === undefined ? {} : {method: "POST", headers: {"Content-Type": "application/json", "X-Relay-Token": state.token}, body: JSON.stringify(body)});
+    data = await response.json();
+  } catch (error) { if (epoch !== authEpoch) error.stale = true; throw error; }
+  if (epoch !== authEpoch) {
+    const error = new Error("This request belongs to an earlier sign-in session."); error.stale = true; throw error;
+  }
+  if (!response.ok) {
+    if (response.status === 401 && !path.startsWith("/api/auth/")) showAuth("login", "Your session expired or access changed. Please sign in again.");
+    const error = new Error(data.error || (response.status === 403 ? "Your account does not have permission for this action." : `Request failed (${response.status})`));
+    error.status = response.status; throw error;
+  }
   return data;
 }
-function notify(message, success = false) { $("notice").textContent = message; $("notice").className = `notice${success ? " success" : ""}`; $("notice").hidden = false; }
-function toast(message) { clearTimeout(toastTimer); $("toast").textContent = message; $("toast").hidden = false; toastTimer = setTimeout(() => { $("toast").hidden = true; }, 3500); }
+function notify(message, success = false) { if (!state.authenticated) return; $("notice").textContent = message; $("notice").className = `notice${success ? " success" : ""}`; $("notice").hidden = false; }
+function toast(message) { if (!state.authenticated) return; clearTimeout(toastTimer); $("toast").textContent = message; $("toast").hidden = false; toastTimer = setTimeout(() => { $("toast").hidden = true; }, 3500); }
 function clearSession() {
   historySignature = "";
-  state.session = null; state.results = []; state.history = null; state.selectedMessage = null; state.readOnly = false; state.failed = false; state.diagnostics = null; clearInterval(polling);
+  state.session = null; state.sessionReleaseReady = false; state.results = []; state.history = null; state.selectedMessage = null; state.readOnly = false; state.failed = false; state.diagnostics = null; clearInterval(polling);
   $("receiver-panel").hidden = true;
   void refreshDiagnostics();
   $("stream-events").replaceChildren(); $("stream-count").textContent = "0 PACKETS";
@@ -57,11 +68,14 @@ function renderModel(arm) {
   $(`slot-${arm}`).innerHTML = `<article class="model-card" data-agent="${arm}"><div class="model-card-top"><span class="agent-letter">${label}</span><strong>${esc(a.name)}</strong><button class="edit-button" data-edit="${arm}" aria-label="Edit ${esc(a.name)}">···</button></div><div class="robot-illustration">${robot(a.robot)}</div><div class="model-spec"><div class="model-family">${families[a.family]}<span>${a.source.kind === "upload" ? "WEIGHTS" : "POLICY"}</span></div><div class="model-repo" title="${esc(a.source.ref)}">${esc(a.source.ref)}</div><div class="model-native"><span>FEATURE CONTRACT</span><strong>${native ? `${native}D → 64D` : "UNCONFIGURED"}</strong></div></div><div class="model-card-footer"><span><i class="status-dot ${available ? "" : "neutral"}"></i>${available ? "Pinned feature contract" : "Registered · not loaded"}</span><span>${a.rig ? "Rig registered" : "No live rig"}</span></div></article>`;
 }
 function render() {
-  if (!state.workspace) return;
+  if (!state.authenticated || !state.workspace) return;
+  renderAccessIdentity(); renderReleases(); renderRequestModels();
   const w = state.workspace, mode = modes[w.mode], exact = isExample();
+  const activeSession = !!state.session && !state.readOnly && !state.failed && state.sessionReleaseReady;
+  const releaseBlocked = !!state.session && !state.sessionReleaseReady;
   $("breadcrumb-name").textContent = w.name;
   $("objective").value = w.objective;
-  $("save-state").textContent = state.dirty ? "Unsaved changes" : "Saved locally";
+  $("save-state").textContent = state.dirty ? "Unsaved changes" : currentWorkspaceSelected() ? "Saved workspace" : "Session configuration";
   $("model-count").textContent = `${w.agents.length} / 2 models`;
   $("nav-model-count").textContent = String(w.agents.length);
   renderPipeline();
@@ -76,9 +90,9 @@ function render() {
   $("contract-message").textContent = latentPath ? "64 dimensions" : "Qwen text";
   $("contract-context").textContent = latentPath ? "32 dimensions" : "Worker supplied";
   $("contract-preview").textContent = latentPath ? "Replacement head" : "Not evaluated";
-  $("session-badge").textContent = state.readOnly ? "ARCHIVED VIEW" : state.failed ? "CHANNEL STOPPED" : state.session ? "CHANNEL OPEN" : "DRAFT";
-  $("connection-state").textContent = state.readOnly ? "Read-only history" : state.session ? "Session confirmed" : "Not connected";
-  $("canvas-status").textContent = state.readOnly ? "Read-only journal · open a new channel to exchange" : state.failed ? "Channel stopped · open a new session to continue" : state.session ? "Communication session open · hardware inactive" : w.agents.length === 2 ? (["latent", "hybrid"].includes(w.mode) && !exact ? "A trained adapter is needed for this pair" : "Pair configured · ready to open a channel") : "Add two models to create a channel";
+  $("session-badge").textContent = state.readOnly ? "ARCHIVED VIEW" : releaseBlocked ? "RELEASE BLOCKED" : state.failed ? "CHANNEL STOPPED" : state.session ? "CHANNEL OPEN" : "DRAFT";
+  $("connection-state").textContent = state.readOnly ? "Read-only history" : releaseBlocked ? "Model approval changed" : state.session ? "Session confirmed" : "Not connected";
+  $("canvas-status").textContent = state.readOnly ? "Read-only journal · open a new channel to exchange" : releaseBlocked ? "Model approval changed · this session cannot exchange" : state.failed ? "Channel stopped · open a new session to continue" : state.session ? "Communication session open · hardware inactive" : w.agents.length === 2 ? (["latent", "hybrid"].includes(w.mode) && !exact ? "A trained adapter is needed for this pair" : (currentPairReleased() ? "Approved pair · ready to open a channel" : "Pair configured · manager release required")) : "Add two models to create a channel";
   $("canvas-status-dot").classList.toggle("neutral", !state.session);
   const needsAdapter = ["latent", "hybrid"].includes(w.mode) && !exact;
   let note = "Add your models to check the available communication paths.";
@@ -86,15 +100,24 @@ function render() {
     note = needsAdapter ? "These checkpoints need trained latent adapters. Try the LLM paths with local reports, or load the supported example pair." : exact ? "Example adapters match these pinned checkpoints. Captured features are available for a real communication probe." : "Text reports can use Qwen now. Your policy worker must load the weights and consume the returned context.";
   }
   $("compatibility").querySelector("p").textContent = note;
-  $("connect-button").disabled = state.busy || w.agents.length !== 2 || needsAdapter || (state.diagnostics && !state.diagnostics.ready) || (!!state.session && !state.readOnly && !state.failed);
-  $("connect-button").innerHTML = icon(state.session && !state.readOnly && !state.failed ? "check" : "link") + (state.readOnly || state.failed ? "Open a new channel" : state.session ? "Pair connected" : "Connect pair");
+  $("connect-button").disabled = state.busy || !allowed("sessions.run") || !currentPairReleased() || (!allowed("workspace.edit") && !currentWorkspaceSelected()) || w.agents.length !== 2 || needsAdapter || (state.diagnostics && !state.diagnostics.ready) || activeSession;
+  $("connect-button").innerHTML = icon(activeSession ? "check" : "link") + (state.readOnly || state.failed || releaseBlocked ? "Open a new channel" : activeSession ? "Pair connected" : "Connect pair");
   $("probe-button").disabled = state.busy || !state.session;
   $("probe-source").querySelector('[value="captured"]').disabled = !exact || !state.capabilities.sample_available;
   if (!exact || !state.capabilities.sample_available) $("probe-source").value = "manual";
   $("qwen-state").textContent = state.capabilities.llm_available ? "Installed" : "Setup needed";
   $("canvas").classList.toggle("busy", state.busy);
-  for (const id of ["save-button", "example-button", "export-button", "direction", "objective"]) $(id).disabled = state.busy;
-  document.querySelectorAll("[data-mode], [data-edit]").forEach((b) => { b.disabled = state.busy; });
+  $("export-button").disabled = state.busy;
+  for (const id of ["save-button", "example-button", "direction", "objective"]) {
+    $(id).disabled = state.busy || !allowed("workspace.edit");
+    $(id).title = allowed("workspace.edit") ? "" : "Only managers may change the workspace or its models";
+  }
+  document.querySelectorAll("[data-mode], [data-edit]").forEach((button) => {
+    button.disabled = state.busy || !allowed("workspace.edit");
+    button.title = allowed("workspace.edit") ? "" : "Model and channel configuration is managed by your manager";
+  });
+  $("connect-button").title = !currentPairReleased() ? "A manager must release both exact model revisions first" : "Start an approved communication session";
+  $("probe-button").title = state.session && !state.sessionReleaseReady ? "This session uses a model revision that is no longer released" : "Run a communication exchange";
   updateProbeSource();
 }
 function updateProbeSource() {
@@ -104,12 +127,14 @@ function updateProbeSource() {
   const latent = ["latent", "hybrid"].includes(state.workspace.mode);
   $("probe-note").textContent = captured ? "Captured foundation features; fresh adapter / Qwen inference; verified Spacetime readback. No robot motion is executed." : latent ? "Latent mode also needs native feature vectors. Use captured observations or the API bridge to supply features; this text-only form cannot generate them." : "These are reports you supply, not sensor measurements. Qwen processes them and Spacetime commits the resulting peer messages.";
   if (!captured && latent) $("probe-button").disabled = true;
-  else $("probe-button").disabled = state.busy || !state.session || state.readOnly || state.failed;
+  else $("probe-button").disabled = state.busy || !state.session || state.readOnly || state.failed || !state.sessionReleaseReady || !allowed("sessions.run");
   updateObservations();
 }
 async function save() {
+  if (!allowed("workspace.edit")) throw new Error("Only managers may edit the workspace.");
   state.workspace = await api("/api/workspace", state.workspace);
-  state.dirty = false; render();
+  state.savedWorkspace = structuredClone(state.workspace); state.dirty = false;
+  await refreshModels(); render();
 }
 function robotPicker() {
   $("robot-picker").innerHTML = Object.entries(robotNames).map(([key, name]) => `<button type="button" class="robot-option ${state.robot === key ? "active" : ""}" data-robot="${key}" aria-pressed="${state.robot === key}">${robot(key)}${name}</button>`).join("");
@@ -124,6 +149,7 @@ function sourceFields() {
   $("source-ref").placeholder = {huggingface: "owner/model", local: "/path/to/weights-or-model-directory", endpoint: "http://127.0.0.1:8000/policy", upload: ""}[source];
 }
 function editModel(arm) {
+  if (!allowed("models.manage")) return;
   const a = state.workspace.agents.find((m) => m.id === arm);
   $("model-form").reset(); state.upload = null;
   $("agent-id").value = arm; $("model-dialog-slot").textContent = `MODEL ${arm === "left" ? "A" : "B"}`;
@@ -150,13 +176,13 @@ async function register(event) {
       rig: $("rig-endpoint").value.trim(), action_contract: $("action-contract").value.trim()};
     const next = {...state.workspace, agents: [...state.workspace.agents.filter((m) => m.id !== a.id), a].sort((x, y) => x.id.localeCompare(y.id))};
     const value = await api("/api/workspace", next);
-    state.workspace = value; clearSession(); state.dirty = false; render();
+    state.workspace = value; state.savedWorkspace = structuredClone(value); clearSession(); state.dirty = false; await refreshModels(); render();
     $("model-dialog").close(); toast(`${a.name} registered`);
   } catch (error) { $("form-error").textContent = error.message; $("form-error").hidden = false; }
   finally { $("register-model").disabled = false; }
 }
 function upload(file) {
-  if (!file) return;
+  if (!file || !allowed("models.manage")) return;
   if (!file.name.endsWith(".safetensors") || file.size > 4 * 1024 ** 3) {
     $("form-error").textContent = "Choose a .safetensors file under 4 GiB, or register a local path."; $("form-error").hidden = false; return;
   }
@@ -169,6 +195,7 @@ function upload(file) {
   request.onload = () => {
     try {
       const data = JSON.parse(request.responseText);
+      if (request.status === 401) showAuth("login", "Your session expired. Please sign in again.");
       if (request.status !== 201) throw new Error(data.error || "Upload failed");
       state.upload = data; $("upload-status").textContent = `${data.tensors} tensors · ${formatBytes(data.bytes)} · Stored, not loaded`;
     } catch (error) { $("form-error").textContent = error.message; $("form-error").hidden = false; $("upload-status").textContent = "Upload failed. Choose a valid weights file to retry."; }
@@ -180,8 +207,15 @@ function upload(file) {
 function formatBytes(n) { return n >= 1024 ** 2 ? `${(n / 1024 ** 2).toFixed(1)} MiB` : n >= 1024 ? `${(n / 1024).toFixed(1)} KiB` : `${n} B`; }
 function ms(n) { if (n == null || !Number.isFinite(n)) return "Not retained"; return n >= 1000 ? `${(n / 1000).toFixed(2)} s` : `${n.toFixed(1)} ms`; }
 function renderHistory(data) {
-  state.history = data;
+  const previousReady = state.sessionReleaseReady, previousFailed = state.failed;
   state.failed = !!data.failed;
+  state.history = data;
+  state.sessionReleaseReady = data.release_ready === true;
+  if (data.release_error) { notify(data.release_error); $("probe-button").disabled = true; }
+  if (previousReady && !state.sessionReleaseReady && state.authenticated) {
+    void refreshApprovalState();
+  }
+  if (state.authenticated && (previousReady !== state.sessionReleaseReady || previousFailed !== state.failed)) render();
   const signature = JSON.stringify(data);
   if (signature === historySignature) return;
   historySignature = signature;
@@ -245,17 +279,18 @@ function renderReceivers(result) {
   }).join("");
 }
 async function refreshStream() {
-  const session = state.session;
+  const session = state.session, epoch = authEpoch;
   if (!session || state.busy) return;
   try { const data = await api(`/api/sessions/${session}`); if (session === state.session) renderHistory(data); }
-  catch (error) { clearInterval(polling); notify(`Could not refresh the durable stream: ${error.message}`); }
+  catch (error) { if (error.stale || epoch !== authEpoch) return; clearInterval(polling); notify(`Could not refresh the durable stream: ${error.message}`); }
 }
 async function connect() {
   state.busy = true; $("notice").hidden = true; render();
   $("connect-button").textContent = "Opening channel…";
   try {
-    await save();
+    if (allowed("workspace.edit") && (state.dirty || !currentWorkspaceSelected())) await save();
     const result = await api("/api/sessions", state.workspace);
+    state.sessionReleaseReady = result.release_ready !== false && currentPairReleased();
     clearInterval(polling); state.results = []; state.session = result.session_id; state.readOnly = false; state.failed = false; state.history = null; state.selectedMessage = null; historySignature = "";
     $("stream-events").replaceChildren(); $("stream-empty").hidden = false; $("stream-metrics").hidden = true; $("receiver-panel").hidden = true;
     void refreshSessions();
@@ -287,12 +322,52 @@ function exportWorkspace() {
   toast("Workspace configuration exported");
 }
 function showBridge() {
-  $("api-example").textContent = `import json, uuid\nfrom urllib.request import Request, urlopen\n\nBASE = "${location.origin}"\n\ndef call(path, data=None, token=None):\n    headers = {"Content-Type": "application/json"}\n    if token: headers["X-Relay-Token"] = token\n    body = json.dumps(data).encode() if data is not None else None\n    return json.load(urlopen(Request(BASE + path, body, headers)))\n\nboot = call("/api/bootstrap")\n# The two local reports come from your separate policy workers.\nsession = call("/api/sessions", {**boot["workspace"], "mode": "mediated"}, boot["token"])\nsid = session["session_id"]\nresult = call(f"/api/sessions/{sid}/exchange", {\n    "request_id": str(uuid.uuid4()),\n    "source": "manual",\n    "reports": {"left": "Path blocked.", "right": "Ready to move."}\n}, boot["token"])\n\nfor packet in result["messages"]:\n    print(packet["recipient"], packet["payload"])\n    # Feed context into the matching policy adapter.\n    # Your runtime remains responsible for actuation.\n`;
+  $("api-example").textContent = `import getpass, json, uuid
+from http.cookiejar import CookieJar
+from urllib.request import Request, build_opener, HTTPCookieProcessor
+
+BASE = "${location.origin}"
+client = build_opener(HTTPCookieProcessor(CookieJar()))
+
+def call(path, data=None, token=None):
+    headers = {"Content-Type": "application/json", "Origin": BASE}
+    if token: headers["X-Relay-Token"] = token
+    body = json.dumps(data).encode() if data is not None else None
+    return json.load(client.open(Request(BASE + path, body, headers)))
+
+# Individual account; password is never written into the example.
+call("/api/auth/login", {
+    "username": input("Studio username: "),
+    "password": getpass.getpass("Studio password: ")
+})
+boot = call("/api/bootstrap")
+assert boot["release_ready"], "A manager must release the configured pair"
+# Use the saved configuration approved for this account.
+session = call("/api/sessions", boot["workspace"], boot["token"])
+sid = session["session_id"]
+result = call(f"/api/sessions/{sid}/exchange", {
+    "request_id": str(uuid.uuid4()),
+    "source": "captured",
+    "condition": "left_obstacle"
+}, boot["token"])
+
+for packet in result["messages"]:
+    print(packet["recipient"], packet["payload"])
+    # Feed context into the matching policy adapter.
+    # Your runtime remains responsible for actuation.
+
+call("/api/auth/logout", {}, boot["token"])
+`;
   $("bridge-dialog").showModal();
 }
 function bind() {
+  window.RelayAnalytics.mount({api, notify: toast, authenticated: () => state.authenticated});
+  const showWorkspace = () => setStudioView(false);
+  for (const id of ["nav-team", "nav-stream", "nav-history", "nav-access", "nav-bridge", "mobile-workspace"]) $(id).addEventListener("click", showWorkspace);
+  for (const id of ["nav-analytics", "mobile-analytics"]) $(id).addEventListener("click", () => setStudioView(true));
+  window.addEventListener("hashchange", () => setStudioView(location.hash === "#analytics", false));
   $("canvas").addEventListener("click", (event) => { const b = event.target.closest("[data-edit]"); if (b) editModel(b.dataset.edit); });
-  $("mode-options").addEventListener("click", (event) => { const b = event.target.closest("[data-mode]"); if (b && !state.busy) { state.workspace.mode = b.dataset.mode; changed(); } });
+  $("mode-options").addEventListener("click", (event) => { const b = event.target.closest("[data-mode]"); if (b && !state.busy && allowed("workspace.edit")) { state.workspace.mode = b.dataset.mode; changed(); } });
   $("robot-picker").addEventListener("click", (event) => { const b = event.target.closest("[data-robot]"); if (b) { state.robot = b.dataset.robot; robotPicker(); } });
   $("objective").addEventListener("change", () => { state.workspace.objective = $("objective").value; changed(); });
   $("direction").addEventListener("change", () => { state.workspace.direction = $("direction").value; changed(); });
@@ -303,11 +378,11 @@ function bind() {
   for (const id of ["close-model", "cancel-model"]) $(id).addEventListener("click", () => $("model-dialog").close());
   $("remove-model").addEventListener("click", async () => {
     const next = {...state.workspace, agents: state.workspace.agents.filter((a) => a.id !== $("agent-id").value)};
-    try { state.workspace = await api("/api/workspace", next); clearSession(); state.dirty = false; render(); $("model-dialog").close(); toast("Model removed from the team"); }
+    try { state.workspace = await api("/api/workspace", next); state.savedWorkspace = structuredClone(state.workspace); clearSession(); state.dirty = false; await refreshModels(); render(); $("model-dialog").close(); toast("Model removed from the team"); }
     catch (error) { $("form-error").textContent = error.message; $("form-error").hidden = false; }
   });
   $("example-button").addEventListener("click", async () => {
-    try { const value = await api("/api/workspace", state.example); state.workspace = value; clearSession(); state.dirty = false; $("probe-source").value = "captured"; $("notice").hidden = true; render(); toast("Example pair loaded · weights are not loaded into memory"); }
+    try { const value = await api("/api/workspace", state.example); state.workspace = value; state.savedWorkspace = structuredClone(value); clearSession(); state.dirty = false; await refreshModels(); $("probe-source").value = "captured"; $("notice").hidden = true; render(); toast("Example pair loaded · weights are not loaded into memory"); }
     catch (error) { notify(error.message); }
   });
   $("save-button").addEventListener("click", async () => { try { await save(); toast("Workspace saved locally"); } catch (e) { notify(e.message); } });
@@ -315,22 +390,44 @@ function bind() {
   $("connect-button").addEventListener("click", connect); $("probe-button").addEventListener("click", probe);
   $("probe-source").addEventListener("change", updateProbeSource);
   $("condition").addEventListener("change", updateObservations);
-  $("refresh-health").addEventListener("click", async () => { await refreshHealth(); await refreshDiagnostics(); });
+  $("refresh-health").addEventListener("click", async () => { await refreshModels(); await refreshHealth(); await refreshDiagnostics(); });
   $("refresh-sessions").addEventListener("click", refreshSessions);
   $("session-list").addEventListener("click", (event) => { const b = event.target.closest("[data-session]"); if (b && !state.busy) void openSession(b.dataset.session, b.dataset.resume === "true"); });
   $("stream-events").addEventListener("click", (event) => { const b = event.target.closest("[data-packet]"); if (b) { state.selectedMessage = b.dataset.packet; renderPackets(); } });
   $("nav-history").addEventListener("click", () => $("session-section").scrollIntoView({behavior:"smooth", block:"start"}));
-  $("channel-node").addEventListener("click", () => { $("mode-options").scrollIntoView({behavior: "smooth", block: "center"}); $("mode-options").querySelector("button.active").focus(); });
-  $("nav-team").addEventListener("click", () => window.scrollTo({top: 0, behavior: "smooth"}));
+  $("channel-node").addEventListener("click", () => { $("mode-options").scrollIntoView({behavior: "smooth", block: "center"}); $("mode-options").querySelector("button.active")?.focus(); });
+  $("nav-team").addEventListener("click", () => {
+    if (state.session && !state.dirty && state.savedWorkspace) { state.workspace = structuredClone(state.savedWorkspace); clearSession(); render(); }
+    window.scrollTo({top: 0, behavior: "smooth"});
+  });
   $("nav-stream").addEventListener("click", () => $("stream-panel").scrollIntoView({behavior: "smooth", block: "center"}));
   for (const id of ["nav-bridge", "bridge-button"]) $(id).addEventListener("click", showBridge);
   $("close-bridge").addEventListener("click", () => $("bridge-dialog").close());
   $("copy-api").addEventListener("click", async () => { try { await navigator.clipboard.writeText($("api-example").textContent); toast("Python example copied"); } catch { toast("Select and copy the example above"); } });
   window.addEventListener("beforeunload", (event) => { if (state.dirty) { event.preventDefault(); event.returnValue = ""; } });
 }
-async function init() {
-  try { const boot = await api("/api/bootstrap"); Object.assign(state, boot); bind(); render(); await Promise.allSettled([refreshHealth(), refreshDiagnostics(), refreshSessions()]); }
-  catch (error) { notify(`Studio could not start: ${error.message}`); }
+async function checkAccess() {
+  $("auth-retry").disabled = true;
+  let signedIn = false;
+  try {
+    const auth = await api("/api/auth/status"); signedIn = auth.authenticated;
+    if (signedIn) await loadWorkspace();
+    else showAuth(auth.setup_required ? "setup" : "login");
+  } catch (error) {
+    if (error.stale || error.status === 401) return;
+    showAccessRecovery(`${signedIn ? "You are signed in, but the workspace could not load" : "Studio could not check workspace access"}: ${error.message}`);
+  } finally { $("auth-retry").disabled = false; }
+}
+async function init() { bind(); bindAccess(); await checkAccess(); }
+function setStudioView(analytics, updateHash = true) {
+  const active = analytics && state.authenticated;
+  $("workspace-view").hidden = active; $("analytics-view").hidden = !active;
+  document.body.classList.toggle("analytics-active", active);
+  $("nav-team").classList.toggle("selected", !active); $("nav-analytics").classList.toggle("selected", active);
+  $("nav-analytics").setAttribute("aria-current", active ? "page" : "false");
+  $("mobile-workspace").classList.toggle("active", !active); $("mobile-analytics").classList.toggle("active", active);
+  if (updateHash) history.replaceState(null, "", location.pathname + location.search + (active ? "#analytics" : ""));
+  if (active) { window.RelayAnalytics.show(); window.scrollTo({top: 0}); }
 }
 function renderPipeline() {
   const latent = ["latent","hybrid"].includes(state.workspace.mode);
@@ -368,6 +465,7 @@ async function refreshHealth() {
     if (health.adapter) state.capabilities.adapter = health.adapter;
     render();
   } catch (error) {
+    if (error.stale) return;
     $("health-db").textContent = "Readiness check failed"; $("health-db").title = error.message;
     $("health-adapter").textContent = "Readiness unavailable"; $("health-qwen").textContent = "Readiness unavailable";
     $("sidebar-db-label").textContent = "CHECK UNAVAILABLE";
@@ -390,7 +488,7 @@ async function refreshDiagnostics() {
 async function refreshSessions() {
   $("refresh-sessions").disabled = true;
   try { const data = await api("/api/sessions"); state.sessions = data.sessions || []; renderSessions(); }
-  catch (error) { $("session-list").innerHTML = `<p class="empty-history session-error">Could not read session history: ${esc(error.message)}</p>`; }
+  catch (error) { if (error.stale) return; $("session-list").innerHTML = `<p class="empty-history session-error">Could not read session history: ${esc(error.message)}</p>`; }
   finally { $("refresh-sessions").disabled = false; }
 }
 function sessionDate(value) {
@@ -409,7 +507,7 @@ async function openSession(id, resume) {
     const latest = data.results?.at(-1);
     if (["clear","left_obstacle","right_obstacle"].includes(latest?.condition)) $("condition").value = latest.condition;
     if (latest?.source) $("probe-source").value = latest.source;
-    if (data.workspace) { state.workspace = data.workspace; await api("/api/workspace", state.workspace); state.dirty = false; }
+    if (data.workspace) { state.workspace = data.workspace; state.dirty = false; }
     state.diagnostics = null; render(); renderHistory(data); renderSessions();
     if (!state.readOnly) polling = setInterval(refreshStream,3000);
     toast(state.readOnly ? "Inspecting the durable message journal" : "Session resumed from SpacetimeDB");
@@ -418,4 +516,269 @@ async function openSession(id, resume) {
   } catch (error) { notify(error.message); }
   finally { state.busy = false; render(); renderSessions(); }
 }
+const allowed = (permission) => !!state.authenticated && state.permissions.includes(permission);
+const stableJSON = (value) => JSON.stringify(value, (_key, item) => item && typeof item === "object" && !Array.isArray(item) ? Object.fromEntries(Object.entries(item).sort(([a],[b]) => a.localeCompare(b))) : item);
+const modelFor = (agent) => state.models.find((model) => stableJSON(model.spec) === stableJSON(agent));
+const currentPairReleased = () => state.workspace?.agents.length === 2 && state.workspace.agents.every((agent) => modelFor(agent)?.status === "released");
+const currentWorkspaceSelected = () => stableJSON(state.workspace) === stableJSON(state.savedWorkspace);
+function showAuth(mode = "login", message = "") {
+  authEpoch++; diagnosticRevision++;
+  window.RelayAnalytics.reset();
+  setStudioView(false, false);
+  clearInterval(polling); clearTimeout(toastTimer); $("toast").hidden = true;
+  if (activeUpload) activeUpload.abort();
+  state.authenticated = false; state.user = null; state.permissions = []; state.token = "";
+  state.workspace = null; state.savedWorkspace = null; state.models = []; state.sessions = []; state.session = null;
+  state.results = []; state.history = null; state.selectedMessage = null; state.team = []; state.requests = []; state.sessionReleaseReady = false; state.dirty = false; state.busy = false; historySignature = "";
+  state.capabilities = {}; state.example = null; state.health = null; state.diagnostics = null; state.upload = null;
+  state.pendingRelease = null; state.pendingRequest = null; state.readOnly = false; state.failed = false; state.release_ready = false;
+  for (const id of ["slot-left", "slot-right", "release-list", "stream-events", "receiver-cards", "session-list", "release-review", "request-review", "preflight-checks", "request-model"]) $(id).replaceChildren();
+  $("api-example").textContent = ""; $("model-form").reset(); $("invite-form").reset(); $("request-form").reset();
+  $("objective").value = ""; $("report-left").value = ""; $("report-right").value = "";
+  $("breadcrumb-name").textContent = "Workspace"; $("account-name").textContent = "Account"; $("account-avatar").textContent = "?";
+  $("probe-source").value = "captured";
+  for (const [id, value] of Object.entries({"nav-model-count":"0", "model-count":"0 / 2 models", "stream-count":"0 PACKETS", "request-count":"REQUESTS", "team-count":"", "save-state":"Sign in required", "role-badge":"ACCOUNT", "account-role":"Signed out", "session-badge":"DRAFT", "connection-state":"Not connected", "canvas-status":"Sign in to use this workspace", "metric-roundtrip":"—", "metric-db":"—", "metric-llm":"—", "metric-bytes":"—"})) $(id).textContent = value;
+  for (const id of ["stream-metrics", "receiver-panel", "observations-panel", "preflight-details"]) $(id).hidden = true;
+  for (const arm of ["left", "right"]) $("observation-" + arm).removeAttribute("src");
+  document.querySelectorAll("dialog[open]").forEach((dialog) => dialog.close());
+  document.body.classList.add("auth-pending"); $("auth-screen").hidden = false;
+  $("invitation-code").textContent = ""; $("invitation-result").hidden = true;
+  $("team-list").replaceChildren(); $("audit-list").replaceChildren(); $("request-list").replaceChildren();
+  $("auth-form").reset(); $("auth-screen").classList.remove("auth-recovery"); $("auth-retry").hidden = true; $("auth-recovery-logout").hidden = true; setAuthMode(mode);
+  $("auth-error").textContent = message; $("auth-error").hidden = !message;
+}
+function setAuthMode(mode) {
+  state.authMode = mode;
+  const setup = mode === "setup", join = mode === "join";
+  $("auth-tabs").hidden = setup;
+  $("auth-eyebrow").textContent = setup ? "FIRST-TIME WORKSPACE SETUP" : join ? "YOU’RE INVITED" : "WORKSPACE ACCESS";
+  $("auth-title").textContent = setup ? "Create the first manager." : join ? "Join your team." : "Welcome back.";
+  $("auth-subtitle").textContent = setup ? "The local setup code gives the workspace owner its first manager account." : join ? "Use the one-time invitation your manager shared with you. Your role is assigned by the invitation." : "Sign in with the account created for this workspace.";
+  $("auth-code-field").hidden = !(setup || join); $("auth-code").required = setup || join;
+  $("auth-code-label").textContent = setup ? "Local setup code" : "Invitation code";
+  $("auth-code-help").textContent = setup ? "Find it in .relay-lab/studio/setup-code on the computer hosting Studio." : "Invitation codes expire and can only be used once.";
+  $("auth-name-field").hidden = !setup; $("auth-name").required = setup;
+  $("auth-username-field").hidden = join; $("auth-username").required = !join;
+  $("auth-password").autocomplete = mode === "login" ? "current-password" : "new-password";
+  $("auth-password").minLength = mode === "login" ? 1 : 12;
+  $("auth-password-help").hidden = mode === "login";
+  $("auth-submit").textContent = setup ? "Create manager account" : join ? "Accept invitation" : "Sign in";
+  $("auth-submit").disabled = false; $("auth-error").hidden = true;
+  document.querySelectorAll("[data-auth-mode]").forEach((button) => { button.classList.toggle("active", button.dataset.authMode === mode); button.setAttribute("aria-pressed", String(button.dataset.authMode === mode)); });
+}
+async function authenticate(event) {
+  event.preventDefault();
+  authEpoch++;
+  let signedIn = false; $("auth-submit").disabled = true; $("auth-error").hidden = true;
+  const mode = state.authMode;
+  const payload = {password: $("auth-password").value};
+  if (mode !== "join") payload.username = $("auth-username").value.trim();
+  if (mode !== "login") payload.code = $("auth-code").value.trim();
+  if (mode === "setup") payload.name = $("auth-name").value.trim();
+  try {
+    const credentials = await api(`/api/auth/${mode}`, payload); signedIn = true; state.token = credentials.token;
+    $("auth-password").value = ""; $("auth-code").value = "";
+    await loadWorkspace();
+  } catch (error) {
+    if (error.stale) return;
+    if (signedIn && error.status !== 401) showAccessRecovery(`You are signed in, but the workspace could not load: ${error.message}`);
+    else { $("auth-error").textContent = error.message; $("auth-error").hidden = false; }
+  } finally { $("auth-submit").disabled = false; }
+}
+async function loadWorkspace() {
+  const boot = await api("/api/bootstrap");
+  Object.assign(state, boot, {authenticated: true, savedWorkspace: structuredClone(boot.workspace), models: boot.models || [], permissions: boot.permissions || []});
+  document.body.classList.remove("auth-pending"); $("auth-screen").classList.remove("auth-recovery"); $("auth-screen").hidden = true; $("auth-retry").hidden = true; $("auth-recovery-logout").hidden = true;
+  $("notice").hidden = true; render();
+  setStudioView(location.hash === "#analytics", false);
+  await Promise.allSettled([refreshHealth(), refreshDiagnostics(), refreshSessions(), refreshRequests()]);
+}
+async function signOut() {
+  const buttons = ["logout-button", "logout-top-button", "auth-recovery-logout"];
+  buttons.forEach((id) => { $(id).disabled = true; });
+  try { await api("/api/auth/logout", {}); showAuth("login"); }
+  catch (error) { if (error.stale) return; if (state.authenticated) notify(error.message); else { $("auth-error").textContent = error.message; $("auth-error").hidden = false; } }
+  finally { buttons.forEach((id) => { $(id).disabled = false; }); }
+}
+function renderAccessIdentity() {
+  const user = state.user || {}, manager = allowed("workspace.edit");
+  const name = user.name || user.username || "Workspace member";
+  $("account-name").textContent = name; $("account-avatar").textContent = name.split(/\s+/).slice(0,2).map((part) => part[0]).join("").toUpperCase();
+  $("account-role").textContent = user.role === "manager" ? "Manager" : "Employee";
+  $("role-badge").textContent = String(user.role || "employee").toUpperCase(); $("role-badge").className = `role-badge ${user.role === "manager" ? "manager" : "employee"}`;
+  $("permission-title").textContent = manager ? "Manager access" : "Employee access";
+  $("permission-detail").textContent = manager ? "Register policies, release reviewed revisions, and manage your team. Changes are recorded in the audit trail." : "Run approved pairs, inspect exchanges, and request model changes. Managers control configuration, releases, and team access.";
+  $("manager-access").hidden = !allowed("team.manage"); $("access-limited").hidden = allowed("team.manage");
+  $("refresh-access").disabled = state.busy;
+  $("refresh-access").title = allowed("team.manage") ? "Refresh requests, team membership, and audit trail" : "Refresh your change requests";
+}
+function renderReleases() {
+  if (!state.workspace) return;
+  const released = currentPairReleased(), manager = allowed("models.release");
+  $("release-summary").textContent = released ? "PAIR RELEASED" : "APPROVAL REQUIRED";
+  $("release-summary").classList.toggle("ready", released);
+  $("release-help").textContent = state.dirty ? "Save your changes before reviewing the model revisions." : !currentWorkspaceSelected() ? "Viewing a saved session configuration. Select Team workspace to return to the current pair." : manager ? "Review each policy revision before approving it for Studio sessions." : "A manager must release both exact model revisions before you can connect.";
+  $("release-list").innerHTML = state.workspace.agents.length ? state.workspace.agents.map((agent) => {
+    const model = modelFor(agent), status = model?.status || "draft", action = status === "released" ? "retire" : "release";
+    const canChange = manager && !!model && !state.dirty && !state.busy;
+    const approval = model?.updated_at ? sessionDate(model.updated_at) : "";
+    return `<article class="release-card"><div class="release-card-top"><span class="agent-letter ${agent.id === "right" ? "agent-b" : ""}">${agent.id === "left" ? "A" : "B"}</span><strong>${esc(agent.name)}</strong><span class="lifecycle-tag ${status === "released" ? "released" : status === "retired" ? "retired" : ""}">${esc(status.toUpperCase())}</span></div><div class="release-source" title="${esc(agent.source.ref)}">${esc(agent.source.ref)}</div><div class="release-meta">${model ? `Revision ${esc(model.revision)} · ${status === "released" ? "Approved for Studio use" : status === "retired" ? "Removed from active use" : "Awaiting manager review"}` : "Save workspace to register this revision"}${approval ? ` · ${esc(typeof approval === "object" ? approval.name || approval.username || "Manager" : approval)}` : ""}</div><div class="release-card-bottom"><span>${status === "released" ? "Exact model configuration approved" : "Unreleased models cannot start sessions"}</span><button class="button ${action === "release" ? "primary" : ""}" data-lifecycle="${action}" data-model-id="${esc(model?.id || "")}" ${canChange ? "" : "disabled"} title="${manager ? model ? state.dirty ? "Save workspace changes first" : action === "release" ? "Review and release this revision" : "Retire this revision from active use" : "Save this model first" : "Only managers may release or retire models"}">${action === "release" ? "Review & release" : "Retire release"}</button></div></article>`;
+  }).join("") : '<p class="release-empty">Add a policy to begin its review and release workflow.</p>';
+}
+async function refreshApprovalState() {
+  try { await refreshModels(); await refreshDiagnostics(); }
+  catch (error) { if (!error.stale) notify(`Model approvals could not be refreshed: ${error.message}`); }
+}
+async function refreshModels() {
+  const result = await api("/api/models"); state.models = result.models || []; state.release_ready = !!result.release_ready;
+  render();
+}
+function reviewRelease(id, action) {
+  if (!allowed("models.release")) return;
+  const model = state.models.find((item) => item.id === id); if (!model) return;
+  state.pendingRelease = {id, action, revision: model.revision};
+  $("release-dialog-title").textContent = action === "release" ? "Release this revision?" : "Retire this release?";
+  $("release-dialog-description").textContent = action === "release" ? "Approve this exact model configuration for communication sessions in Studio. This does not deploy weights or enable robot actuation." : "Block this revision from further Studio exchanges. Its existing session history remains available for inspection.";
+  $("release-review").innerHTML = `<strong>${esc(model.spec.name)} · Revision ${esc(model.revision)}</strong><code>${esc(model.spec.source.ref)}${model.spec.source.revision ? `<br>Source revision: ${esc(model.spec.source.revision)}` : ""}</code><p>${esc(families[model.spec.family] || model.spec.family)} · ${esc(robotNames[model.spec.robot] || model.spec.robot)} · ${esc(model.spec.source.kind)}<br>${esc(model.spec.action_contract || "No action contract attached")}</p>`;
+  $("release-reason").value = ""; $("release-error").hidden = true;
+  $("confirm-release").textContent = action === "release" ? "Release revision" : "Retire release";
+  $("release-dialog").showModal();
+}
+async function changeRelease(event) {
+  event.preventDefault(); const pending = state.pendingRelease; if (!pending) return;
+  $("confirm-release").disabled = true; $("release-error").hidden = true;
+  try {
+    await api(`/api/models/${encodeURIComponent(pending.id)}/${pending.action}`, {expected_revision: pending.revision, reason: $("release-reason").value.trim()});
+    $("release-dialog").close(); await refreshModels();
+    if (state.session) { const history = await api(`/api/sessions/${state.session}`); renderHistory(history); }
+    await refreshDiagnostics(); void refreshAccess(); render();
+    toast(pending.action === "release" ? "Revision released for Studio use" : "Release retired · new exchanges are blocked");
+  } catch (error) { $("release-error").textContent = error.message; $("release-error").hidden = false; if (!$("release-dialog").open) notify(error.message); }
+  finally { $("confirm-release").disabled = false; }
+}
+async function refreshAccess() {
+  const epoch = authEpoch;
+  await refreshRequests();
+  if (epoch !== authEpoch) return;
+  if (!allowed("team.manage")) return;
+  $("refresh-access").disabled = true;
+  const results = await Promise.allSettled([api("/api/team"), api("/api/audit")]);
+  if (epoch !== authEpoch) return;
+  if (results[0].status === "fulfilled") { state.team = results[0].value.users || []; renderTeam(); }
+  else $("team-list").innerHTML = `<p class="audit-empty">Could not load team: ${esc(results[0].reason.message)}</p>`;
+  if (results[1].status === "fulfilled") renderAudit(results[1].value.events || []);
+  else $("audit-list").innerHTML = `<p class="audit-empty">Could not load audit trail: ${esc(results[1].reason.message)}</p>`;
+  $("refresh-access").disabled = false;
+}
+function renderTeam() {
+  $("team-count").textContent = `${state.team.length} MEMBER${state.team.length === 1 ? "" : "S"}`;
+  $("team-list").innerHTML = state.team.map((user) => `<div class="team-row" data-team-id="${esc(user.id)}"><div class="team-person"><span class="account-avatar">${esc((user.name || user.username).slice(0,2).toUpperCase())}</span><div><strong>${esc(user.name || user.username)}${user.id === state.user?.id ? '<span class="team-self">YOU</span>' : ""}</strong><small>@${esc(user.username)}</small></div></div><select data-team-role aria-label="Role for ${esc(user.name || user.username)}"><option value="employee" ${user.role === "employee" ? "selected" : ""}>Employee</option><option value="manager" ${user.role === "manager" ? "selected" : ""}>Manager</option></select><label class="team-active"><input type="checkbox" data-team-active ${user.active ? "checked" : ""}>Active</label><button class="button" data-team-save="${esc(user.id)}">Apply</button></div>`).join("");
+}
+function renderAudit(events) {
+  const labels = {"register":"Model draft registered", "release":"Model revision released", "retire":"Model release retired", "model.release":"Model revision released", "model.retire":"Model release retired", "model.draft":"Model draft registered", "model.register":"Model registered", "workspace.update":"Workspace updated", "team.invite":"Teammate invited", "team.update":"Member access updated", "auth.setup":"Workspace manager created", "auth.join":"Invitation accepted", "auth.login":"Account signed in", "auth.logout":"Account signed out"};
+  $("audit-list").innerHTML = events.length ? events.slice(0,30).map((event) => {
+    const actor = typeof event.actor === "object" && event.actor ? event.actor.name || event.actor.username || event.actor.id : event.actor_name || event.actor_username || event.username || event.actor || event.actor_id || "Workspace";
+    const details = event.details || event.detail || {}, subject = event.spec?.name || event.target || event.model_id || event.target_id || event.subject || details.model_id || details.username || "";
+    return `<article class="audit-row"><span class="audit-mark">${icon(String(event.action).includes("model") ? "box" : "shield")}</span><div class="audit-content"><strong>${esc(labels[event.action] || String(event.action || "Workspace change").replace(/[._]/g," "))}</strong><span>${esc(actor)}${subject ? ` · ${esc(subject)}` : ""}${event.reason || details.reason ? ` · ${esc(event.reason || details.reason)}` : ""}</span></div><time>${esc(sessionDate(event.created_at || event.timestamp || event.at))}</time></article>`;
+  }).join("") : '<p class="audit-empty">Recorded workspace activity will appear here.</p>';
+}
+async function inviteMember(event) {
+  event.preventDefault(); $("invite-submit").disabled = true;
+  try {
+    const result = await api("/api/team/invitations", {name: $("invite-name").value.trim(), username: $("invite-username").value.trim(), role: $("invite-role").value});
+    $("invitation-code").textContent = result.code;
+    $("invitation-help").textContent = `Share this code directly with ${$("invite-name").value.trim()}. Expires ${sessionDate(result.expires_at)}. They can use “Accept invitation” on the sign-in page.`;
+    $("invitation-result").hidden = false; $("invite-form").reset(); void refreshAccess();
+  } catch (error) { notify(error.message); $("notice").scrollIntoView({behavior:"smooth", block:"center"}); }
+  finally { $("invite-submit").disabled = false; }
+}
+async function updateMember(id) {
+  const row = [...document.querySelectorAll("[data-team-id]")].find((item) => item.dataset.teamId === id); if (!row) return;
+  const button = row.querySelector("[data-team-save]"); button.disabled = true;
+  try {
+    await api(`/api/team/${encodeURIComponent(id)}`, {role: row.querySelector("[data-team-role]").value, active: row.querySelector("[data-team-active]").checked});
+    toast("Team access updated");
+    if (id === state.user?.id) { const boot = await api("/api/bootstrap"); state.user = boot.user; state.permissions = boot.permissions; render(); }
+    await refreshAccess();
+  } catch (error) { notify(error.message); $("notice").scrollIntoView({behavior:"smooth", block:"center"}); }
+  finally { button.disabled = false; }
+}
+const requestKinds = {add: "Add model", edit: "Edit model", release: "Release revision", retire: "Retire release"};
+function renderRequestModels() {
+  const selected = $("request-model").value;
+  $("request-model").innerHTML = '<option value="">No specific model</option>' + state.models.map((model) => `<option value="${esc(model.id)}">${esc(model.spec.name)} · ${esc(model.status)} · r${esc(model.revision)}</option>`).join("");
+  if (state.models.some((model) => model.id === selected)) $("request-model").value = selected;
+  $("requests-description").textContent = allowed("models.manage") ? "Review team proposals and record the outcome after applying approved changes." : "Submit a proposal to your manager. You can follow the status of your own requests here.";
+}
+async function refreshRequests() {
+  if (!state.authenticated) return;
+  try { const result = await api("/api/requests"); state.requests = result.requests || []; renderRequests(); }
+  catch (error) { if (error.stale) return; $("request-list").innerHTML = `<p class="audit-empty">Could not load requests: ${esc(error.message)}</p>`; }
+}
+function renderRequests() {
+  const pending = state.requests.filter((request) => request.status === "pending").length;
+  $("request-count").textContent = `${pending} PENDING`;
+  $("request-list").innerHTML = state.requests.length ? state.requests.slice(0,30).map((request) => {
+    const model = state.models.find((item) => item.id === request.model_id);
+    return `<article class="change-request"><div class="change-request-header"><strong>${esc(requestKinds[request.kind] || request.kind)}${model ? ` <span>· ${esc(model.spec.name)}</span>` : ""}</strong><span class="lifecycle-tag ${request.status === "resolved" ? "released" : request.status === "declined" ? "retired" : ""}">${esc(request.status.toUpperCase())}</span></div><p>${esc(request.message)}</p><div class="change-request-meta"><span>${esc(request.username || "Team member")} · ${esc(sessionDate(request.created_at))}</span>${request.status === "pending" && allowed("models.manage") ? `<div><button class="button" data-review-request="${esc(request.id)}" data-resolution="declined">Decline</button><button class="button" data-review-request="${esc(request.id)}" data-resolution="resolved">Mark resolved</button></div>` : ""}</div>${request.reason ? `<div class="request-outcome"><strong>Manager response</strong><span>${esc(request.reason)}</span></div>` : ""}</article>`;
+  }).join("") : '<p class="audit-empty">No model change requests yet.</p>';
+}
+async function submitChangeRequest(event) {
+  event.preventDefault(); $("request-submit").disabled = true;
+  try {
+    const body = {kind: $("request-kind").value, message: $("request-message").value.trim()};
+    if ($("request-model").value) body.model_id = $("request-model").value;
+    await api("/api/requests", body); $("request-form").reset(); await refreshRequests(); toast("Request submitted for manager review");
+  } catch (error) { notify(error.message); $("notice").scrollIntoView({behavior:"smooth", block:"center"}); }
+  finally { $("request-submit").disabled = false; }
+}
+function reviewRequest(id, status) {
+  const request = state.requests.find((item) => item.id === id); if (!request || !allowed("models.manage")) return;
+  state.pendingRequest = {id, status};
+  $("request-dialog-title").textContent = status === "resolved" ? "Mark this request resolved?" : "Decline this request?";
+  $("request-review").innerHTML = `<strong>${esc(requestKinds[request.kind] || request.kind)} · ${esc(request.username)}</strong><p>${esc(request.message)}</p>`;
+  $("confirm-request").textContent = status === "resolved" ? "Mark resolved" : "Decline request";
+  $("resolve-reason").value = ""; $("resolve-error").hidden = true; $("request-dialog").showModal();
+}
+async function resolveRequest(event) {
+  event.preventDefault(); const pending = state.pendingRequest; if (!pending) return;
+  $("confirm-request").disabled = true; $("resolve-error").hidden = true;
+  try {
+    await api(`/api/requests/${encodeURIComponent(pending.id)}/resolve`, {status: pending.status, reason: $("resolve-reason").value.trim()});
+    $("request-dialog").close(); await refreshAccess(); toast("Request outcome recorded");
+  } catch (error) { $("resolve-error").textContent = error.message; $("resolve-error").hidden = false; }
+  finally { $("confirm-request").disabled = false; }
+}
+
+function openAccess() { $("access-section").scrollIntoView({behavior:"smooth", block:"start"}); void refreshAccess(); }
+function showAccessRecovery(message) {
+  clearInterval(polling); document.body.classList.add("auth-pending");
+  $("auth-screen").hidden = false; $("auth-screen").classList.add("auth-recovery");
+  $("auth-eyebrow").textContent = "CONNECTION NEEDS ATTENTION"; $("auth-title").textContent = "Let’s reconnect.";
+  $("auth-subtitle").textContent = "Your account has not been changed. Retry when the local Studio backend is available.";
+  $("auth-error").textContent = message; $("auth-error").hidden = false; $("auth-retry").hidden = false;
+  $("auth-recovery-logout").hidden = !state.token; $("auth-submit").disabled = true;
+}
+function bindAccess() {
+  $("auth-retry").addEventListener("click", checkAccess);
+  $("auth-recovery-logout").addEventListener("click", signOut);
+  $("auth-form").addEventListener("submit", authenticate);
+  document.querySelectorAll("[data-auth-mode]").forEach((button) => button.addEventListener("click", () => setAuthMode(button.dataset.authMode)));
+  for (const id of ["logout-button", "logout-top-button"]) $(id).addEventListener("click", signOut);
+  for (const id of ["nav-access", "permission-access"]) $(id).addEventListener("click", openAccess);
+  $("refresh-access").addEventListener("click", refreshAccess);
+  $("refresh-releases").addEventListener("click", async () => { $("refresh-releases").disabled = true; try { await refreshModels(); await refreshDiagnostics(); } catch (error) { notify(error.message); } finally { $("refresh-releases").disabled = false; } });
+  $("release-list").addEventListener("click", (event) => { const button = event.target.closest("[data-lifecycle]"); if (button && !button.disabled) reviewRelease(button.dataset.modelId, button.dataset.lifecycle); });
+  $("release-form").addEventListener("submit", changeRelease);
+  for (const id of ["close-release", "cancel-release"]) $(id).addEventListener("click", () => $("release-dialog").close());
+  $("invite-form").addEventListener("submit", inviteMember);
+  $("request-form").addEventListener("submit", submitChangeRequest);
+  $("request-list").addEventListener("click", (event) => { const button = event.target.closest("[data-review-request]"); if (button) reviewRequest(button.dataset.reviewRequest, button.dataset.resolution); });
+  $("resolve-form").addEventListener("submit", resolveRequest);
+  for (const id of ["close-request", "cancel-request"]) $(id).addEventListener("click", () => $("request-dialog").close());
+  $("team-list").addEventListener("click", (event) => { const button = event.target.closest("[data-team-save]"); if (button) void updateMember(button.dataset.teamSave); });
+  $("copy-invitation").addEventListener("click", async () => { try { await navigator.clipboard.writeText($("invitation-code").textContent); toast("Invitation code copied"); } catch { toast("Select and copy the invitation code"); } });
+  $("dismiss-invitation").addEventListener("click", () => { $("invitation-code").textContent = ""; $("invitation-result").hidden = true; });
+}
+
 init();

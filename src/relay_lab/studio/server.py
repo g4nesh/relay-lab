@@ -9,11 +9,16 @@ import re
 import secrets
 import struct
 import uuid
+from datetime import datetime
 from functools import partial
+from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
+from .access import AccessStore, AuthenticationError
+from .analytics import AnalyticsService, estimate_effort
+from .governance import ModelRegistry, RegistryConflict
 from .service import StudioService, example_workspace
 
 WEB = Path(__file__).parent / "web"
@@ -21,6 +26,8 @@ ASSETS = {
     "/": ("index.html", "text/html"),
     "/studio.css": ("studio.css", "text/css"),
     "/studio.js": ("studio.js", "text/javascript"),
+    "/analytics.js": ("analytics.js", "text/javascript"),
+    "/analytics.css": ("analytics.css", "text/css"),
 }
 MAX_UPLOAD = 4 * 1024**3
 SESSION_ROUTE = r"/api/sessions/(studio-[a-f0-9]{16})"
@@ -58,11 +65,13 @@ def validate_safetensors(path):
 
 
 class StudioHandler(BaseHTTPRequestHandler):
-    def __init__(self, *args, service, token, **kwargs):
-        self.service, self.token = service, token
+    def __init__(self, *args, service, access, registry, analytics=None, **kwargs):
+        self.service, self.access, self.registry = service, access, registry
+        self.analytics = analytics
+        self.identity = None
         super().__init__(*args, **kwargs)
 
-    def respond(self, value, status=200, mime="application/json"):
+    def respond(self, value, status=200, mime="application/json", *, cookie=None):
         body = value if isinstance(value, bytes) else json.dumps(value, allow_nan=False).encode()
         self.send_response(status)
         charset = (
@@ -72,6 +81,8 @@ class StudioHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
+        if cookie is not None:
+            self.send_header("Set-Cookie", cookie)
         self.send_header(
             "Content-Security-Policy",
             "default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
@@ -79,7 +90,7 @@ class StudioHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def guard(self, mutation=False):
+    def guard(self):
         port = self.server.server_port
         hosts = {f"127.0.0.1:{port}", f"localhost:{port}"}
         if self.headers.get("Host") not in hosts:
@@ -87,10 +98,67 @@ class StudioHandler(BaseHTTPRequestHandler):
         origin = self.headers.get("Origin")
         if origin and origin not in {"http://" + h for h in hosts}:
             raise PermissionError("Cross-origin requests are not allowed")
+
+    @property
+    def cookie_name(self):
+        return f"relay_studio_{self.server.server_port}"
+
+    def credential(self):
+        authorization = self.headers.get("Authorization", "")
+        if authorization:
+            if not authorization.startswith("Bearer "):
+                raise AuthenticationError("Sign in to Relay Studio")
+            return authorization.removeprefix("Bearer ")
+        cookie = SimpleCookie()
+        cookie.load(self.headers.get("Cookie", ""))
+        value = cookie.get(self.cookie_name)
+        return value.value if value else ""
+
+    def authenticate(self, mutation=False):
+        self.identity = self.access.authenticate(self.credential())
         if mutation and not secrets.compare_digest(
-            self.headers.get("X-Relay-Token", ""), self.token
+            self.headers.get("X-Relay-Token", ""), self.identity["csrf"]
         ):
-            raise PermissionError("Refresh the page to obtain a local workspace token")
+            raise PermissionError("Refresh the page to obtain your session's request token")
+        return self.identity["user"]
+
+    def require(self, permission):
+        if permission not in self.identity["permissions"]:
+            raise PermissionError("A manager must approve this operation")
+
+    def auth_response(self, credentials):
+        cookie = (
+            f"{self.cookie_name}={credentials['token']}; Path=/; HttpOnly; "
+            "SameSite=Strict; Max-Age=28800"
+        )
+        return self.respond(
+            {
+                "user": credentials["user"],
+                "permissions": credentials["permissions"],
+                "token": credentials["csrf"],
+            },
+            cookie=cookie,
+        )
+
+    def release_status(self, actor, value, *, snapshot=False):
+        try:
+            if snapshot:
+                self.registry.authorize_snapshot(actor, value)
+            else:
+                self.registry.authorize_workspace(actor, value)
+            return {"release_ready": True, "release_error": None}
+        except (PermissionError, ValueError) as error:
+            return {"release_ready": False, "release_error": str(error)}
+
+    def session_status(self, actor, history):
+        history.update(self.release_status(actor, history.get("model_release"), snapshot=True))
+        history["resumable"] = bool(history.get("resumable") and history["release_ready"])
+        return history
+
+    def authorize_history(self, actor, history):
+        snapshot = self.registry.authorize_snapshot(actor, history.get("model_release"))
+        if [model["spec"] for model in snapshot["models"]] != history["workspace"]["agents"]:
+            raise PermissionError("Session configuration differs from its approved model releases")
 
     def body(self):
         if self.headers.get("Content-Type", "").split(";")[0] != "application/json":
@@ -107,45 +175,213 @@ class StudioHandler(BaseHTTPRequestHandler):
         return value
 
     def dispatch(self, mutation=False):
-        self.guard(mutation)
         path = urlsplit(self.path).path
+        # Check identity *after* entering the governance boundary. A request
+        # queued behind inference must not retain a role revoked while waiting.
+        # Team updates share this boundary so a committed demotion cannot race
+        # an approved write. Logout remains immediate; uploads recheck on audit.
+        serialized = mutation and path not in (
+            "/api/auth/login",
+            "/api/auth/setup",
+            "/api/auth/join",
+            "/api/auth/logout",
+            "/api/upload",
+            "/api/diagnostics",
+            "/api/analytics/estimate",
+        )
+        if serialized:
+            self.guard()
+            with self.registry.lock:
+                return self.dispatch_authorized(mutation)
+        return self.dispatch_authorized(mutation)
+
+    def dispatch_authorized(self, mutation=False):
+        self.guard()
+        path = urlsplit(self.path).path
+        if not mutation and path in ASSETS:
+            filename, mime = ASSETS[path]
+            return self.respond((WEB / filename).read_bytes(), mime=mime)
+        if not mutation and path == "/api/auth/status":
+            result = {**self.access.status(), "authenticated": False}
+            try:
+                actor = self.authenticate()
+                result.update(
+                    authenticated=True, user=actor, permissions=self.identity["permissions"]
+                )
+            except AuthenticationError:
+                pass
+            return self.respond(result)
+        if mutation and path in ("/api/auth/login", "/api/auth/setup", "/api/auth/join"):
+            value = self.body()
+            if path.endswith("/login"):
+                credentials = self.access.login(value.get("username"), value.get("password"))
+            elif path.endswith("/setup"):
+                credentials = self.access.setup(
+                    value.get("code"),
+                    value.get("username"),
+                    value.get("name"),
+                    value.get("password"),
+                )
+            else:
+                credentials = self.access.accept_invite(value.get("code"), value.get("password"))
+            if path.endswith("/setup"):
+                self.registry.sync_workspace(credentials["user"], self.service.workspace())
+            return self.auth_response(credentials)
+        actor = self.authenticate(mutation)
         if not mutation:
-            if path in ASSETS:
-                filename, mime = ASSETS[path]
-                return self.respond((WEB / filename).read_bytes(), mime=mime)
+            if path == "/api/analytics":
+                analytics = self.analytics or AnalyticsService(
+                    self.service.root, self.service, self.registry, self.access
+                )
+                return self.respond(analytics.snapshot(actor))
             if path == "/api/bootstrap":
+                workspace = self.service.workspace()
                 return self.respond(
                     {
-                        "token": self.token,
-                        "workspace": self.service.workspace(),
+                        "token": self.identity["csrf"],
+                        "user": actor,
+                        "permissions": self.identity["permissions"],
+                        "workspace": workspace,
                         "example": example_workspace(),
                         "capabilities": self.service.capabilities(),
+                        **self.registry.catalog(actor),
+                        **self.release_status(actor, workspace),
                     }
                 )
+            if path == "/api/models":
+                return self.respond(
+                    {
+                        **self.registry.catalog(actor),
+                        **self.release_status(actor, self.service.workspace()),
+                    }
+                )
+            if path == "/api/requests":
+                return self.respond(self.registry.requests(actor))
+            if path == "/api/team":
+                return self.respond(self.access.list_users(actor))
+            if path == "/api/audit":
+                self.require("audit.read")
+                events = (
+                    self.access.audit_log(actor)["events"]
+                    + self.registry.audit_log(actor)["events"]
+                )
+                for event in events:
+                    timestamp = event.get("created_at", event.get("at", 0))
+                    if isinstance(timestamp, str):
+                        timestamp = datetime.fromisoformat(timestamp).timestamp()
+                    event["created_at"] = timestamp
+                events.sort(key=lambda event: event["created_at"], reverse=True)
+                return self.respond({"events": events[:100]})
             if path == "/api/health":
                 return self.respond(self.service.health())
             if path == "/api/sessions":
-                return self.respond(self.service.list_sessions())
+                result = self.service.list_sessions()
+                for session in result["sessions"]:
+                    self.session_status(actor, session)
+                return self.respond(result)
             if match := re.fullmatch(SESSION_ROUTE, path):
-                return self.respond(self.service.history(match[1]))
+                return self.respond(self.session_status(actor, self.service.history(match[1])))
             if match := re.fullmatch(
                 r"/api/samples/(clear|left_obstacle|right_obstacle)/(left|right)\.png", path
             ):
                 return self.respond(self.service.sample_image(match[1], match[2]), mime="image/png")
         else:
             if path == "/api/upload":
+                self.require("models.manage")
                 return self.upload()
             value = self.body()
+            if path == "/api/analytics/estimate":
+                return self.respond(estimate_effort(value))
+            if path == "/api/requests":
+                return self.respond(
+                    self.registry.submit_request(
+                        actor, value.get("kind"), value.get("message"), value.get("model_id")
+                    ),
+                    201,
+                )
+            if match := re.fullmatch(r"/api/requests/(req_[a-f0-9]{32})/resolve", path):
+                return self.respond(
+                    self.registry.resolve_request(
+                        actor, match[1], value.get("status"), value.get("reason", "")
+                    )
+                )
+            if path == "/api/auth/logout":
+                self.access.logout(self.credential())
+                return self.respond(
+                    {"signed_out": True},
+                    cookie=(f"{self.cookie_name}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0"),
+                )
+            if path == "/api/team/invitations":
+                return self.respond(
+                    self.access.invite(
+                        actor, value.get("username"), value.get("name"), value.get("role")
+                    ),
+                    201,
+                )
+            if match := re.fullmatch(r"/api/team/([a-f0-9-]{16,36})", path):
+                return self.respond(
+                    self.access.update_user(actor, match[1], value.get("role"), value.get("active"))
+                )
+            if match := re.fullmatch(r"/api/models/(mdl_[a-f0-9]{64})/(release|retire)", path):
+                self.require("models.release")
+                return self.respond(
+                    self.registry.transition(
+                        actor,
+                        match[1],
+                        "released" if match[2] == "release" else "retired",
+                        value.get("expected_revision"),
+                        value.get("reason", ""),
+                    )
+                )
             if path == "/api/workspace":
-                return self.respond(self.service.save(value))
+                self.require("workspace.edit")
+                workspace = self.service.validate(value)
+                with self.registry.lock:
+                    self.registry.sync_workspace(actor, workspace)
+                    saved = self.service.save(workspace)
+                    self.access.audit(
+                        actor, "workspace.saved", "workspace", {"name": saved["name"]}
+                    )
+                return self.respond(saved)
             if path == "/api/diagnostics":
-                return self.respond(self.service.diagnostics(value))
+                result = self.service.diagnostics(value)
+                release = self.release_status(actor, value)
+                result.update(release)
+                result["checks"].append(
+                    {
+                        "id": "release",
+                        "label": "Manager release approval",
+                        "status": "ready" if release["release_ready"] else "blocked",
+                        "detail": release["release_error"]
+                        or "Both model revisions are approved for Studio use.",
+                    }
+                )
+                result["ready"] = bool(result["ready"] and release["release_ready"])
+                return self.respond(result)
             if path == "/api/sessions":
-                return self.respond(self.service.connect(value), 201)
+                self.require("sessions.run")
+                with self.registry.lock:
+                    workspace = self.service.validate(value, complete=True)
+                    if workspace != self.service.workspace():
+                        raise PermissionError(
+                            "Use the saved workspace; a manager must save configuration changes"
+                        )
+                    release = self.registry.authorize_workspace(actor, workspace)
+                    result = self.service.connect(workspace, model_release=release)
+                    self.access.audit(actor, "session.created", result["session_id"])
+                    return self.respond({**result, "release_ready": True}, 201)
             if match := re.fullmatch(SESSION_ROUTE + r"/exchange", path):
-                return self.respond(self.service.exchange(match[1], value))
+                self.require("sessions.run")
+                with self.registry.lock:
+                    history = self.service.history(match[1])
+                    self.authorize_history(actor, history)
+                    return self.respond(self.service.exchange(match[1], value))
             if match := re.fullmatch(SESSION_ROUTE + r"/resume", path):
-                return self.respond(self.service.recover(match[1]))
+                self.require("sessions.run")
+                with self.registry.lock:
+                    history = self.service.history(match[1])
+                    self.authorize_history(actor, history)
+                    return self.respond(self.session_status(actor, self.service.recover(match[1])))
         self.respond({"error": "Not found"}, 404)
 
     def upload(self):
@@ -185,14 +421,25 @@ class StudioHandler(BaseHTTPRequestHandler):
                 "loaded": False,
             }
             path.with_suffix(".json").write_text(json.dumps(metadata))
+            self.access.audit(
+                self.identity["user"],
+                "model.uploaded",
+                asset,
+                {"sha256": metadata["sha256"], "bytes": length},
+            )
             self.respond(metadata, 201)
         except Exception:
             path.unlink(missing_ok=True)
+            path.with_suffix(".json").unlink(missing_ok=True)
             raise
 
     def handle_request(self, mutation=False):
         try:
             self.dispatch(mutation)
+        except AuthenticationError as error:
+            self.respond({"error": str(error)}, 401)
+        except RegistryConflict as error:
+            self.respond({"error": str(error)}, 409)
         except PermissionError as error:
             self.respond({"error": str(error)}, 403)
         except (ValueError, TypeError, KeyError) as error:
@@ -217,10 +464,17 @@ def serve_studio(root=None, port=8770):
     if type(port) is not int or not 0 <= port <= 65535:
         raise ValueError("Invalid Studio port")
     service = StudioService(root or Path.cwd())
-    handler = partial(StudioHandler, service=service, token=secrets.token_urlsafe(32))
+    access = AccessStore(service.storage)
+    registry = ModelRegistry(service.storage)
+    analytics = AnalyticsService(service.root, service, registry, access)
+    handler = partial(
+        StudioHandler, service=service, access=access, registry=registry, analytics=analytics
+    )
     try:
         with ThreadingHTTPServer(("127.0.0.1", port), handler) as server:
             print(f"Relay Studio: http://127.0.0.1:{server.server_port}/", flush=True)
+            if access.status()["setup_required"]:
+                print(f"First manager setup code: {service.storage / 'setup-code'}", flush=True)
             server.serve_forever()
     finally:
         service.close()

@@ -4,8 +4,9 @@ Relay Studio registers two robot-model workers, checks their compatibility, and
 runs inspectable communication exchanges through the existing **SpacetimeDB
 factory coordinator**. The learned path uses the repository's trained
 **CoLA-inspired SmolVLA/X-VLA adapters**. Text paths use the pinned local Qwen model.
-The Studio upgrade requires no new database schema and preserves the simulation
-runners.
+Robot coordination keeps the existing Spacetime schema. Dashboard identities,
+model approvals and change requests use private local SQLite stores; the
+simulation runners remain separate.
 
 ## Start and check the backend
 
@@ -20,6 +21,63 @@ Open <http://127.0.0.1:8770/>. The README describes Spacetime setup and the isol
 exchanges do not require Qwen. The cloth experiment remains available separately
 from the Studio interface.
 
+On first launch, create the initial manager account using the one-time code in
+`.relay-lab/studio/setup-code`. The server prints the file's location, never its
+contents. Open the file locally and enter the code on the setup screen with your
+chosen username and password (12–128 characters). There is no default account or
+password. Setup consumes the code. Managers create one-use, 24-hour invitations
+under **Team & access**; the invited person chooses their own password.
+
+## Roles and model releases
+
+| Operation | Manager | Employee |
+|---|---|---|
+| Inspect model configurations, cameras and session history | Yes | Yes |
+| View aggregate analytics and calculate effort scenarios | Yes | Yes |
+| Run the saved workspace using released models | Yes | Yes |
+| Submit model change requests | Yes | Yes |
+| View requests | All | Own requests |
+| Add/upload/edit models or change the workspace | Yes | No |
+| Release or retire a model revision | Yes | No |
+| Resolve requests, invite members, change roles, view the audit log | Yes | No |
+
+Saving a previously unseen model configuration registers a **draft**. A manager
+reviews each exact configuration and explicitly releases it for Studio use.
+Changes to its source, revision, embodiment, slot, rig, action contract or name
+create a different draft. Hugging Face registrations require a source revision
+before release. Approval does not load arbitrary weights, attest to model quality,
+deploy a controller, or enable robot actuation. Local paths and endpoints remain
+configuration references, not immutable hashes of externally served weights.
+
+Each new Spacetime session stores its registry identity, exact model-release IDs
+and approval revisions in `state.model_release`. Approvals from a different or
+recreated local registry cannot authorize an older session. The server checks those approvals before
+every exchange and resume. **Retirement blocks subsequent exchanges**, including
+existing sessions. Releasing that configuration again creates a new approval
+revision; start a fresh session rather than reviving the old approval. Earlier
+sessions without release snapshots remain inspectable but cannot resume.
+
+Employees submit add, edit, release or retire requests. Managers resolve or
+decline each request with a recorded response. Marking a request resolved does
+not change the model's approval: release remains a separate explicit operation.
+Role changes and account deactivation revoke existing sign-ins. The final active
+manager cannot be demoted or disabled.
+
+HTTP authorization uses the authenticated account from SQLite, never a role
+field in a request. Passwords use salted scrypt hashes; opaque session and
+invitation credentials are stored hashed. Sessions expire after eight hours.
+Browser credentials use HttpOnly, SameSite=Strict cookies and mutations require
+a session-specific CSRF token. Login attempts are throttled. Account, model and
+request operations have audit records. This follows the request-level checks in
+the [OWASP authorization guidance](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html).
+
+This is a **single-server, loopback deployment**. Trusted Python callers and the
+OS account owning its private files remain administrators; these roles protect
+the Studio HTTP interface, not the separate experiment servers or the host OS.
+Do not expose this HTTP server as a hosted team service without HTTPS and a
+deployment identity/access design. Keep the local access and model-governance
+stores with the workspace when backing up or restoring it.
+
 The health panel distinguishes an authenticated database read, verified adapter
 artifacts, and the local Qwen interpreter's presence. Interpreter presence is not
 a successful generation test: Qwen is exercised when an exchange runs.
@@ -28,13 +86,18 @@ bundled adapter to check its mode and feature contracts.
 
 ## Configure and inspect a team
 
+The **Analytics** navigation opens source-backed comparisons and current workspace
+metrics. See the [analytics guide](studio-analytics.md) for measurement definitions,
+coverage, filtered exports, and the engineering-effort scenario.
+
 1. Register model A and model B with an embodiment, model family, checkpoint
    source, optional rig URL, and action contract. A repository, local path,
    inference endpoint, or uploaded `.safetensors` file can be registered.
 2. Choose mediation, orchestration, learned latents, or hybrid, and select the
    delivery direction. Use the pinned example pair for the trained latent path.
-3. Check compatibility and open a channel. Its workspace and communication
-   journal are stored in SpacetimeDB.
+3. Save the workspace and have a manager release both model revisions. Check
+   compatibility and open a channel. Its workspace, release snapshot and
+   communication journal are stored in SpacetimeDB.
 4. Send each worker's local report, or select a captured partial-observation
    condition. The two camera previews show the exact stored local images used to
    extract those features.
@@ -123,22 +186,34 @@ or provide an asynchronous hardware driver.
 
 | Route | Purpose |
 |---|---|
-| `GET /api/bootstrap` | Workspace, pinned example, local mutation token, and capabilities |
+| `GET /api/auth/status` | Public setup/sign-in status, without bootstrap codes or credentials |
+| `POST /api/auth/setup`, `/login`, `/join` | Initial manager setup, sign-in, or invitation acceptance; establish a session cookie |
+| `POST /api/auth/logout` | Revoke the current sign-in |
+| `GET /api/bootstrap` | Authenticated user, permissions, session CSRF token, workspace, model approvals and capabilities |
 | `GET /api/health` | Authenticated Spacetime read status, artifact registry metadata, and Qwen runtime state |
 | `POST /api/diagnostics` | Check a complete workspace's registration, database, and selected adapter/runtime requirements |
-| `POST /api/workspace` | Validate and save a draft containing zero to two models |
+| `POST /api/workspace` | Manager-only save and draft model registration |
+| `GET /api/models` | Exact model configurations, approval revisions and release readiness |
+| `POST /api/models/{id}/release`, `/retire` | Manager-only transition with `expected_revision` and optional `reason`; stale approvals return 409 |
+| `GET /api/team`, `POST /api/team/invitations`, `POST /api/team/{id}` | Manager-only member listing, invitations, role and active-state changes |
+| `GET /api/audit` | Manager-only account, model and request activity |
+| `GET /api/requests`, `POST /api/requests` | Read permitted requests or submit `{kind, message, model_id?}` |
+| `POST /api/requests/{id}/resolve` | Manager response with `status: resolved|declined` and optional `reason` |
 | `GET /api/sessions` | List metadata for up to 200 Studio sessions, including resumability |
-| `POST /api/sessions` | Register a complete workspace and create a protocol-2 session |
+| `POST /api/sessions` | Create a session for the saved workspace only, with both models currently released |
 | `POST /api/sessions/{id}/resume` | Reconstruct an eligible session from its committed journal; send `{}` |
 | `POST /api/sessions/{id}/exchange` | Generate, commit, and independently read back peer context |
-| `GET /api/sessions/{id}` | Read the latest 50 exchanges; recover an eligible session if needed |
+| `GET /api/sessions/{id}` | Read the latest 50 exchanges and current release eligibility without resuming |
 | `GET /api/samples/{condition}/{arm}.png` | Exact captured local camera image; condition is `clear`, `left_obstacle`, or `right_obstacle`, and arm is `left` or `right` |
-| `POST /api/upload` | Stream inert safetensors bytes; return asset ID, byte count, and SHA-256 |
+| `POST /api/upload` | Manager-only inert safetensors upload; return asset ID, byte count, and SHA-256 |
 
 JSON mutations require `Content-Type: application/json` and `X-Relay-Token` from
-bootstrap. Uploads use the raw file body and URI-encoded `X-Filename`. The server
-binds to loopback and rejects foreign Host/Origin headers. It is a local developer
-service, not a hosted multi-user security boundary.
+bootstrap. First sign in using a cookie-aware HTTP client; the dashboard's Runtime
+API dialog includes a Python `CookieJar` and `getpass` example. Uploads use the raw
+file body and URI-encoded `X-Filename`. Missing/expired authentication returns
+401; insufficient permissions or approval returns 403. The server binds to
+loopback and rejects foreign Host/Origin headers. Assets and the three sign-in
+routes are public; workspace data and camera images require authentication.
 
 A manual exchange supplies:
 
@@ -175,9 +250,12 @@ recipient's context and implement its model-specific injection.
 
 ## Transaction and recovery behavior
 
-Each session serializes its exchanges independently. A pending Qwen request does
-not hold the workspace-save lock or another session's transaction lock. Qwen's
-shared model process still serializes its own generations.
+Each session serializes its exchanges. The single server also holds the model
+approval lock across authorization and an exchange, so a retirement cannot race
+past an authorized commit. A retirement waits for that exchange to finish and
+then blocks subsequent work. This also serializes Studio exchanges across
+sessions; it favors a clear approval boundary over parallel throughput. Qwen's
+shared process serializes its own generations.
 
 The database authorizes a revision before committing its messages and request
 journal. Successful exchanges require the reducer acknowledgement and an exact
@@ -220,7 +298,7 @@ live in SpacetimeDB.
 Run the focused service and HTTP tests, followed by the existing adapter checks:
 
 ```bash
-uv run --extra learned pytest -q tests/test_studio.py tests/test_studio_http.py tests/test_studio_backend.py
+uv run --extra learned pytest -q tests/test_studio*.py
 uv run --extra learned pytest -q tests/test_cloth_latent_adapter.py tests/test_cloth_latent_package.py
 uv run ruff check src/relay_lab/studio tests/test_studio.py tests/test_studio_http.py tests/test_studio_backend.py
 node --check src/relay_lab/studio/web/studio.js
@@ -229,6 +307,18 @@ node --check src/relay_lab/studio/web/studio.js
 Tests substitute explicit service doubles where appropriate. Live exchanges still
 need the actual Spacetime and Qwen services. Health checks alone do not establish
 successful Qwen generation, native VLA execution, or task completion.
+
+The [role-enforcement check](../examples/studio/permissions-verification.json)
+used separate test manager/employee accounts, actual SpacetimeDB and the real
+learned adapter on captured features. An employee exchange committed and passed
+readback; after manager retirement, exchange and resume returned 403, the saved
+tick stayed unchanged, and re-release did not revive the old session. Browser
+checks also covered sign-in, disabled employee editing, manager release review,
+employee requests, and revoked-session feedback. Screenshots show isolated test
+accounts, not preconfigured accounts for the main workspace.
+
+The combined Studio identity, governance, HTTP, coordination and adapter suite
+passed **186 tests**. Lint and JavaScript syntax checks also passed.
 
 ## Recorded integration check
 

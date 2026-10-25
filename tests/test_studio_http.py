@@ -7,7 +7,10 @@ from types import SimpleNamespace
 
 import pytest
 
+from relay_lab.studio.access import AccessStore
+from relay_lab.studio.governance import ModelRegistry
 from relay_lab.studio.server import StudioHandler
+from relay_lab.studio.service import example_workspace
 
 SID = "studio-" + "a" * 16
 
@@ -26,6 +29,8 @@ class MemorySocket:
 class Service:
     def __init__(self):
         self.calls = []
+        self.workspace = example_workspace()
+        self.snapshot = None
 
     def health(self):
         return {"database": {"available": True}, "hardware_execution": False}
@@ -39,11 +44,22 @@ class Service:
 
     def history(self, sid):
         self.calls.append(("history", sid))
-        return {"session_id": sid, "messages": []}
+        return {
+            "session_id": sid,
+            "messages": [],
+            "workspace": self.workspace,
+            "model_release": self.snapshot,
+            "resumable": True,
+        }
 
     def recover(self, sid):
         self.calls.append(("recover", sid))
-        return {"session_id": sid, "recovered": True}
+        return {
+            "session_id": sid,
+            "recovered": True,
+            "model_release": self.snapshot,
+            "resumable": True,
+        }
 
     def sample_image(self, condition, arm):
         self.calls.append(("image", condition, arm))
@@ -51,8 +67,17 @@ class Service:
 
 
 @pytest.fixture
-def bridge():
+def bridge(tmp_path):
     service = Service()
+    access = AccessStore(tmp_path)
+    credentials = access.setup(
+        access.setup_path.read_text().strip(), "test-manager", "Test Manager", "test passphrase 123"
+    )
+    registry = ModelRegistry(tmp_path)
+    catalog = registry.sync_workspace(credentials["user"], service.workspace)
+    for model in catalog["models"]:
+        registry.transition(credentials["user"], model["id"], "released", model["revision"])
+    service.snapshot = registry.authorize_workspace(credentials["user"], service.workspace)
 
     def request(path, *, method="GET", value=None, headers=None):
         payload = b"" if value is None else json.dumps(value).encode()
@@ -61,8 +86,11 @@ def bridge():
             "Connection": "close",
             "Content-Length": str(len(payload)),
             "Content-Type": "application/json",
+            "Cookie": "relay_studio_8770=" + credentials["token"],
             **(headers or {}),
         }
+        if fields.get("X-Relay-Token") == "token":
+            fields["X-Relay-Token"] = credentials["csrf"]
         raw = "\r\n".join([f"{method} {path} HTTP/1.1", *(f"{k}: {v}" for k, v in fields.items())])
         sock = MemorySocket((raw + "\r\n\r\n").encode() + payload)
         StudioHandler(
@@ -70,7 +98,8 @@ def bridge():
             ("127.0.0.1", 1),
             SimpleNamespace(server_port=8770),
             service=service,
-            token="token",
+            access=access,
+            registry=registry,
         )
         response = HTTPResponse(MemorySocket(bytes(sock.sent)), method=method)
         response.begin()
@@ -90,7 +119,7 @@ def test_health_and_durable_catalog_are_actual_service_reads(bridge):
 
 
 @pytest.mark.parametrize("route", ["/api/diagnostics", f"/api/sessions/{SID}/resume"])
-def test_diagnostics_and_recovery_require_local_mutation_token(bridge, route):
+def test_diagnostics_and_recovery_require_session_csrf_token(bridge, route):
     service, request = bridge
     assert request(route, method="POST", value={})[0] == 403
     assert service.calls == []
@@ -98,6 +127,19 @@ def test_diagnostics_and_recovery_require_local_mutation_token(bridge, route):
     assert status == 200
     data = json.loads(body)
     assert data.get("recovered") is True or data.get("ready") is False
+
+
+def test_legacy_session_is_readable_but_cannot_resume_without_releases(bridge):
+    service, request = bridge
+    service.snapshot = None
+    status, _, body = request(f"/api/sessions/{SID}")
+    data = json.loads(body)
+    assert status == 200 and not data["release_ready"] and not data["resumable"]
+    status, _, _ = request(
+        f"/api/sessions/{SID}/resume", method="POST", value={}, headers={"X-Relay-Token": "token"}
+    )
+    assert status == 403
+    assert all(call[0] != "recover" for call in service.calls)
 
 
 def test_captured_image_route_returns_binary_without_text_charset(bridge):
