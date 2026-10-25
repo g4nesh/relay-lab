@@ -1,440 +1,183 @@
 # Relay Lab
 
-An original robot-coordination research project. The current workcell brings
-the experiment back to **two articulated arms folding a deformable T-shirt**,
-with different local observations, moving obstacles, delayed messages, Qwen
-phase review and SpacetimeDB storage. Earlier factory and parcel workcells remain
-available as separate experiments.
+**A shared coordination layer for robot teams.**
 
-## What the results show
+Relay connects robot agents through a common workspace: assign a goal, share
+observations, track execution, and feed outcomes into the next decision.
+SpacetimeDB keeps assignments and communication synchronized; each agent's runtime
+owns its model inference and actions.
 
-| Result | Evidence |
-| --- | --- |
-| **Robots running different AI models can share what they see.** When only the peer's camera shows a hazard, learned 64-number messages between SmolVLA (960-D) and X-VLA (1024-D) raise correct hold decisions from **50% to 100%**. With the same trained model, zeroing the message drops it to 50%, and shuffling messages drops it to 25%. | [Learned messages](examples/cloth-coordination/learned-latent/README.md) |
-| **One shared message space lets new models plug in.** With a shared receiver and a training-time fact anchor, any receiver understands any sender (98.5%). A new model joins by training only its own encoder, and the other robot understands it with no retraining (**96.8% vs 48%** for pairwise adapters; 5 seeds). | [Standardized space](examples/cloth-coordination/shared-latent/README.md) |
-| **Private messages make the factory task work.** Matched runs completed **12/12 with messages vs 2/12 without**. | [Factory comparison](examples/factory-communication/README.md) |
+This repository contains **Relay Studio**, the dashboard and worker API, alongside
+our **MuJoCo research environments** for testing communication between robot policies.
 
-These are held-out, simulated results on small test sets: one cloth episode
-with 20 physical states, and 12 factory seeds. Learned messages are not shown to
-beat well-designed text: structured text also reached 100% and 12/12, with
-smaller packets.
+[Explore the demo](https://relay-studio-dprv.onrender.com/?demo=1#tasks) ·
+[Run locally](#run-locally) ·
+[Connect an agent](docs/studio-agents.md) ·
+[Research results](#experiments-and-evidence)
 
-### Next milestones
+![Relay Studio showing a completed two-arm simulation task](examples/studio/task-completion/dashboard.png)
 
-- **Delayed and missing messages.** With 2–18 tick delays and 15% dropped
-  packets, hold accuracy falls to 66.3%, about the same as no communication.
-  Training used only fresh messages; the next step trains on real earlier peer
-  observations.
-- **Live closed-loop folding.** The first live run with the learned heads
-  executed but made no grasps and missed 12 of 14 required holds. A completed
-  held-out fold is required before any manipulation-success claim.
-- **More model families.** The standardized space is tested with two VLA
-  families and two cameras; a third family is next.
+*Recorded dashboard run using the task-trained cloth controllers. The public demo
+uses illustrative data; the experiments below include their measured evidence.*
 
-## Customer tasks and private deployment
+## What you can do
 
-The local Studio opens without a login screen; use **Switch account** to select
-a Manager or Operator profile. Studio opens on **Tasks**: assign an objective and success criteria to an approved
-agent or pair, connect an outbound runtime, and follow agent-reported progress
-through SpacetimeDB. Managers control exact model releases and scoped runtime
-credentials; employees can assign tasks and inspect the results. Your local
-adapter owns inference and execution. A completed status records agent reports,
-not independently verified physical completion.
+- **Coordinate a team.** Assign objectives and success criteria to approved agents,
+  then follow their progress and peer feedback.
+- **Control model access.** Managers register, release and retire model revisions;
+  employees use approved configurations and request changes.
+- **Inspect communication.** Compare structured reports, Qwen mediation, learned
+  latent messages and hybrid channels in the supported research workflows.
+- **Monitor execution.** View packet history, timing coverage, task activity and
+  alerts for disconnected workers or overdue work.
 
-See the [customer task and worker guide](docs/studio-agents.md) and
-[private HTTPS deployment guide](docs/studio-deployment.md). The deployment package
-uses one customer workspace per installation, persistent state, and a private
-Spacetime database; it is not an already hosted service. The existing learned and
-language communication probes remain available separately.
+Registering weights or an endpoint does not load a model or enable hardware.
+Customer runtimes implement the robot-specific handler. Their completion reports
+are distinct from independently measured simulator results.
 
-The shared dashboard and coordination backend are also published as the private
-[Relay Studio repository](https://github.com/g4nesh/relay-studio). Relay Lab is
-the shared source; Studio exports an explicit allowlist with no simulator,
-training code, checkpoints or research recordings. Follow the
-[repository synchronization guide](docs/studio-sync.md) and run
-`python3 scripts/export_studio.py --check-against /path/to/relay-studio` before
-shipping paired changes.
+## How it fits together
 
-Both local launchers use the same ASGI backend for live subscriptions and native
-Spacetime scheduling. Build the subscription bridge with
-`npm --prefix subscriptions ci && npm --prefix subscriptions run build`, and
-publish the updated Spacetime module before starting the app. See
-[live coordination and scheduled maintenance](docs/coordination.md).
-For the standalone hosted workspace, the shared backend also supports
-[Render with durable Spacetime storage](docs/render-free.md); use the matching
-SpacetimeDB 2.13 module and SDK.
-
-## Two-model developer workspace
-
-[Relay Studio](docs/studio.md) is a coordination console for two VLA models,
-their weights or endpoints, and optional rig details. Inspect separate captured
-camera views, the learned encoder/receiver path, committed packets, latency and
-action previews. Select LLM mediation, central orchestration, compatible learned
-latents or hybrid communication.
-
-The CoLA-inspired backend loads the repository's verified SmolVLA/X-VLA adapter
-bundle. SpacetimeDB stores ordered exchanges and request identities so compatible
-sessions can resume after a restart without regenerating old messages. Readiness
-checks report the actual database connection, adapter provenance and local Qwen
-runtime. Historical sessions remain inspectable.
-
-```bash
-uv run --extra learned --extra deploy relay-lab studio --port 8770
+```mermaid
+flowchart LR
+    UI[Relay Studio] --> API[Workspace API]
+    API <--> DB[(SpacetimeDB)]
+    API <--> A[Agent A runtime]
+    API <--> B[Agent B runtime]
+    A --> ENV[Robot or simulator]
+    B --> ENV
+    ENV -->|Observed outcomes| A
+    ENV -->|Observed outcomes| B
 ```
 
-Open <http://127.0.0.1:8770/>. Registration does not automatically load arbitrary
-weights or drive hardware. The supported SmolVLA/X-VLA example tests communication
-using captured features and fresh Qwen/adapter inference; other models can use
-the local report API through their own runtime adapters.
+SpacetimeDB stores ordered task and message state. Live subscriptions deliver
+updates, while scheduled reducers check deadlines and run maintenance. The
+application applies workspace permissions before forwarding updates to clients.
+See the [coordination contract](docs/coordination.md).
 
-Studio has **manager and employee roles**. Managers register, release and retire
-exact model configurations; employees run approved pairs and submit change
-requests. Local startup uses the account switcher. Hosted installations and
-explicit password mode use authenticated accounts; first-time password setup
-requires the private `.relay-lab/studio/setup-code` file. See the
-[roles and setup guide](docs/studio.md).
+Qwen supplies mediation and phase review in the local research workflows. Learned
+communication uses trained adapters between compatible model features. The generic
+customer worker exchanges structured reports; its handler decides how those reports
+enter the next model call.
 
-Open **Analytics** in Studio for matched communication experiments, per-mode
-latency and timing coverage, model-release counts, and an editable engineering
-effort scenario. Evidence artifacts and filtered exports accompany the charts.
-The [analytics guide](docs/studio-analytics.md) explains the populations and
-limits.
-Measured robot outcomes, database latency, and assumed labor savings remain
-separate.
+## Two repositories, one shared application
 
-## Learned messages between different VLA families
+| Repository | Contents | Use it for |
+| --- | --- | --- |
+| **Relay Lab** — this repository | Dashboard, backend, simulation environments, model adapters and recorded evidence | Research and shared application development |
+| [**Relay Studio**](https://github.com/g4nesh/relay-studio) — private | Dashboard, worker SDK, Spacetime module and deployment package | An independent customer installation |
 
-The new [learned adapter experiment](docs/latent-coordination.md) uses **actual
-frozen SmolVLA features (960D) and X-VLA features (1024D)**. Separate learned
-encoders send 64D messages through SpacetimeDB; receiver adapters and small
-replacement action heads learn together from original local demonstrations.
-This is a CoLA-inspired implementation, with explicit state assistance and a
-Cartesian MLP head. It is separate from the older PCA experiment below.
-
-The native foundation-model action heads are replaced in this experiment.
-VLA-Fabric's internal action-generation interactions are documented as a further
-baseline, not claimed as implemented. The tests distinguish fresh-message
-coordination, stale-message failures, and full physical folding.
-
-The [recorded learned-message results](examples/cloth-coordination/learned-latent/README.md)
-show useful peer information on the small fresh-observation test, but delayed
-reports and live scene changes still break coordination. The live trial missed
-12 of 14 required obstacle holds and did not grasp or fold. These failures are
-retained alongside the successful inference and transport evidence.
-Open `/latent` in the cloth replay UI to inspect the comparison.
-
-```bash
-uv sync --extra vla
-python3 scripts/spacetime.py publish
-uv run python -m relay_lab.cloth.latent_dataset --workers 4 --output runs/latent-data
-HF_HUB_OFFLINE=1 uv run python -m relay_lab.cloth.latent_training cache \
-  --dataset runs/latent-data --output runs/latent-features --family smolvla
-HF_HUB_OFFLINE=1 uv run python -m relay_lab.cloth.latent_training cache \
-  --dataset runs/latent-data --output runs/latent-features --family xvla
-uv run python -m relay_lab.cloth.latent_training train --dataset runs/latent-data \
-  --cache runs/latent-features --output runs/latent-adapters
-uv run python -m relay_lab.cloth.latent_experiment compare --dataset runs/latent-data \
-  --cache runs/latent-features --checkpoints runs/latent-adapters \
-  --output runs/latent-comparison --backend spacetime
-```
-
-The offline cache commands require the pinned public model weights to have been
-downloaded first; [checkpoint setup](checkpoints/cloth-policies/foundation-adaptation.md)
-describes those dependencies. Cached features are extracted one backbone at a
-time so training does not require both foundation models' gradients in memory.
-
-## Two-arm cloth workcell
-
-The MuJoCo environment has physical flex cloth, self-contact, table/obstacle
-contact, original articulated arms and recorded sensor cameras. It compares
-**PCA-compressed local state, full-precision structured text, and hybrid
-communication** with the same policies, scenes, delay schedules and budgets.
-
-The working controller pair uses two distinct, original task-trained neural
-architectures assisted by local landmark measurements. It is not a pair of
-general-purpose pretrained foundation VLAs. A separate released-model transfer
-probe records what an actual pretrained checkpoint does in the new embodiment.
-The physical baseline uses marked grasp tabs and an explicit vacuum-table
-fixture, released before scoring; it is not a calibrated real-garment simulator.
-
-```bash
-uv sync --extra learned
-python3 scripts/spacetime.py publish
-uv run --extra learned relay-lab cloth-run --communication structured_text \
-  --scenario delayed --coordination spacetime --planner llm \
-  --output runs/cloth-task
-uv run --extra learned relay-lab cloth-compare --seeds 101 102 \
-  --scenarios clear delayed --coordination spacetime --output runs/cloth-comparison
-uv run --extra learned relay-lab cloth --directory runs/cloth-comparison
-```
-
-The [recorded cloth comparison](examples/cloth-coordination/README.md) completed
-**4/4 tasks with each communication format**. Structured text was fastest
-(40.36 simulated seconds mean); embeddings used 42.2% smaller JSON packets.
-Hybrid matched embeddings’ actions exactly while sending more data. A separate
-Qwen/Spacetime suite completed 3/3; both no-private-communication diagnostics
-missed the alignment threshold. These are small paired pilots, not general
-performance guarantees.
-
-The actual **SmolVLA + X-VLA** integration performed 24 neural calls with Qwen
-and audited Spacetime messages, but **made no grasps or fold** in its short,
-uncalibrated trial. [Evidence and remaining adaptation work](examples/cloth-coordination/pretrained/README.md).
-
-Replay all 17 task-controller episodes without running models or a database:
-
-```bash
-uv run relay-lab cloth
-```
-
-Open <http://127.0.0.1:8769>. See [cloth environment and experimental protocol](docs/cloth-coordination.md)
-for model provenance, physical assumptions, information boundaries and results interpretation.
-
-![Verified two-arm MuJoCo fold](examples/cloth-coordination/workcell.png)
-
-## Factory dashboard
-
-The new [factory extension](docs/factory.md) combines a humanoid loader, two mobile
-carriers, an articulated assembly arm, and an overhead grappler in a continuous
-production workflow. Its live 3D dashboard shows robot motion, resource leases,
-job progress, and acknowledged handoffs. After the setup below, run:
-
-```bash
-python3 scripts/spacetime.py publish
-uv run --extra learned relay-lab factory
-```
-
-Open <http://127.0.0.1:8767>. Qwen chooses macro skills; all five factory robots
-use an original compact RGB/language/action network for motor and gripper output.
-A shared learned 32D embedding space carries fresh peer state through SpacetimeDB
-back into learned action inference. The dashboard exposes actual sensor images,
-latent records, model provenance and measured retrieval timings.
-
-See [Factory VLA and embedding exchange](docs/factory-vla.md) for the calibrated
-camera assumptions, training and limits. `--policy model-based` retains the earlier
-motion reference explicitly. The [earlier factory recording](examples/factory/README.md)
-uses that reference; it is not evidence of the new learned controller.
-
-The [verified learned factory recording](examples/factory-vla/README.md) completes
-3/3 workpieces with 4,390 neural actions and 338 peer-fusion actions. All 3,257
-commits match SpacetimeDB. A six-workpiece learned run also completes. That version
-passed 379 tests, including real database failure checks. Its fully observed pose
-embedding comparison shows actual use, but no demonstrated performance benefit.
-
-![Completed learned factory task](examples/factory-vla/completed.png)
-
-## Partial-observation communication experiment
-
-The new `dispatch-routing` task makes communication decision-relevant: only the
-receiving humanoid sees a private inspection cue, while the gantry needs it to
-select the correct pallet slot. Other robots see only nearby dynamic objects.
-Qwen schedules public skills; Spacetime commits job-scoped learned beliefs.
-
-Compare **embeddings, exact text, and no private communication** using matched
-seeds, images, frozen motor weights and budgets. Text and vectors carry the same
-learned visual prediction, so text is a strong baseline. Physical delivery and
-correct sorting are scored separately. See the [task and information boundaries](docs/factory-communication.md)
-and [recorded comparison](examples/factory-communication/README.md).
-
-The controlled comparison completed **12/12 tasks with either embeddings or
-text, versus 2/12 without private communication**. Text matched the result with
-smaller payloads. A separate real Qwen/Spacetime suite preserves one interrupted
-database run in its results; it is not pooled with the controlled comparison.
-That factory revision passed 480 tests across its regression and final server checks.
-
-```bash
-uv run --extra learned relay-lab factory-run \
-  --task dispatch-routing --communication embeddings --seed 101 --orders 3 \
-  --output runs/private-dispatch
-```
-
-## Original learned-VLA workcell
-
-One robot supplies colored parcels through a shared relay pad; the other packs
-them in a requested order.
-
-The active loop uses **a local Qwen LLM mediator, a small task-adapted learned
-vision/language/action policy, a deterministic outcome judge, and SpacetimeDB**.
-Fetch has been removed from the runtime. Its previous integration is preserved
-under `legacy/fetch/`; no Fetch account, credential, SDK, or network is needed.
-
-```text
-Task + assignments in SpacetimeDB
-             ↓
-Qwen reads team observations + verified action feedback
-             ↓
-Validated pick / place / wait instructions, committed to SpacetimeDB
-             ↓
-Two separate Relay VLA policy contexts → neural motor actions
-             ↓
-Spacetime action barrier → one simultaneous MuJoCo step
-             ↓
-Observed motion, grasp, release, packing → deterministic text judge
-             ↓
-Atomic feedback commit → next motor step or event-driven LLM decision
-```
-
-The LLM chooses semantic subgoals. It runs at meaningful state changes and
-sustained stalls, not every motor tick. The judge reports observed outcomes
-without another model call. Invalid LLM output gets one bounded correction;
-there is no scripted planner fallback. Database failure stops the rollout.
-
-## Included working example
-
-![Completed Relay Lab task](examples/demo/verified-replay.png)
-
-The repository includes the small trained controller, our original 400-scene
-simulator dataset, and a [complete recorded demo](examples/demo/README.md)
-with video, replay and decision logs. [Validation evidence](examples/validation.json)
-records four successful end-to-end runs across three held-out seeds.
+The standalone package excludes training code, model weights, datasets and
+simulation runtimes. Shared changes follow the [repository synchronization guide](docs/studio-sync.md).
+Customer state and credentials stay outside both repositories.
 
 ## Run locally
 
-The local LLM runtime is for Apple Silicon. Tested on an M3 Pro with 18 GB RAM.
-Python 3.13, `uv`, Node.js 22+ and npm are required. Clone your private repo first:
+Use **Python 3.13**, **uv**, and **Node.js 22+**. The Python package supports 3.12+;
+3.13 is the documented research setup. Local Qwen inference additionally requires
+Apple Silicon and the separate MLX environment in the
+[research quick start](docs/research-quickstart.md).
+
+### Explore a recorded experiment
 
 ```bash
 git clone https://github.com/g4nesh/relay-lab.git
 cd relay-lab
+uv sync --python 3.13 --extra learned --extra deploy
+uv run --extra learned --extra deploy relay-lab cloth
 ```
 
-Run the following commands from that repository root.
+Open **http://127.0.0.1:8769/** for the bundled cloth recordings and comparisons.
+Replay does not require SpacetimeDB or foundation-model downloads.
+
+### Start the dashboard
+
+The local bootstrap installs **SpacetimeDB 2.13.0** inside the repository. It is
+verified on macOS arm64; other platforms need the pinned CLI as described in the
+[backend guide](docs/spacetime.md). Run these commands from the repository root:
 
 ```bash
-uv sync --python 3.13 --extra learned
-uv venv --python 3.13 .venv-llm
-uv pip install --python .venv-llm/bin/python -r requirements-llm.txt
-
+npm --prefix subscriptions ci
+npm --prefix subscriptions run build
 python3 scripts/spacetime.py install
 python3 scripts/spacetime.py start
 ```
 
-Keep that terminal running. In a second terminal:
+Keep the database terminal open. In a second terminal:
 
 ```bash
 python3 scripts/spacetime.py publish
 python3 scripts/spacetime.py status
-
-# Optional: regenerate the included reference data and retrain the policy:
-uv run --extra learned python -m relay_lab.train_relay_vla collect --scenes 400
-uv run --extra learned python -m relay_lab.train_relay_vla train --pixel-steps 1500 --control-steps 10000
-
-# Defaults: local LLM mediator, Relay VLA, SpacetimeDB, real video.
-uv run --extra learned relay-lab run --seed 7 --output runs/local-mediator
-uv run --extra learned relay-lab serve --directory runs --port 8766
+uv run --extra learned --extra deploy relay-lab studio --port 8770
 ```
 
-Open `http://127.0.0.1:8766/local-mediator/replay.html` after the rollout.
-The pinned Qwen checkpoint downloads on first use (subsequent inference is
-local). Missing weights or runtime dependencies produce an error; they never
-silently select a scripted policy.
+Open **http://127.0.0.1:8770/**. Use the local account switcher to explore manager
+and employee roles. Qwen-backed exchanges and new simulation runs need the
+[additional research setup](docs/research-quickstart.md). To serve the product
+website with Studio, follow the [website workspace guide](docs/website-workspace.md).
 
-Useful explicit alternatives:
+### Deploy a private workspace
 
-```bash
-# Isolate mediator quality with an explicitly scripted action controller.
-uv run --extra learned relay-lab run --policy scripted --planner llm --no-video
+Use the standalone [Relay Studio repository](https://github.com/g4nesh/relay-studio)
+and choose either [Render with Spacetime storage](docs/render-free.md) or
+[Docker with persistent storage](docs/studio-deployment.md). Each deployment
+supports one private customer workspace and one application replica. Hosted
+workspaces use authenticated accounts and scoped outbound agent connections.
 
-# Lightweight rules + scripted reference; no LLM or database required.
-uv run relay-lab run --policy scripted --planner rules --coordination memory --no-video
+## Experiments and evidence
 
-# Original, unadapted foundation VLA remains an experimental comparison.
-uv sync --extra learned --extra vla
-uv run --extra learned --extra vla relay-lab run --policy smolvla --device mps
+These are small simulation studies. Each row links to its protocol and artifacts;
+results from different controllers and execution modes are kept separate.
 
-# Inspect an authoritative task record.
-uv run relay-lab task-status TASK_ID
-```
+| Experiment | Recorded result | Scope |
+| --- | --- | --- |
+| [Dashboard-to-simulator task](docs/studio.md#complete-a-local-two-arm-simulation-task) | A fold completed in 1,126 physics ticks; command replay reproduced the final geometry | One fixed seed, task-trained CNN/attention controllers, Qwen and SpacetimeDB |
+| [Learned SmolVLA ↔ X-VLA messages](examples/cloth-coordination/learned-latent/README.md) | Hidden-peer hold accuracy: **100% with learned messages, 50% without** | One held-out episode, 20 physical states; frozen backbone features and replacement action heads |
+| [Shared receiver experiment](examples/cloth-coordination/shared-latent/README.md) | Other-arm encoder transfer: **96.8% vs 48%** for pairwise adapters | Five training seeds, two model families and two cameras |
+| [Factory communication](examples/factory-communication/README.md) | Text and embeddings each completed **12/12 tasks**, versus **2/12** without communication | Controlled comparison with a deterministic scheduler and in-memory coordination |
 
-`--order gold coral mint` sets the order; `--checkpoint PATH` selects an adapted
-policy; `--llm-python PATH` selects the isolated MLX interpreter.
-`--planner rules --comm off` is the private-order communication ablation.
-The centralized mediator requires communication and sees the whole task order;
-it is not equivalent to that decentralized ablation.
+Structured text matched the successful communication conditions and used smaller
+payloads. The experiments do not establish that learned embeddings outperform text.
+With delayed and dropped messages, learned-adapter hold accuracy fell to **66.3%**,
+versus **66.7%** without communication. Its live control probe made no grasps or
+folds. Improving robustness to stale information and completing held-out folds
+remain open work.
 
-## Models and boundaries
+The working cloth baseline uses state assistance, marked grasp tabs and a
+stabilizing fixture. It is not calibrated garment physics or a foundation-VLA
+folding result. Native two-SmolVLA adaptation is tracked separately on the
+[development branch](https://github.com/g4nesh/relay-lab/blob/codex/customer-workspaces/docs/native-vla-cloth.md).
 
-- **Mediator:** official `Qwen/Qwen3-1.7B-MLX-4bit`, pinned to revision
-  `21457c6f51ed54a7c16e988c0844db973815c137`, greedy generation in a persistent
-  local MLX worker. No cloud API. It receives bounded structured observations,
-  observed execution events, and feedback. It does not receive raw camera frames.
-- **Relay VLA:** a compact, task-specific neural policy trained on original
-  simulator examples. It learns image localization, constrained language routing,
-  and Cartesian motor/gripper output. Runtime inputs are local RGB, robot
-  proprioception, and instruction text; object poses and scripted control are
-  excluded from learned inference. This is **not fine-tuned SmolVLA** and is not
-  a general-purpose pretrained VLA.
-- **SmolVLA:** the pinned LIBERO checkpoint remains available. It has not learned
-  this scene/embodiment; earlier full runs failed to pack any parcels. Fixing
-  replanning alone does not repair that domain mismatch.
-- **Judge:** deterministic interpretation of actual before/after simulator state.
-  A raw proposed action is never evidence that a grasp or delivery succeeded.
-  Minor clipping is factual feedback; attachment changes, new failures, and
-  sustained stalls can request replanning. Repeated clipping is debounced.
+## Stack and source map
 
-This is a deliberately small learned-control prototype. Cameras, colors,
-workspace geometry and language vocabulary are constrained. Physics uses
-Cartesian grippers and proximity attachments, not contact-rich grasp learning.
-The task and data are ours; this is not RoboPoly evaluation or a novelty claim.
+| Layer | Technologies | Source |
+| --- | --- | --- |
+| Dashboard | JavaScript, HTML, CSS | [`src/relay_lab/studio/web/`](src/relay_lab/studio/web/) |
+| Workspace API and workers | Python, ASGI, Uvicorn | [`src/relay_lab/studio/`](src/relay_lab/studio/) |
+| Coordination | SpacetimeDB, TypeScript, Node SDK subscriptions | [`spacetimedb/`](spacetimedb/), [`subscriptions/`](subscriptions/) |
+| Simulation and learning | MuJoCo, PyTorch, LeRobot, SmolVLA, X-VLA | [`src/relay_lab/cloth/`](src/relay_lab/cloth/), [`src/relay_lab/smolvla.py`](src/relay_lab/smolvla.py) |
+| Local language model | Qwen3-1.7B, MLX | [`src/relay_lab/llm.py`](src/relay_lab/llm.py) |
+| Deployment | Docker, Compose, Render | [`deploy/`](deploy/), [`render.yaml`](render.yaml) |
 
-## Verified end-to-end results
+## Guides
 
-Actual local Qwen + learned Relay VLA + MuJoCo + SpacetimeDB, with no scripted
-fallback, completed all three held-out seeds on October 24, 2026:
-
-| Seed | Order | Outcome | Steps |
-| --- | --- | --- | --- |
-| 7 | coral → gold → mint | 3/3 | 222 |
-| 42 | gold → mint → coral | 3/3 | 224 |
-| 101 | mint → coral → gold | 3/3 | 224 |
-
-The final default-command repeat is in `runs/mediator-final/`: 30.062 seconds
-wall time including video, 15 Qwen generations averaging 0.870 seconds, and
-444 neural robot actions. This is a small functional check, not a benchmark.
-The database audit in `runs/mediator-validation.json` checked all four runs:
-every plan, action and report matches its local log; each task is durably
-`succeeded`. **231 tests passed**, including live Spacetime concurrency and
-failure checks. Ruff and package builds passed.
-
-## Inspect the loop
-
-Each run saves:
-
-| File | Evidence |
-| --- | --- |
-| `replay.html`, `rollout.mp4` | Synchronized scene, instructions and outcomes |
-| `mediator.jsonl` | Actual LLM prompts, outputs, reasons, triggers and latency |
-| `steps.jsonl` | Each local observation, instruction, neural prediction and executed action |
-| `action-feedback.jsonl` | Grounded action-to-text reports used next tick |
-| `execution.jsonl` | Verified grasp, handoff, completion and failure events |
-| `model.json` | Model/checkpoint provenance, training metadata and inference counters |
-| `coordination.json` | Database, task and worker IDs |
-| `summary.json` | Actual task outcome and measured timing |
-
-Spacetime stores both plans, both action proposals and both observed reports
-behind ordered barriers for every tick. It does not execute physics or model
-inference, and a database restart does not resume the simulator. See
-[the backend contract](docs/spacetime.md), [learned policy](docs/relay-vla.md),
-and [policy interface](docs/policy-interface.md).
+- [Agent integration and task protocol](docs/studio-agents.md)
+- [Studio roles, model releases and communication modes](docs/studio.md)
+- [Analytics definitions and evidence](docs/studio-analytics.md)
+- [Research setup and experiment commands](docs/research-quickstart.md)
+- [Cloth environment and evaluation protocol](docs/cloth-coordination.md)
+- [Learned adapter design and related work](docs/latent-coordination.md)
+- [Original parcel workcell](examples/demo/README.md)
 
 ## Development
 
 ```bash
-uv run --extra learned pytest
-uv run --extra learned ruff check src tests
-RELAY_SPACETIME_INTEGRATION=1 uv run --extra learned pytest tests/test_spacetime.py
-RELAY_SPACETIME_LIVE_URL=http://127.0.0.1:3000 \
-RELAY_SPACETIME_LIVE_DATABASE=relay-lab \
-RELAY_SPACETIME_LIVE_TOKEN_FILE="$PWD/.relay-lab/spacetime-token" \
-  uv run --extra learned pytest tests/test_spacetime_live.py
+uv run --extra learned --extra deploy pytest
+uv run --extra learned --extra deploy ruff check src tests
+node --test tests/web/*.test.cjs
+npm --prefix subscriptions run check
+npm --prefix subscriptions test
 ```
 
-Credentials, environments, downloaded model caches and new generated runs are
-ignored by Git. Only the small reference checkpoint and original simulator
-dataset are included; other training outputs remain ignored. The archived Fetch sources are excluded from the
-installed package and active test suite.
-
-## Complete website + Studio
-
-The complete website is in [`website/`](website/). Run it with the working Studio
-using `uv run --extra learned --extra deploy python scripts/serve_workspace.py` after backend and
-SpacetimeDB setup. See [local workspace instructions](docs/website-workspace.md).
+Live database checks require a disposable database and explicit opt-in; follow
+the [backend](docs/spacetime.md) and [coordination](docs/coordination.md) guides.
+Keep credentials, downloaded model caches and new run artifacts out of Git.
