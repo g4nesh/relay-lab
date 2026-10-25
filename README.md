@@ -8,7 +8,8 @@ available as separate experiments.
 
 ## Customer tasks and private deployment
 
-Studio opens on **Tasks**: assign an objective and success criteria to an approved
+The local Studio opens without a login screen; use **Switch account** to select
+a Manager or Operator profile. Studio opens on **Tasks**: assign an objective and success criteria to an approved
 agent or pair, connect an outbound runtime, and follow agent-reported progress
 through SpacetimeDB. Managers control exact model releases and scoped runtime
 credentials; employees can assign tasks and inspect the results. Your local

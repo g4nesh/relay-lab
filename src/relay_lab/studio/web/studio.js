@@ -34,7 +34,10 @@ async function api(path, body) {
     const error = new Error("This request belongs to an earlier sign-in session."); error.stale = true; throw error;
   }
   if (!response.ok) {
-    if (response.status === 401 && !path.startsWith("/api/auth/")) showAuth("login", "Your session expired or access changed. Please sign in again.");
+    if (response.status === 401 && !path.startsWith("/api/auth/")) {
+      if (state.profileMode) showAccessRecovery("Your profile session changed. Retry to reopen the workspace.");
+      else showAuth("login", "Your session expired or access changed. Please sign in again.");
+    }
     const error = new Error(data.error || (response.status === 403 ? "Your account does not have permission for this action." : `Request failed (${response.status})`));
     error.status = response.status; throw error;
   }
@@ -421,6 +424,9 @@ async function checkAccess() {
   let signedIn = false;
   try {
     const auth = await api("/api/auth/status"); signedIn = auth.authenticated;
+    state.profileMode = !!auth.account_switching;
+    const profile = await window.RelayProfiles.enter(auth);
+    if (profile) { state.token = profile.token; signedIn = true; }
     if (signedIn) await loadWorkspace();
     else showAuth(auth.setup_required ? "setup" : "login");
   } catch (error) {
@@ -428,7 +434,13 @@ async function checkAccess() {
     showAccessRecovery(`${signedIn ? "You are signed in, but the workspace could not load" : "Studio could not check workspace access"}: ${error.message}`);
   } finally { $("auth-retry").disabled = false; }
 }
-async function init() { bind(); bindAccess(); await checkAccess(); }
+async function init() {
+  window.RelayProfiles.mount({api, context: () => state, notify: toast, activate: async (credentials) => {
+    showAuth(); state.token = credentials.token;
+    await loadWorkspace();
+  }});
+  bind(); bindAccess(); await checkAccess();
+}
 function viewFromHash() {
   return location.hash === "#analytics" ? "analytics" : location.hash === "#workspace" ? "workspace" : "tasks";
 }
@@ -612,6 +624,7 @@ async function loadWorkspace() {
   await Promise.allSettled([refreshHealth(), refreshDiagnostics(), refreshSessions(), refreshRequests()]);
 }
 async function signOut() {
+  if (state.profileMode) { await window.RelayProfiles.show(); return; }
   const buttons = ["logout-button", "logout-top-button", "auth-recovery-logout"];
   buttons.forEach((id) => { $(id).disabled = true; });
   try { await api("/api/auth/logout", {}); showAuth("login"); }
@@ -619,6 +632,7 @@ async function signOut() {
   finally { buttons.forEach((id) => { $(id).disabled = false; }); }
 }
 function renderAccessIdentity() {
+  window.RelayProfiles.configure(state.profileMode, state.user);
   const user = state.user || {}, manager = allowed("workspace.edit");
   const name = user.name || user.username || "Workspace member";
   $("account-name").textContent = name; $("account-avatar").textContent = name.split(/\s+/).slice(0,2).map((part) => part[0]).join("").toUpperCase();

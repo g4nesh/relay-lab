@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import secrets
 import struct
@@ -19,6 +20,7 @@ from urllib.parse import unquote, urlsplit
 from .access import AccessStore, AuthenticationError
 from .analytics import AnalyticsService, estimate_effort
 from .governance import ModelRegistry, RegistryConflict
+from .profiles import ProfileStore
 from .service import StudioService, example_workspace
 from .tasks import TaskConflict, TaskService
 from .workers import WorkerStore
@@ -32,6 +34,8 @@ ASSETS = {
     "/analytics.css": ("analytics.css", "text/css"),
     "/tasks.js": ("tasks.js", "text/javascript"),
     "/tasks.css": ("tasks.css", "text/css"),
+    "/profiles.js": ("profiles.js", "text/javascript"),
+    "/profiles.css": ("profiles.css", "text/css"),
 }
 MAX_UPLOAD = 4 * 1024**3
 SESSION_ROUTE = r"/api/sessions/(studio-[a-f0-9]{16})"
@@ -129,6 +133,12 @@ class StudioHandler(BaseHTTPRequestHandler):
     @property
     def cookie_security(self):
         return "; Secure" if self.deployment is not None and self.deployment.hosted else ""
+
+    @property
+    def profile_access(self):
+        return isinstance(self.access, ProfileStore) and not (
+            self.deployment is not None and self.deployment.hosted
+        )
 
     def credential(self):
         authorization = self.headers.get("Authorization", "")
@@ -230,6 +240,8 @@ class StudioHandler(BaseHTTPRequestHandler):
             return self.respond((WEB / filename).read_bytes(), mime=mime)
         if not mutation and path == "/api/auth/status":
             result = {**self.access.status(), "authenticated": False}
+            if self.profile_access:
+                result["account_switching"] = True
             try:
                 actor = self.authenticate()
                 result.update(
@@ -238,6 +250,18 @@ class StudioHandler(BaseHTTPRequestHandler):
             except AuthenticationError:
                 pass
             return self.respond(result)
+        if path in ("/api/auth/profiles", "/api/auth/select-profile"):
+            if not self.profile_access:
+                return self.respond({"error": "Not found"}, 404)
+            if not mutation and path == "/api/auth/profiles":
+                return self.respond(self.access.profiles())
+            if mutation and path == "/api/auth/select-profile":
+                value = self.body()
+                credentials = self.access.select_profile(
+                    value.get("user_id"), value.get("nonce"), self.credential()
+                )
+                return self.auth_response(credentials)
+            return self.respond({"error": "Method not allowed"}, 405)
         if mutation and path in ("/api/auth/login", "/api/auth/setup", "/api/auth/join"):
             value = self.body()
             if path.endswith("/login"):
@@ -562,8 +586,14 @@ def serve_studio(root=None, port=8770):
     if type(port) is not int or not 0 <= port <= 65535:
         raise ValueError("Invalid Studio port")
     service = StudioService(root or Path.cwd())
-    access = AccessStore(service.storage)
+    access = (
+        AccessStore if os.environ.get("RELAY_STUDIO_PASSWORD_LOGIN") == "1" else ProfileStore
+    )(service.storage)
     registry = ModelRegistry(service.storage)
+    if isinstance(access, ProfileStore):
+        manager = next((p for p in access.profiles()["profiles"] if p["role"] == "manager"), None)
+        if manager:
+            registry.sync_workspace(manager, service.workspace())
     analytics = AnalyticsService(service.root, service, registry, access)
     tasks = TaskService(service, registry)
     workers = WorkerStore(service.storage, access, registry, service)

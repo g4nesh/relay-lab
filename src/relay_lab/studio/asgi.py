@@ -19,6 +19,7 @@ from .access import AccessStore
 from .analytics import AnalyticsService
 from .deployment import DeploymentConfig
 from .governance import ModelRegistry
+from .profiles import ProfileStore
 from .server import StudioHandler
 from .service import StudioService
 
@@ -251,8 +252,19 @@ def create_app(*, config=None, runtime=None):
             service = StudioService(root, coordinator_factory=lambda: SpacetimeCoordinator(backend))
         else:
             service = StudioService(root)
-        access = AccessStore(service.storage)
+        access_type = (
+            AccessStore
+            if config.hosted or os.environ.get("RELAY_STUDIO_PASSWORD_LOGIN") == "1"
+            else ProfileStore
+        )
+        access = access_type(service.storage)
         registry = ModelRegistry(service.storage)
+        if isinstance(access, ProfileStore):
+            manager = next(
+                (p for p in access.profiles()["profiles"] if p["role"] == "manager"), None
+            )
+            if manager:
+                registry.sync_workspace(manager, service.workspace())
         from .tasks import TaskService
         from .workers import WorkerStore
 

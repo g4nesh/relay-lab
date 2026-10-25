@@ -27,12 +27,17 @@ Open <http://127.0.0.1:8770/>. The README describes Spacetime setup and the isol
 exchanges do not require Qwen. The cloth experiment remains available separately
 from the Studio interface.
 
-On first launch, create the initial manager account using the one-time code in
-`.relay-lab/studio/setup-code`. The server prints the file's location, never its
-contents. Open the file locally and enter the code on the setup screen with your
-chosen username and password (12–128 characters). There is no default account or
-password. Setup consumes the code. Managers create one-use, 24-hour invitations
-under **Team & access**; the invited person chooses their own password.
+The local dashboard opens directly with a selected account. Use **Switch account**
+in the sidebar or top bar to move between Manager and Operator profiles; no
+password or separate sign-in screen is needed. Existing accounts are preserved.
+A fresh local workspace starts with two profiles, and your last choice is remembered
+in this browser. Roles still determine which controls are available.
+
+These are profiles on a trusted local machine, not an identity security boundary.
+The hosted HTTPS deployment retains authenticated accounts. To require passwords
+on localhost as well, start with `RELAY_STUDIO_PASSWORD_LOGIN=1` and an existing
+password-backed account or a fresh workspace. First-time password mode uses the
+private `.relay-lab/studio/setup-code` file; no default password is created.
 
 ## Roles and model releases
 
