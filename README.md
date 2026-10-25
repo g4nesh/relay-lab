@@ -1,7 +1,183 @@
 # Relay Lab
 
-An original two-robot MuJoCo workcell: one robot supplies colored parcels through
-one shared relay pad; the other packs them in a requested order.
+An original robot-coordination research project. The current workcell brings
+the experiment back to **two articulated arms folding a deformable T-shirt**,
+with different local observations, moving obstacles, delayed messages, Qwen
+phase review and SpacetimeDB storage. Earlier factory and parcel workcells remain
+available as separate experiments.
+
+## Two-model developer workspace
+
+[Relay Studio](docs/studio.md) is a coordination console for two VLA models,
+their weights or endpoints, and optional rig details. Inspect separate captured
+camera views, the learned encoder/receiver path, committed packets, latency and
+action previews. Select LLM mediation, central orchestration, compatible learned
+latents or hybrid communication.
+
+The CoLA-inspired backend loads the repository's verified SmolVLA/X-VLA adapter
+bundle. SpacetimeDB stores ordered exchanges and request identities so compatible
+sessions can resume after a restart without regenerating old messages. Readiness
+checks report the actual database connection, adapter provenance and local Qwen
+runtime. Historical sessions remain inspectable.
+
+```bash
+uv run --extra learned relay-lab studio --port 8770
+```
+
+Open <http://127.0.0.1:8770/>. Registration does not automatically load arbitrary
+weights or drive hardware. The supported SmolVLA/X-VLA example tests communication
+using captured features and fresh Qwen/adapter inference; other models can use
+the local report API through their own runtime adapters.
+
+## Learned messages between different VLA families
+
+The new [learned adapter experiment](docs/latent-coordination.md) uses **actual
+frozen SmolVLA features (960D) and X-VLA features (1024D)**. Separate learned
+encoders send 64D messages through SpacetimeDB; receiver adapters and small
+replacement action heads learn together from original local demonstrations.
+This is a CoLA-inspired implementation, with explicit state assistance and a
+Cartesian MLP head. It is separate from the older PCA experiment below.
+
+The native foundation-model action heads are replaced in this experiment.
+VLA-Fabric's internal action-generation interactions are documented as a further
+baseline, not claimed as implemented. The tests distinguish fresh-message
+coordination, stale-message failures, and full physical folding.
+
+The [recorded learned-message results](examples/cloth-coordination/learned-latent/README.md)
+show useful peer information on the small fresh-observation test, but delayed
+reports and live scene changes still break coordination. The live trial missed
+12 of 14 required obstacle holds and did not grasp or fold. These failures are
+retained alongside the successful inference and transport evidence.
+Open `/latent` in the cloth replay UI to inspect the comparison.
+
+```bash
+uv sync --extra vla
+python3 scripts/spacetime.py publish
+uv run python -m relay_lab.cloth.latent_dataset --workers 4 --output runs/latent-data
+HF_HUB_OFFLINE=1 uv run python -m relay_lab.cloth.latent_training cache \
+  --dataset runs/latent-data --output runs/latent-features --family smolvla
+HF_HUB_OFFLINE=1 uv run python -m relay_lab.cloth.latent_training cache \
+  --dataset runs/latent-data --output runs/latent-features --family xvla
+uv run python -m relay_lab.cloth.latent_training train --dataset runs/latent-data \
+  --cache runs/latent-features --output runs/latent-adapters
+uv run python -m relay_lab.cloth.latent_experiment compare --dataset runs/latent-data \
+  --cache runs/latent-features --checkpoints runs/latent-adapters \
+  --output runs/latent-comparison --backend spacetime
+```
+
+The offline cache commands require the pinned public model weights to have been
+downloaded first; [checkpoint setup](checkpoints/cloth-policies/foundation-adaptation.md)
+describes those dependencies. Cached features are extracted one backbone at a
+time so training does not require both foundation models' gradients in memory.
+
+## Two-arm cloth workcell
+
+The MuJoCo environment has physical flex cloth, self-contact, table/obstacle
+contact, original articulated arms and recorded sensor cameras. It compares
+**PCA-compressed local state, full-precision structured text, and hybrid
+communication** with the same policies, scenes, delay schedules and budgets.
+
+The working controller pair uses two distinct, original task-trained neural
+architectures assisted by local landmark measurements. It is not a pair of
+general-purpose pretrained foundation VLAs. A separate released-model transfer
+probe records what an actual pretrained checkpoint does in the new embodiment.
+The physical baseline uses marked grasp tabs and an explicit vacuum-table
+fixture, released before scoring; it is not a calibrated real-garment simulator.
+
+```bash
+uv sync --extra learned
+python3 scripts/spacetime.py publish
+uv run --extra learned relay-lab cloth-run --communication structured_text \
+  --scenario delayed --coordination spacetime --planner llm \
+  --output runs/cloth-task
+uv run --extra learned relay-lab cloth-compare --seeds 101 102 \
+  --scenarios clear delayed --coordination spacetime --output runs/cloth-comparison
+uv run --extra learned relay-lab cloth --directory runs/cloth-comparison
+```
+
+The [recorded cloth comparison](examples/cloth-coordination/README.md) completed
+**4/4 tasks with each communication format**. Structured text was fastest
+(40.36 simulated seconds mean); embeddings used 42.2% smaller JSON packets.
+Hybrid matched embeddings’ actions exactly while sending more data. A separate
+Qwen/Spacetime suite completed 3/3; both no-private-communication diagnostics
+missed the alignment threshold. These are small paired pilots, not general
+performance guarantees.
+
+The actual **SmolVLA + X-VLA** integration performed 24 neural calls with Qwen
+and audited Spacetime messages, but **made no grasps or fold** in its short,
+uncalibrated trial. [Evidence and remaining adaptation work](examples/cloth-coordination/pretrained/README.md).
+
+Replay all 17 task-controller episodes without running models or a database:
+
+```bash
+uv run relay-lab cloth
+```
+
+Open <http://127.0.0.1:8769>. See [cloth environment and experimental protocol](docs/cloth-coordination.md)
+for model provenance, physical assumptions, information boundaries and results interpretation.
+
+![Verified two-arm MuJoCo fold](examples/cloth-coordination/workcell.png)
+
+## Factory dashboard
+
+The new [factory extension](docs/factory.md) combines a humanoid loader, two mobile
+carriers, an articulated assembly arm, and an overhead grappler in a continuous
+production workflow. Its live 3D dashboard shows robot motion, resource leases,
+job progress, and acknowledged handoffs. After the setup below, run:
+
+```bash
+python3 scripts/spacetime.py publish
+uv run --extra learned relay-lab factory
+```
+
+Open <http://127.0.0.1:8767>. Qwen chooses macro skills; all five factory robots
+use an original compact RGB/language/action network for motor and gripper output.
+A shared learned 32D embedding space carries fresh peer state through SpacetimeDB
+back into learned action inference. The dashboard exposes actual sensor images,
+latent records, model provenance and measured retrieval timings.
+
+See [Factory VLA and embedding exchange](docs/factory-vla.md) for the calibrated
+camera assumptions, training and limits. `--policy model-based` retains the earlier
+motion reference explicitly. The [earlier factory recording](examples/factory/README.md)
+uses that reference; it is not evidence of the new learned controller.
+
+The [verified learned factory recording](examples/factory-vla/README.md) completes
+3/3 workpieces with 4,390 neural actions and 338 peer-fusion actions. All 3,257
+commits match SpacetimeDB. A six-workpiece learned run also completes. That version
+passed 379 tests, including real database failure checks. Its fully observed pose
+embedding comparison shows actual use, but no demonstrated performance benefit.
+
+![Completed learned factory task](examples/factory-vla/completed.png)
+
+## Partial-observation communication experiment
+
+The new `dispatch-routing` task makes communication decision-relevant: only the
+receiving humanoid sees a private inspection cue, while the gantry needs it to
+select the correct pallet slot. Other robots see only nearby dynamic objects.
+Qwen schedules public skills; Spacetime commits job-scoped learned beliefs.
+
+Compare **embeddings, exact text, and no private communication** using matched
+seeds, images, frozen motor weights and budgets. Text and vectors carry the same
+learned visual prediction, so text is a strong baseline. Physical delivery and
+correct sorting are scored separately. See the [task and information boundaries](docs/factory-communication.md)
+and [recorded comparison](examples/factory-communication/README.md).
+
+The controlled comparison completed **12/12 tasks with either embeddings or
+text, versus 2/12 without private communication**. Text matched the result with
+smaller payloads. A separate real Qwen/Spacetime suite preserves one interrupted
+database run in its results; it is not pooled with the controlled comparison.
+That factory revision passed 480 tests across its regression and final server checks.
+
+```bash
+uv run --extra learned relay-lab factory-run \
+  --task dispatch-routing --communication embeddings --seed 101 --orders 3 \
+  --output runs/private-dispatch
+```
+
+## Original learned-VLA workcell
+
+One robot supplies colored parcels through a shared relay pad; the other packs
+them in a requested order.
 
 The active loop uses **a local Qwen LLM mediator, a small task-adapted learned
 vision/language/action policy, a deterministic outcome judge, and SpacetimeDB**.

@@ -1,0 +1,22 @@
+{
+  "training_seeds": [
+    10000,
+    10001,
+    10002,
+    10003
+  ],
+  "stage": "original reference demonstration collection",
+  "obstacle_schedule": [
+    [
+      6,
+      20,
+      "left"
+    ],
+    [
+      28,
+      42,
+      "right"
+    ]
+  ],
+  "evaluation_seeds_used": false
+}

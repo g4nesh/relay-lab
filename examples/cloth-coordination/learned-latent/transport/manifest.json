@@ -1,0 +1,893 @@
+{
+  "kind": "held-out-frozen-scene-observation-sequence",
+  "implementation_sha256": {
+    "features.py": "290eb38a40b107148ff19e1e01e5c13c607c32a214138de7c2247cca9889afc1",
+    "pretrained.py": "b05fe45cf124f12976fca5ef2e05f6b6e5527251bfcb9d8457c3b06ac2866a3a",
+    "latent_adapter.py": "82ece454cc2f3661d72b50f179e11fbae9caad5a9e44cc6982c3ab4b27f8397d",
+    "latent_dataset.py": "00b6d476044e355305a4354cab018b958a151e5bb7b88ab3f1397bcf13e64597",
+    "latent_training.py": "d8c6d7c2be52b74cb941b455361fb9b98027d859656f266147d924f2fbd06884",
+    "latent_channel.py": "907e06d7094a674dfef7b74bb61ffb35ce890c68d31e52ea5070c02132037565",
+    "latent_experiment.py": "340b74b895d187eb5f24e2b89bde1fa408cf0f8f1a6d09eddc22d61cf4d6b652"
+  },
+  "backend": "spacetime",
+  "actions_integrated": false,
+  "full_task_success_evaluation": false,
+  "model_inference": "Previously computed actual frozen backbone features, verified cache; learned heads execute now.",
+  "observation_schedule": "New private condition every 16 diagnostic ticks; decision/publication every 4 ticks.",
+  "sequence_sha256": "24dbbb8441bae7928f73161630dd7a099ca52d78d2789a1e28d192c34eb74e60",
+  "dataset_sha256": "42d081a3f8eceeb2ebeda4344b16de4cc689d5b082be57399f11bb4d76185720",
+  "attempts": [
+    {
+      "mode": "none",
+      "scenario": "one_tick",
+      "status": "completed",
+      "metrics": {
+        "left": {
+          "decisions": 240,
+          "hold_accuracy": 0.6666666666666666,
+          "hazard_hold_rate": 0.875,
+          "clear_go_rate": 0.25,
+          "unsafe_go_count": 20,
+          "false_hold_count": 60,
+          "missing_message_holds": 0
+        },
+        "right": {
+          "decisions": 240,
+          "hold_accuracy": 0.6666666666666666,
+          "hazard_hold_rate": 0.85,
+          "clear_go_rate": 0.3,
+          "unsafe_go_count": 24,
+          "false_hold_count": 56,
+          "missing_message_holds": 0
+        }
+      },
+      "model": {
+        "kind": "cross-vla-adapter-v1",
+        "space_id": "cross-vla-323543f17fdeb41333c97d31",
+        "checkpoint_sha256": "323543f17fdeb41333c97d3147c51a800fc36218e8f899d91f51aa36cb2a3ee3",
+        "dimension": 64,
+        "source_dimensions": {
+          "left": 960,
+          "right": 1024
+        },
+        "source_extractor_ids": {
+          "left": "c826c80bbf2f66e5d398e6234dca37a937a3359656989b00a417efc72aff9f7b",
+          "right": "413fb1d4cbdf97bac2c275edf347c5c0e20b18d271e0aa6a19c850aaff88d812"
+        },
+        "native_action_heads_used": false,
+        "parameters": 324874
+      },
+      "communication": {
+        "published": 0,
+        "delivered": 0,
+        "dropped": 0,
+        "expired": 0,
+        "out_of_order": 0,
+        "payload_bytes": 0,
+        "packet_bytes": 0,
+        "retrievals": 480,
+        "missing_reads": 480,
+        "stale_reads": 0,
+        "local_observations": 480,
+        "network_delay_ticks": {
+          "count": 0,
+          "mean": 0.0,
+          "p95": 0.0
+        },
+        "observation_age_ticks": {
+          "count": 0,
+          "mean": 0.0,
+          "p95": 0.0
+        },
+        "encode_ms": {
+          "count": 480,
+          "mean": 0.047730987231868006,
+          "p95": 0.055865186732262234
+        },
+        "decode_ms": {
+          "count": 0,
+          "mean": 0.0,
+          "p95": 0.0
+        },
+        "durable_commit_ms": {
+          "count": 240,
+          "mean": 4.426590144673052,
+          "p95": 8.311459654942148
+        },
+        "pending_delivery": 0,
+        "backend": {
+          "kind": "spacetimedb",
+          "durable": true,
+          "run_id": "latent-d88651cff5b648e4",
+          "index": "private B-tree run/frame and packet identity; no ANN",
+          "protocol": "owner-authenticated idempotent commit + durability ACK + exact readback",
+          "trusted_worker": true,
+          "physics": "single-process simulator"
+        },
+        "schedule": "seed/sender/observation tick; independent of representation and payload",
+        "byte_accounting": "UTF-8 JSON content/envelope; excludes HTTP and SQL readback",
+        "model": {
+          "kind": "cross-vla-adapter-v1",
+          "space_id": "cross-vla-323543f17fdeb41333c97d31",
+          "checkpoint_sha256": "323543f17fdeb41333c97d3147c51a800fc36218e8f899d91f51aa36cb2a3ee3",
+          "dimension": 64,
+          "source_dimensions": {
+            "left": 960,
+            "right": 1024
+          },
+          "source_extractor_ids": {
+            "left": "c826c80bbf2f66e5d398e6234dca37a937a3359656989b00a417efc72aff9f7b",
+            "right": "413fb1d4cbdf97bac2c275edf347c5c0e20b18d271e0aa6a19c850aaff88d812"
+          },
+          "native_action_heads_used": false,
+          "parameters": 324874
+        }
+      },
+      "independent_db_frames": 240,
+      "elapsed_seconds": 1.265762458089739
+    },
+    {
+      "mode": "structured_text",
+      "scenario": "one_tick",
+      "status": "completed",
+      "metrics": {
+        "left": {
+          "decisions": 240,
+          "hold_accuracy": 0.8333333333333334,
+          "hazard_hold_rate": 0.875,
+          "clear_go_rate": 0.75,
+          "unsafe_go_count": 20,
+          "false_hold_count": 20,
+          "missing_message_holds": 1
+        },
+        "right": {
+          "decisions": 240,
+          "hold_accuracy": 0.9125,
+          "hazard_hold_rate": 0.875,
+          "clear_go_rate": 0.9875,
+          "unsafe_go_count": 20,
+          "false_hold_count": 1,
+          "missing_message_holds": 1
+        }
+      },
+      "model": {
+        "kind": "cross-vla-adapter-v1",
+        "space_id": "cross-vla-e0c69e134012b438c1478f99",
+        "checkpoint_sha256": "e0c69e134012b438c1478f99fdc00c436520750a5d88917e5ce8232991dbea95",
+        "dimension": 64,
+        "source_dimensions": {
+          "left": 960,
+          "right": 1024
+        },
+        "source_extractor_ids": {
+          "left": "c826c80bbf2f66e5d398e6234dca37a937a3359656989b00a417efc72aff9f7b",
+          "right": "413fb1d4cbdf97bac2c275edf347c5c0e20b18d271e0aa6a19c850aaff88d812"
+        },
+        "native_action_heads_used": false,
+        "parameters": 324874
+      },
+      "communication": {
+        "published": 480,
+        "delivered": 480,
+        "dropped": 0,
+        "expired": 0,
+        "out_of_order": 0,
+        "payload_bytes": 300860,
+        "packet_bytes": 534118,
+        "retrievals": 480,
+        "missing_reads": 2,
+        "stale_reads": 0,
+        "local_observations": 480,
+        "network_delay_ticks": {
+          "count": 480,
+          "mean": 1.0,
+          "p95": 1.0
+        },
+        "observation_age_ticks": {
+          "count": 478,
+          "mean": 4.0,
+          "p95": 4.0
+        },
+        "encode_ms": {
+          "count": 480,
+          "mean": 0.03749906657806908,
+          "p95": 0.04760165465995668
+        },
+        "decode_ms": {
+          "count": 478,
+          "mean": 0.016065639303412645,
+          "p95": 0.018131081014871597
+        },
+        "durable_commit_ms": {
+          "count": 240,
+          "mean": 5.7586519212539615,
+          "p95": 8.334045065566894
+        },
+        "pending_delivery": 0,
+        "backend": {
+          "kind": "spacetimedb",
+          "durable": true,
+          "run_id": "latent-d3f8c76d9d06467d",
+          "index": "private B-tree run/frame and packet identity; no ANN",
+          "protocol": "owner-authenticated idempotent commit + durability ACK + exact readback",
+          "trusted_worker": true,
+          "physics": "single-process simulator"
+        },
+        "schedule": "seed/sender/observation tick; independent of representation and payload",
+        "byte_accounting": "UTF-8 JSON content/envelope; excludes HTTP and SQL readback",
+        "model": {
+          "kind": "cross-vla-adapter-v1",
+          "space_id": "cross-vla-e0c69e134012b438c1478f99",
+          "checkpoint_sha256": "e0c69e134012b438c1478f99fdc00c436520750a5d88917e5ce8232991dbea95",
+          "dimension": 64,
+          "source_dimensions": {
+            "left": 960,
+            "right": 1024
+          },
+          "source_extractor_ids": {
+            "left": "c826c80bbf2f66e5d398e6234dca37a937a3359656989b00a417efc72aff9f7b",
+            "right": "413fb1d4cbdf97bac2c275edf347c5c0e20b18d271e0aa6a19c850aaff88d812"
+          },
+          "native_action_heads_used": false,
+          "parameters": 324874
+        }
+      },
+      "independent_db_frames": 240,
+      "elapsed_seconds": 1.7027851659804583
+    },
+    {
+      "mode": "embeddings",
+      "scenario": "one_tick",
+      "status": "completed",
+      "metrics": {
+        "left": {
+          "decisions": 240,
+          "hold_accuracy": 0.8333333333333334,
+          "hazard_hold_rate": 0.875,
+          "clear_go_rate": 0.75,
+          "unsafe_go_count": 20,
+          "false_hold_count": 20,
+          "missing_message_holds": 1
+        },
+        "right": {
+          "decisions": 240,
+          "hold_accuracy": 0.9125,
+          "hazard_hold_rate": 0.875,
+          "clear_go_rate": 0.9875,
+          "unsafe_go_count": 20,
+          "false_hold_count": 1,
+          "missing_message_holds": 1
+        }
+      },
+      "model": {
+        "kind": "cross-vla-adapter-v1",
+        "space_id": "cross-vla-d1c394b59a034e6017a29309",
+        "checkpoint_sha256": "d1c394b59a034e6017a29309ce644c106cc4223ea45083cb40cefc4a8eca432f",
+        "dimension": 64,
+        "source_dimensions": {
+          "left": 960,
+          "right": 1024
+        },
+        "source_extractor_ids": {
+          "left": "c826c80bbf2f66e5d398e6234dca37a937a3359656989b00a417efc72aff9f7b",
+          "right": "413fb1d4cbdf97bac2c275edf347c5c0e20b18d271e0aa6a19c850aaff88d812"
+        },
+        "native_action_heads_used": false,
+        "parameters": 324874
+      },
+      "communication": {
+        "published": 480,
+        "delivered": 480,
+        "dropped": 0,
+        "expired": 0,
+        "out_of_order": 0,
+        "payload_bytes": 569320,
+        "packet_bytes": 800178,
+        "retrievals": 480,
+        "missing_reads": 2,
+        "stale_reads": 0,
+        "local_observations": 480,
+        "network_delay_ticks": {
+          "count": 480,
+          "mean": 1.0,
+          "p95": 1.0
+        },
+        "observation_age_ticks": {
+          "count": 478,
+          "mean": 4.0,
+          "p95": 4.0
+        },
+        "encode_ms": {
+          "count": 480,
+          "mean": 0.03694307573217278,
+          "p95": 0.04584965063259004
+        },
+        "decode_ms": {
+          "count": 478,
+          "mean": 0.010595359317334876,
+          "p95": 0.011625001206994057
+        },
+        "durable_commit_ms": {
+          "count": 240,
+          "mean": 5.004590283109185,
+          "p95": 7.872523064725099
+        },
+        "pending_delivery": 0,
+        "backend": {
+          "kind": "spacetimedb",
+          "durable": true,
+          "run_id": "latent-de820350495d455f",
+          "index": "private B-tree run/frame and packet identity; no ANN",
+          "protocol": "owner-authenticated idempotent commit + durability ACK + exact readback",
+          "trusted_worker": true,
+          "physics": "single-process simulator"
+        },
+        "schedule": "seed/sender/observation tick; independent of representation and payload",
+        "byte_accounting": "UTF-8 JSON content/envelope; excludes HTTP and SQL readback",
+        "model": {
+          "kind": "cross-vla-adapter-v1",
+          "space_id": "cross-vla-d1c394b59a034e6017a29309",
+          "checkpoint_sha256": "d1c394b59a034e6017a29309ce644c106cc4223ea45083cb40cefc4a8eca432f",
+          "dimension": 64,
+          "source_dimensions": {
+            "left": 960,
+            "right": 1024
+          },
+          "source_extractor_ids": {
+            "left": "c826c80bbf2f66e5d398e6234dca37a937a3359656989b00a417efc72aff9f7b",
+            "right": "413fb1d4cbdf97bac2c275edf347c5c0e20b18d271e0aa6a19c850aaff88d812"
+          },
+          "native_action_heads_used": false,
+          "parameters": 324874
+        }
+      },
+      "independent_db_frames": 240,
+      "elapsed_seconds": 1.5776103329844773
+    },
+    {
+      "mode": "hybrid",
+      "scenario": "one_tick",
+      "status": "completed",
+      "metrics": {
+        "left": {
+          "decisions": 240,
+          "hold_accuracy": 0.8333333333333334,
+          "hazard_hold_rate": 0.875,
+          "clear_go_rate": 0.75,
+          "unsafe_go_count": 20,
+          "false_hold_count": 20,
+          "missing_message_holds": 1
+        },
+        "right": {
+          "decisions": 240,
+          "hold_accuracy": 0.9125,
+          "hazard_hold_rate": 0.875,
+          "clear_go_rate": 0.9875,
+          "unsafe_go_count": 20,
+          "false_hold_count": 1,
+          "missing_message_holds": 1
+        }
+      },
+      "model": {
+        "kind": "cross-vla-adapter-v1",
+        "space_id": "cross-vla-80507dafdae78d3fd472a8e2",
+        "checkpoint_sha256": "80507dafdae78d3fd472a8e2b97c33609cb174da5e0898df45952bafb5248907",
+        "dimension": 64,
+        "source_dimensions": {
+          "left": 960,
+          "right": 1024
+        },
+        "source_extractor_ids": {
+          "left": "c826c80bbf2f66e5d398e6234dca37a937a3359656989b00a417efc72aff9f7b",
+          "right": "413fb1d4cbdf97bac2c275edf347c5c0e20b18d271e0aa6a19c850aaff88d812"
+        },
+        "native_action_heads_used": false,
+        "parameters": 324874
+      },
+      "communication": {
+        "published": 480,
+        "delivered": 480,
+        "dropped": 0,
+        "expired": 0,
+        "out_of_order": 0,
+        "payload_bytes": 691064,
+        "packet_bytes": 920002,
+        "retrievals": 480,
+        "missing_reads": 2,
+        "stale_reads": 0,
+        "local_observations": 480,
+        "network_delay_ticks": {
+          "count": 480,
+          "mean": 1.0,
+          "p95": 1.0
+        },
+        "observation_age_ticks": {
+          "count": 478,
+          "mean": 4.0,
+          "p95": 4.0
+        },
+        "encode_ms": {
+          "count": 480,
+          "mean": 0.034858159779105335,
+          "p95": 0.04029828123748302
+        },
+        "decode_ms": {
+          "count": 478,
+          "mean": 0.01174266202663652,
+          "p95": 0.012595672160387037
+        },
+        "durable_commit_ms": {
+          "count": 240,
+          "mean": 4.066237772349268,
+          "p95": 5.661664274521169
+        },
+        "pending_delivery": 0,
+        "backend": {
+          "kind": "spacetimedb",
+          "durable": true,
+          "run_id": "latent-108aa842f2d344af",
+          "index": "private B-tree run/frame and packet identity; no ANN",
+          "protocol": "owner-authenticated idempotent commit + durability ACK + exact readback",
+          "trusted_worker": true,
+          "physics": "single-process simulator"
+        },
+        "schedule": "seed/sender/observation tick; independent of representation and payload",
+        "byte_accounting": "UTF-8 JSON content/envelope; excludes HTTP and SQL readback",
+        "model": {
+          "kind": "cross-vla-adapter-v1",
+          "space_id": "cross-vla-80507dafdae78d3fd472a8e2",
+          "checkpoint_sha256": "80507dafdae78d3fd472a8e2b97c33609cb174da5e0898df45952bafb5248907",
+          "dimension": 64,
+          "source_dimensions": {
+            "left": 960,
+            "right": 1024
+          },
+          "source_extractor_ids": {
+            "left": "c826c80bbf2f66e5d398e6234dca37a937a3359656989b00a417efc72aff9f7b",
+            "right": "413fb1d4cbdf97bac2c275edf347c5c0e20b18d271e0aa6a19c850aaff88d812"
+          },
+          "native_action_heads_used": false,
+          "parameters": 324874
+        }
+      },
+      "independent_db_frames": 240,
+      "elapsed_seconds": 1.3470030419994146
+    },
+    {
+      "mode": "none",
+      "scenario": "delayed_dropped",
+      "status": "completed",
+      "metrics": {
+        "left": {
+          "decisions": 240,
+          "hold_accuracy": 0.6666666666666666,
+          "hazard_hold_rate": 0.875,
+          "clear_go_rate": 0.25,
+          "unsafe_go_count": 20,
+          "false_hold_count": 60,
+          "missing_message_holds": 0
+        },
+        "right": {
+          "decisions": 240,
+          "hold_accuracy": 0.6666666666666666,
+          "hazard_hold_rate": 0.85,
+          "clear_go_rate": 0.3,
+          "unsafe_go_count": 24,
+          "false_hold_count": 56,
+          "missing_message_holds": 0
+        }
+      },
+      "model": {
+        "kind": "cross-vla-adapter-v1",
+        "space_id": "cross-vla-323543f17fdeb41333c97d31",
+        "checkpoint_sha256": "323543f17fdeb41333c97d3147c51a800fc36218e8f899d91f51aa36cb2a3ee3",
+        "dimension": 64,
+        "source_dimensions": {
+          "left": 960,
+          "right": 1024
+        },
+        "source_extractor_ids": {
+          "left": "c826c80bbf2f66e5d398e6234dca37a937a3359656989b00a417efc72aff9f7b",
+          "right": "413fb1d4cbdf97bac2c275edf347c5c0e20b18d271e0aa6a19c850aaff88d812"
+        },
+        "native_action_heads_used": false,
+        "parameters": 324874
+      },
+      "communication": {
+        "published": 0,
+        "delivered": 0,
+        "dropped": 0,
+        "expired": 0,
+        "out_of_order": 0,
+        "payload_bytes": 0,
+        "packet_bytes": 0,
+        "retrievals": 480,
+        "missing_reads": 480,
+        "stale_reads": 0,
+        "local_observations": 480,
+        "network_delay_ticks": {
+          "count": 0,
+          "mean": 0.0,
+          "p95": 0.0
+        },
+        "observation_age_ticks": {
+          "count": 0,
+          "mean": 0.0,
+          "p95": 0.0
+        },
+        "encode_ms": {
+          "count": 480,
+          "mean": 0.03905424237018451,
+          "p95": 0.0553771504200995
+        },
+        "decode_ms": {
+          "count": 0,
+          "mean": 0.0,
+          "p95": 0.0
+        },
+        "durable_commit_ms": {
+          "count": 240,
+          "mean": 4.682429045593987,
+          "p95": 6.978018791414797
+        },
+        "pending_delivery": 0,
+        "backend": {
+          "kind": "spacetimedb",
+          "durable": true,
+          "run_id": "latent-ac9ff88120764da1",
+          "index": "private B-tree run/frame and packet identity; no ANN",
+          "protocol": "owner-authenticated idempotent commit + durability ACK + exact readback",
+          "trusted_worker": true,
+          "physics": "single-process simulator"
+        },
+        "schedule": "seed/sender/observation tick; independent of representation and payload",
+        "byte_accounting": "UTF-8 JSON content/envelope; excludes HTTP and SQL readback",
+        "model": {
+          "kind": "cross-vla-adapter-v1",
+          "space_id": "cross-vla-323543f17fdeb41333c97d31",
+          "checkpoint_sha256": "323543f17fdeb41333c97d3147c51a800fc36218e8f899d91f51aa36cb2a3ee3",
+          "dimension": 64,
+          "source_dimensions": {
+            "left": 960,
+            "right": 1024
+          },
+          "source_extractor_ids": {
+            "left": "c826c80bbf2f66e5d398e6234dca37a937a3359656989b00a417efc72aff9f7b",
+            "right": "413fb1d4cbdf97bac2c275edf347c5c0e20b18d271e0aa6a19c850aaff88d812"
+          },
+          "native_action_heads_used": false,
+          "parameters": 324874
+        }
+      },
+      "independent_db_frames": 240,
+      "elapsed_seconds": 1.255046458216384
+    },
+    {
+      "mode": "structured_text",
+      "scenario": "delayed_dropped",
+      "status": "completed",
+      "metrics": {
+        "left": {
+          "decisions": 240,
+          "hold_accuracy": 0.5416666666666666,
+          "hazard_hold_rate": 0.675,
+          "clear_go_rate": 0.275,
+          "unsafe_go_count": 52,
+          "false_hold_count": 58,
+          "missing_message_holds": 5
+        },
+        "right": {
+          "decisions": 240,
+          "hold_accuracy": 0.7833333333333333,
+          "hazard_hold_rate": 0.70625,
+          "clear_go_rate": 0.9375,
+          "unsafe_go_count": 47,
+          "false_hold_count": 5,
+          "missing_message_holds": 7
+        }
+      },
+      "model": {
+        "kind": "cross-vla-adapter-v1",
+        "space_id": "cross-vla-e0c69e134012b438c1478f99",
+        "checkpoint_sha256": "e0c69e134012b438c1478f99fdc00c436520750a5d88917e5ce8232991dbea95",
+        "dimension": 64,
+        "source_dimensions": {
+          "left": 960,
+          "right": 1024
+        },
+        "source_extractor_ids": {
+          "left": "c826c80bbf2f66e5d398e6234dca37a937a3359656989b00a417efc72aff9f7b",
+          "right": "413fb1d4cbdf97bac2c275edf347c5c0e20b18d271e0aa6a19c850aaff88d812"
+        },
+        "native_action_heads_used": false,
+        "parameters": 324874
+      },
+      "communication": {
+        "published": 480,
+        "delivered": 287,
+        "dropped": 78,
+        "expired": 0,
+        "out_of_order": 112,
+        "payload_bytes": 300860,
+        "packet_bytes": 534049,
+        "retrievals": 480,
+        "missing_reads": 8,
+        "stale_reads": 4,
+        "local_observations": 480,
+        "network_delay_ticks": {
+          "count": 287,
+          "mean": 8.0,
+          "p95": 16.0
+        },
+        "observation_age_ticks": {
+          "count": 468,
+          "mean": 10.717948717948717,
+          "p95": 20.0
+        },
+        "encode_ms": {
+          "count": 480,
+          "mean": 0.038923516694922,
+          "p95": 0.0477940309792757
+        },
+        "decode_ms": {
+          "count": 468,
+          "mean": 0.015266113775248965,
+          "p95": 0.017386954277753826
+        },
+        "durable_commit_ms": {
+          "count": 240,
+          "mean": 4.282703085724886,
+          "p95": 6.534962810110301
+        },
+        "pending_delivery": 3,
+        "backend": {
+          "kind": "spacetimedb",
+          "durable": true,
+          "run_id": "latent-92cd95253fc04f56",
+          "index": "private B-tree run/frame and packet identity; no ANN",
+          "protocol": "owner-authenticated idempotent commit + durability ACK + exact readback",
+          "trusted_worker": true,
+          "physics": "single-process simulator"
+        },
+        "schedule": "seed/sender/observation tick; independent of representation and payload",
+        "byte_accounting": "UTF-8 JSON content/envelope; excludes HTTP and SQL readback",
+        "model": {
+          "kind": "cross-vla-adapter-v1",
+          "space_id": "cross-vla-e0c69e134012b438c1478f99",
+          "checkpoint_sha256": "e0c69e134012b438c1478f99fdc00c436520750a5d88917e5ce8232991dbea95",
+          "dimension": 64,
+          "source_dimensions": {
+            "left": 960,
+            "right": 1024
+          },
+          "source_extractor_ids": {
+            "left": "c826c80bbf2f66e5d398e6234dca37a937a3359656989b00a417efc72aff9f7b",
+            "right": "413fb1d4cbdf97bac2c275edf347c5c0e20b18d271e0aa6a19c850aaff88d812"
+          },
+          "native_action_heads_used": false,
+          "parameters": 324874
+        }
+      },
+      "independent_db_frames": 240,
+      "elapsed_seconds": 1.3114043748937547
+    },
+    {
+      "mode": "embeddings",
+      "scenario": "delayed_dropped",
+      "status": "completed",
+      "metrics": {
+        "left": {
+          "decisions": 240,
+          "hold_accuracy": 0.5416666666666666,
+          "hazard_hold_rate": 0.675,
+          "clear_go_rate": 0.275,
+          "unsafe_go_count": 52,
+          "false_hold_count": 58,
+          "missing_message_holds": 5
+        },
+        "right": {
+          "decisions": 240,
+          "hold_accuracy": 0.7833333333333333,
+          "hazard_hold_rate": 0.70625,
+          "clear_go_rate": 0.9375,
+          "unsafe_go_count": 47,
+          "false_hold_count": 5,
+          "missing_message_holds": 7
+        }
+      },
+      "model": {
+        "kind": "cross-vla-adapter-v1",
+        "space_id": "cross-vla-d1c394b59a034e6017a29309",
+        "checkpoint_sha256": "d1c394b59a034e6017a29309ce644c106cc4223ea45083cb40cefc4a8eca432f",
+        "dimension": 64,
+        "source_dimensions": {
+          "left": 960,
+          "right": 1024
+        },
+        "source_extractor_ids": {
+          "left": "c826c80bbf2f66e5d398e6234dca37a937a3359656989b00a417efc72aff9f7b",
+          "right": "413fb1d4cbdf97bac2c275edf347c5c0e20b18d271e0aa6a19c850aaff88d812"
+        },
+        "native_action_heads_used": false,
+        "parameters": 324874
+      },
+      "communication": {
+        "published": 480,
+        "delivered": 287,
+        "dropped": 78,
+        "expired": 0,
+        "out_of_order": 112,
+        "payload_bytes": 569320,
+        "packet_bytes": 800109,
+        "retrievals": 480,
+        "missing_reads": 8,
+        "stale_reads": 4,
+        "local_observations": 480,
+        "network_delay_ticks": {
+          "count": 287,
+          "mean": 8.0,
+          "p95": 16.0
+        },
+        "observation_age_ticks": {
+          "count": 468,
+          "mean": 10.717948717948717,
+          "p95": 20.0
+        },
+        "encode_ms": {
+          "count": 480,
+          "mean": 0.033618143546239786,
+          "p95": 0.04113134928047656
+        },
+        "decode_ms": {
+          "count": 468,
+          "mean": 0.010045689061029345,
+          "p95": 0.011249911040067673
+        },
+        "durable_commit_ms": {
+          "count": 240,
+          "mean": 4.149443176963056,
+          "p95": 5.490770179312676
+        },
+        "pending_delivery": 3,
+        "backend": {
+          "kind": "spacetimedb",
+          "durable": true,
+          "run_id": "latent-48a55b4865b74e6c",
+          "index": "private B-tree run/frame and packet identity; no ANN",
+          "protocol": "owner-authenticated idempotent commit + durability ACK + exact readback",
+          "trusted_worker": true,
+          "physics": "single-process simulator"
+        },
+        "schedule": "seed/sender/observation tick; independent of representation and payload",
+        "byte_accounting": "UTF-8 JSON content/envelope; excludes HTTP and SQL readback",
+        "model": {
+          "kind": "cross-vla-adapter-v1",
+          "space_id": "cross-vla-d1c394b59a034e6017a29309",
+          "checkpoint_sha256": "d1c394b59a034e6017a29309ce644c106cc4223ea45083cb40cefc4a8eca432f",
+          "dimension": 64,
+          "source_dimensions": {
+            "left": 960,
+            "right": 1024
+          },
+          "source_extractor_ids": {
+            "left": "c826c80bbf2f66e5d398e6234dca37a937a3359656989b00a417efc72aff9f7b",
+            "right": "413fb1d4cbdf97bac2c275edf347c5c0e20b18d271e0aa6a19c850aaff88d812"
+          },
+          "native_action_heads_used": false,
+          "parameters": 324874
+        }
+      },
+      "independent_db_frames": 240,
+      "elapsed_seconds": 1.3412654588464648
+    },
+    {
+      "mode": "hybrid",
+      "scenario": "delayed_dropped",
+      "status": "completed",
+      "metrics": {
+        "left": {
+          "decisions": 240,
+          "hold_accuracy": 0.5416666666666666,
+          "hazard_hold_rate": 0.675,
+          "clear_go_rate": 0.275,
+          "unsafe_go_count": 52,
+          "false_hold_count": 58,
+          "missing_message_holds": 5
+        },
+        "right": {
+          "decisions": 240,
+          "hold_accuracy": 0.7833333333333333,
+          "hazard_hold_rate": 0.70625,
+          "clear_go_rate": 0.9375,
+          "unsafe_go_count": 47,
+          "false_hold_count": 5,
+          "missing_message_holds": 7
+        }
+      },
+      "model": {
+        "kind": "cross-vla-adapter-v1",
+        "space_id": "cross-vla-80507dafdae78d3fd472a8e2",
+        "checkpoint_sha256": "80507dafdae78d3fd472a8e2b97c33609cb174da5e0898df45952bafb5248907",
+        "dimension": 64,
+        "source_dimensions": {
+          "left": 960,
+          "right": 1024
+        },
+        "source_extractor_ids": {
+          "left": "c826c80bbf2f66e5d398e6234dca37a937a3359656989b00a417efc72aff9f7b",
+          "right": "413fb1d4cbdf97bac2c275edf347c5c0e20b18d271e0aa6a19c850aaff88d812"
+        },
+        "native_action_heads_used": false,
+        "parameters": 324874
+      },
+      "communication": {
+        "published": 480,
+        "delivered": 287,
+        "dropped": 78,
+        "expired": 0,
+        "out_of_order": 112,
+        "payload_bytes": 691064,
+        "packet_bytes": 919933,
+        "retrievals": 480,
+        "missing_reads": 8,
+        "stale_reads": 4,
+        "local_observations": 480,
+        "network_delay_ticks": {
+          "count": 287,
+          "mean": 8.0,
+          "p95": 16.0
+        },
+        "observation_age_ticks": {
+          "count": 468,
+          "mean": 10.717948717948717,
+          "p95": 20.0
+        },
+        "encode_ms": {
+          "count": 480,
+          "mean": 0.03534452504633615,
+          "p95": 0.04258728586137294
+        },
+        "decode_ms": {
+          "count": 468,
+          "mean": 0.012231563341318287,
+          "p95": 0.013916054740548134
+        },
+        "durable_commit_ms": {
+          "count": 240,
+          "mean": 5.140162284563606,
+          "p95": 7.988174934871494
+        },
+        "pending_delivery": 3,
+        "backend": {
+          "kind": "spacetimedb",
+          "durable": true,
+          "run_id": "latent-7124b19685cb4be0",
+          "index": "private B-tree run/frame and packet identity; no ANN",
+          "protocol": "owner-authenticated idempotent commit + durability ACK + exact readback",
+          "trusted_worker": true,
+          "physics": "single-process simulator"
+        },
+        "schedule": "seed/sender/observation tick; independent of representation and payload",
+        "byte_accounting": "UTF-8 JSON content/envelope; excludes HTTP and SQL readback",
+        "model": {
+          "kind": "cross-vla-adapter-v1",
+          "space_id": "cross-vla-80507dafdae78d3fd472a8e2",
+          "checkpoint_sha256": "80507dafdae78d3fd472a8e2b97c33609cb174da5e0898df45952bafb5248907",
+          "dimension": 64,
+          "source_dimensions": {
+            "left": 960,
+            "right": 1024
+          },
+          "source_extractor_ids": {
+            "left": "c826c80bbf2f66e5d398e6234dca37a937a3359656989b00a417efc72aff9f7b",
+            "right": "413fb1d4cbdf97bac2c275edf347c5c0e20b18d271e0aa6a19c850aaff88d812"
+          },
+          "native_action_heads_used": false,
+          "parameters": 324874
+        }
+      },
+      "independent_db_frames": 240,
+      "elapsed_seconds": 1.6068860420491546
+    }
+  ]
+}

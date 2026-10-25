@@ -1,0 +1,280 @@
+{
+  "schema": "relay.cloth.run.v1",
+  "run_id": "cloth-412f04bad82a4b50",
+  "config": {
+    "seed": 102,
+    "mode": "hybrid",
+    "scenario": "delayed",
+    "coordination": "spacetime",
+    "planner": "rules",
+    "max_ticks": 1800,
+    "publish_every": 4,
+    "video_every": 4,
+    "video": true,
+    "fixture": true,
+    "codec": "checkpoints/cloth-policies/communication.json"
+  },
+  "mode": "hybrid",
+  "scenario": "delayed",
+  "seed": 102,
+  "status": "succeeded",
+  "success": true,
+  "error": null,
+  "ticks": 1235,
+  "wall_seconds": 250.20946575002745,
+  "initial_physics_sha256": "062445d0053c9f3bd5545021ddf08569f8a3401ca034bad1dd18a99c9352796b",
+  "initial_rgb_sha256": {
+    "left": "d6d08ee2a8e3c5c7d2b0e441744f3afbd18a6fa2c9a39a209cdf10a00032ebc9",
+    "right": "e95759ebebe312aa939cf122da2a3cc813c43beca70470ac51e19a46aa996b38"
+  },
+  "metrics": {
+    "success": true,
+    "physics_valid": true,
+    "peak_cloth_speed_m_s": 2.9992590310766656,
+    "peak_edge_strain": 0.34819894252028094,
+    "footprint": {
+      "projected_area_m2": 0.139801025390625,
+      "target_coverage": 0.7415021586621928,
+      "inside_target_fraction": 0.9929054791530234,
+      "span_x_m": 0.4465209295853513,
+      "span_y_m": 0.3601223186068111
+    },
+    "fold_geometry_ok": true,
+    "hem_alignment_m": {
+      "left": 0.04624001491668825,
+      "right": 0.04722233230875378
+    },
+    "sleeve_overhang_m": {
+      "left": 0.0,
+      "right": 0.0
+    },
+    "max_height_m": 0.044872132780479586,
+    "max_speed_m_s": 0.0029173122431779843,
+    "stable_ticks": 100,
+    "on_table": true,
+    "finite": true
+  },
+  "physics": {
+    "engine": "MuJoCo 3.17",
+    "garment": "single-layer T-shirt silhouette, 271 vertices / 460 triangles",
+    "fixture": "six explicit upper-torso vacuum-table connect constraints, released before scoring",
+    "grasp": "distance-gated idealized marked-tab vertex clamp; no frictional pinch or layer inference",
+    "cloth_self_collision": true,
+    "cloth_table_collision": true,
+    "cloth_obstacle_collision": true,
+    "cloth_arm_shell_collision": false,
+    "arm_arm_collision": false,
+    "arm_table_collision": true,
+    "max_valid_cloth_speed_m_s": 5.0,
+    "material_calibration": "illustrative; not calibrated to a real textile",
+    "collision_masks": {
+      "cloth": [
+        4,
+        1
+      ],
+      "arms": [
+        2,
+        1
+      ],
+      "table": [
+        1,
+        3
+      ],
+      "obstacle": [
+        1,
+        3
+      ]
+    },
+    "cloth_contact_radius_m": 0.0018,
+    "elastic_thickness_m": 0.0004,
+    "actuation": "six revolute position motors per arm, analytic Cartesian IK, gravity compensation",
+    "vacuum_fixture_enabled": true
+  },
+  "fixture_active": false,
+  "models": {
+    "left": {
+      "model_id": "relay-lab/cloth-left-v1",
+      "architecture": "spatial-cnn-affine-experts",
+      "policy_class": "original task-trained state-assisted RGB/language/action model",
+      "foundation_vla": false,
+      "feature_basis": "reachable-arc-v2",
+      "checkpoint_sha256": "33d38794b1aea9f89bf622262d5482c405609a537350cc982b2c7c230737d709",
+      "parameters": 11444,
+      "inputs": [
+        "local RGB",
+        "local measured landmarks and visibility masks",
+        "own end-effector/grasp state",
+        "phase instruction",
+        "coordinator clearance"
+      ],
+      "outputs": [
+        "Cartesian target metres",
+        "grip probability"
+      ],
+      "training": {
+        "source": "original MuJoCo RGB contexts and local-state-augmented analytic demonstrations",
+        "external_demonstrations": false,
+        "foundation_weights": false,
+        "control_recipe": "reachable-arc-v2",
+        "state_examples": 18000,
+        "rendered_rgb_contexts": 80,
+        "steps": 300,
+        "training_seeds": [
+          40000,
+          42000
+        ],
+        "heldout_state_seed": 50000,
+        "note": "RGB contexts are randomized auxiliary inputs; these tests do not establish that RGB is required."
+      },
+      "inference_calls": 1235,
+      "inference_seconds": 0.3615943845361471,
+      "limitations": [
+        "Not a pretrained foundation VLA; only the fixed instruction vocabulary is supported.",
+        "Explicit local landmark measurements assist RGB; vision necessity is not established.",
+        "High-level phases, clearance decisions, IK and motor limits are separate components."
+      ]
+    },
+    "right": {
+      "model_id": "relay-lab/cloth-right-v1",
+      "architecture": "patch-attention-affine-experts",
+      "policy_class": "original task-trained state-assisted RGB/language/action model",
+      "foundation_vla": false,
+      "feature_basis": "reachable-arc-v2",
+      "checkpoint_sha256": "1dfee3e300a46e9007bed395b4b2bac0102a1d37ec230cc0bd28d41bfc58555d",
+      "parameters": 11356,
+      "inputs": [
+        "local RGB",
+        "local measured landmarks and visibility masks",
+        "own end-effector/grasp state",
+        "phase instruction",
+        "coordinator clearance"
+      ],
+      "outputs": [
+        "Cartesian target metres",
+        "grip probability"
+      ],
+      "training": {
+        "source": "original MuJoCo RGB contexts and local-state-augmented analytic demonstrations",
+        "external_demonstrations": false,
+        "foundation_weights": false,
+        "control_recipe": "reachable-arc-v2",
+        "state_examples": 18000,
+        "rendered_rgb_contexts": 80,
+        "steps": 300,
+        "training_seeds": [
+          40001,
+          42001
+        ],
+        "heldout_state_seed": 50001,
+        "note": "RGB contexts are randomized auxiliary inputs; these tests do not establish that RGB is required."
+      },
+      "inference_calls": 1235,
+      "inference_seconds": 0.3071894107852131,
+      "limitations": [
+        "Not a pretrained foundation VLA; only the fixed instruction vocabulary is supported.",
+        "Explicit local landmark measurements assist RGB; vision necessity is not established.",
+        "High-level phases, clearance decisions, IK and motor limits are separate components."
+      ]
+    }
+  },
+  "communication": {
+    "published": 618,
+    "delivered": 341,
+    "dropped": 123,
+    "expired": 0,
+    "out_of_order": 151,
+    "payload_bytes": 251955,
+    "packet_bytes": 537393,
+    "retrievals": 2470,
+    "missing_reads": 30,
+    "stale_reads": 24,
+    "local_observations": 618,
+    "network_delay_ticks": {
+      "count": 341,
+      "mean": 7.997067448680352,
+      "p95": 15.0
+    },
+    "observation_age_ticks": {
+      "count": 2416,
+      "mean": 11.164735099337749,
+      "p95": 19.0
+    },
+    "encode_ms": {
+      "count": 618,
+      "mean": 0.016483388205200532,
+      "p95": 0.028101995121687647
+    },
+    "decode_ms": {
+      "count": 2416,
+      "mean": 0.03318769854589038,
+      "p95": 0.06953126285225153
+    },
+    "durable_commit_ms": {
+      "count": 309,
+      "mean": 6.652473734275809,
+      "p95": 9.27320006303489
+    },
+    "pending_delivery": 3,
+    "backend": {
+      "kind": "spacetimedb",
+      "durable": true,
+      "run_id": "cloth-412f04bad82a4b50",
+      "index": "private B-tree run/frame and packet identity; no ANN",
+      "protocol": "owner-authenticated idempotent commit + durability ACK + exact readback",
+      "trusted_worker": true,
+      "physics": "single-process simulator"
+    },
+    "schedule": "seed/sender/observation tick; independent of representation and payload",
+    "byte_accounting": "UTF-8 JSON content/envelope; excludes HTTP and SQL readback",
+    "model": {
+      "kind": "standardized-pca-v1",
+      "space_id": "cloth-local-pca-8-v2",
+      "checkpoint_sha256": "fd6cc849059e65b1a64fedc668abb1e79fb8c2d05a2cad467e01d1d736022661",
+      "dimension": 8,
+      "source_dimension": 23,
+      "training": {
+        "combined_input_sha256": "b22ee4c7d9e6f38f5da186124ffd6b9096b1500b3a5a8761eec98cf7ca91ec13",
+        "evaluation_seeds_used": false,
+        "feature_sha256": "f6bca9e20bcbbba4fc2bbbd56ba945a2e6521bfd9002a961a8e7f2b21139aead",
+        "migration": {
+          "already_current": 0,
+          "discarded_unknown_attachment": 16,
+          "inferred_targets_from_phase": false,
+          "input_rows": 160,
+          "retained_rows": 144
+        },
+        "representation": "standardized PCA of measured local features; not a VLA hidden state",
+        "samples": 632,
+        "source": "original local MuJoCo measurements, calibration and complete training trajectory",
+        "split": "training",
+        "training_seeds": [
+          10000,
+          10001,
+          10002,
+          10003,
+          10004
+        ]
+      }
+    }
+  },
+  "planner": {
+    "mode": "rules",
+    "calls": 0
+  },
+  "wait_ticks": {
+    "left": 355,
+    "right": 274
+  },
+  "phase": {
+    "left": "settle",
+    "right": "settle"
+  },
+  "limitations": [
+    "Single-layer T-shirt-shaped flex sheet; material parameters are not calibrated to real fabric.",
+    "Distance-gated physical vertex clamps approximate grasping; not frictional finger grasp validation.",
+    "An explicit vacuum-table fixture stabilizes the upper garment during folding; released before final scoring.",
+    "Task-trained policies use local landmark state as well as RGB; not foundation-model control.",
+    "Shared learned representations encode measured local features, not foundation-VLA hidden states.",
+    "Synthetic message delays advance with simulation; wall-clock database/inference calls pause the worker."
+  ]
+}

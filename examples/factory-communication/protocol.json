@@ -1,0 +1,34 @@
+{
+  "schema": "relay.factory.communication-benchmark.v1",
+  "created_at": "2026-10-24T21:26:37.213079+00:00",
+  "task": "dispatch-routing",
+  "seeds": [
+    101,
+    102,
+    103,
+    104,
+    105,
+    106,
+    107,
+    108,
+    109,
+    110,
+    111,
+    112
+  ],
+  "orders": 3,
+  "max_ticks": 5000,
+  "planner": "rules",
+  "coordination": "memory",
+  "mode_order": "rotate embeddings/text/none by seed index; sequential execution",
+  "policy": "frozen factory-vla actor; no analytic motor fallback",
+  "partial_information": "Only humanoid receives private RGB routing cue. Gantry sees local dispatch scene. Central planner gets public stage/custody and action candidates only.",
+  "parity": "Same learned visual prediction; embedding decoding at receiver versus exact JSON route text decoded at sender. Same cadence/TTL/job scope. Control-plane leases and stage ACKs remain in all modes.",
+  "no_communication_prior": "Always A, independent of seed, cue and job ID",
+  "limitations": [
+    "Two-class immutable routing cue in calibrated synthetic inspection imagery; task-specific learned codec, not a general semantic foundation embedding.",
+    "The motor policy consumes the decoded symbolic slot; this tests communication for a local subgoal, not end-to-end latent motor learning.",
+    "All failures are retained; Wilson interval is over complete tasks, not correlated workpieces.",
+    "Wall time includes rendering, logging, model startup and coordination; channel timings are reported separately."
+  ]
+}

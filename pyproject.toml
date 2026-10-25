@@ -5,10 +5,10 @@ build-backend = "hatchling.build"
 [project]
 name = "relay-lab"
 version = "0.1.0"
-description = "A small, original two-robot communication sandbox in MuJoCo"
+description = "Original multi-robot factory and learned-VLA workcell with local LLM coordination"
 requires-python = ">=3.12"
 dependencies = [
-  "mujoco>=3.2,<4",
+  "mujoco>=3.17,<4",
   "numpy>=1.26,<3",
   "pillow>=10,<13",
   "imageio>=2.35,<3",
@@ -16,7 +16,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-vla = ["lerobot[smolvla]==0.6.1"]
+vla = ["lerobot[smolvla,xvla]==0.6.1"]
 learned = ["torch==2.11.0"]
 
 [dependency-groups]

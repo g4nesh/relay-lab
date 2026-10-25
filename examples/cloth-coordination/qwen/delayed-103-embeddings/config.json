@@ -1,0 +1,14 @@
+{
+  "seed": 103,
+  "mode": "embeddings",
+  "scenario": "delayed",
+  "coordination": "spacetime",
+  "planner": "llm",
+  "max_ticks": 1800,
+  "publish_every": 4,
+  "video_every": 4,
+  "video": true,
+  "fixture": true,
+  "codec": "checkpoints/cloth-policies/communication.json",
+  "run_id": "cloth-2769f0ebf56c4f56"
+}

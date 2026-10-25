@@ -1,0 +1,31 @@
+{
+  "schema": "relay.factory.communication-audit.v1",
+  "run_id": "factory-7cf8c52fb2f742a1",
+  "mode": "embeddings",
+  "reported_status": "succeeded",
+  "evidence_valid": true,
+  "success_verified": true,
+  "physical_completion_verified": true,
+  "correct_routes": 3,
+  "committed_ticks": 3212,
+  "committed_packets": 788,
+  "route_decisions": 3,
+  "commands": {
+    "completed": 27
+  },
+  "neural_actions_by_robot": {
+    "humanoid-01": 295,
+    "amr-01": 1407,
+    "arm-01": 765,
+    "amr-02": 1480,
+    "gantry-01": 393
+  },
+  "actor_checkpoint_sha256": "a31f6dd477c03ae6848f1a96fd79004582d02bfbcdef84f1fb8825f2e99e1f5b",
+  "codec_checkpoint_sha256": "e3183e3c87318d13e0d5dba10f8d8a47ccc6d1ae8827c476edc3ca0421b14c00",
+  "spacetime_checked": true,
+  "durable_commits_checked": 3212,
+  "error_count": 0,
+  "issues": [],
+  "warnings": [],
+  "scope": "Full recorded causal/physical evidence consistency, not independent execution attestation; original RGB bytes are not retained in this trace."
+}

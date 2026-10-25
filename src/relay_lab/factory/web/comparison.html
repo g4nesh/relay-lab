@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Relay Lab · Channel comparison</title>
+  <link rel="stylesheet" href="./styles.css"><link rel="stylesheet" href="./comparison.css">
+</head>
+<body class="comparison-page">
+  <header class="app-header">
+    <a class="brand" href="/"><span class="brand-mark">r<span>↗</span></span><span>relay<span class="brand-lab"> lab</span></span></a>
+    <div class="header-location"><span class="separator">/</span> Communication study <span class="tag">EXPERIMENT</span></div>
+    <div class="header-end"><a class="subtle-button" href="/">← Factory</a><button id="refresh-comparison" class="subtle-button">Refresh results ↻</button></div>
+  </header>
+  <main class="comparison-main">
+    <section class="comparison-heading"><div><div class="breadcrumbs">WORKSPACE <span>/</span> PAIRED EVALUATION</div><h1>From private observation to shared action</h1><p>One loader sees the label. One gantry chooses the destination. Compare what crosses the gap.</p></div><span id="comparison-status" class="status-pill">Loading results</span></section>
+    <div id="comparison-empty" class="comparison-empty" hidden role="status"></div>
+    <div id="comparison-content" hidden>
+      <p id="comparison-progress-note" class="comparison-progress-note" hidden></p>
+      <section class="protocol-strip" id="protocol-strip" aria-label="Experiment conditions"></section>
+      <section class="comparison-modes" id="comparison-modes" aria-label="Results by communication mode"></section>
+      <section class="comparison-chart-panel"><div class="section-header"><div><span class="section-eyebrow">OUTCOMES</span><h2>Complete tasks and correct routes</h2></div><span>All recorded runs remain in the denominator</span></div><div id="outcome-bars"></div><p class="comparison-note">Task success requires every workpiece to be routed correctly. Physical delivery alone does not establish task success.</p></section>
+      <section class="comparison-quality"><div><span class="section-eyebrow">PAIRING CHECKS</span><h2>Same task, different channel</h2><div id="pairing-checks"></div></div><div><span class="section-eyebrow">WHAT THIS TEST MEASURES</span><h2>A local routing decision</h2><p id="protocol-parity"></p><p id="protocol-partial"></p><p class="comparison-note">The embedding codec is task-trained on synthetic inspection images. These are private cue representations, not foundation-model motor embeddings.</p></div></section>
+      <section class="comparison-runs"><div class="section-header"><div><span class="section-eyebrow">EVERY RUN</span><h2>Paired rollout record</h2></div><span id="run-count"></span></div><div class="comparison-table-wrap"><table><thead><tr><th>Seed</th><th>Channel</th><th>Task outcome</th><th>Physical delivery</th><th>Correct routes</th><th>Ticks</th><th>Packets</th><th>Failed skills</th></tr></thead><tbody id="comparison-run-rows"></tbody></table></div></section>
+      <section class="comparison-integration" id="comparison-integration" hidden aria-labelledby="integration-title"><div class="section-header"><div><span class="section-eyebrow">SEPARATE INTEGRATION SUITE</span><h2 id="integration-title">Qwen + Spacetime integration</h2></div><span id="integration-status" class="status-pill"></span></div><p class="integration-description">These runs use the Qwen mediator and SpacetimeDB coordination. They are reported separately and are not pooled with the primary reference results above.</p><div class="comparison-modes integration-modes" id="integration-modes" aria-label="Qwen and Spacetime results by communication mode"></div><div class="integration-footer"><p id="integration-progress" class="comparison-note"></p><a class="subtle-button" href="/?replay=1">Watch Qwen recording ↗</a></div></section>
+      <section class="comparison-limits"><span class="section-eyebrow">INTERPRETATION</span><h2>Limits of the evidence</h2><ul id="comparison-limit-list"></ul><p>Wall time includes simulation, rendering, logging, model initialization and coordination. A channel advantage should not be inferred from raw wall time alone.</p></section>
+    </div>
+    <footer class="workspace-footer"><span><i></i> Measured physical outcomes <b>·</b> Frozen actor <b>·</b> No discarded failures</span><span id="comparison-updated"></span></footer>
+  </main>
+  <script type="module" src="./comparison.js"></script>
+</body>
+</html>

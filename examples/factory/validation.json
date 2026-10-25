@@ -1,0 +1,62 @@
+{
+  "date": "2026-10-24",
+  "tests": {
+    "passed": 284,
+    "skipped": 0,
+    "live_spacetimedb": true
+  },
+  "checks": [
+    "Ruff",
+    "TypeScript typecheck",
+    "browser interaction and console",
+    "wheel assets verified"
+  ],
+  "local_llm_run": {
+    "run_id": "factory-4e955d456c414819",
+    "orders": 3,
+    "completed": 3,
+    "ticks": 2644,
+    "commands": 27,
+    "messages": 78,
+    "failed_skills": 0,
+    "llm_calls": 27,
+    "llm_repairs": 0,
+    "llm_seconds": 27.001,
+    "wall_seconds": 93.26,
+    "max_concurrent_commands": 2
+  },
+  "browser_llm_run": {
+    "run_id": "factory-c7667de56a5f4d11",
+    "orders": 1,
+    "completed": 1,
+    "ticks": 1001,
+    "llm_calls": 9,
+    "messages": 26,
+    "pause_resume_tested": true
+  },
+  "final_backend_run": {
+    "run_id": "factory-83b6e4561d344da0",
+    "orders": 1,
+    "completed": 1,
+    "ticks": 1000,
+    "commands": 9,
+    "failed_skills": 0,
+    "planner": "rules",
+    "backend": "spacetimedb"
+  },
+  "scale_reference": {
+    "orders": 6,
+    "completed": 6,
+    "ticks": 5126,
+    "commands": 54,
+    "failed_skills": 0,
+    "planner": "rules",
+    "backend": "memory"
+  },
+  "limitations": [
+    "Fixed fixture layout; seed does not randomize the scene.",
+    "New robot embodiments use model-based motor control, not learned factory VLAs.",
+    "Kinematic robot links and idealized grasp attachments; released cargo has MuJoCo contact dynamics.",
+    "Single trusted simulation worker; no automatic failover or independent robot attestation."
+  ]
+}

@@ -1,0 +1,294 @@
+{
+  "schema": "relay.factory.communication-audits.v1",
+  "runs": [
+    {
+      "schema": "relay.factory.communication-audit.v1",
+      "run_id": "factory-cb58d59059524ded",
+      "mode": "embeddings",
+      "reported_status": "succeeded",
+      "evidence_valid": true,
+      "success_verified": true,
+      "physical_completion_verified": true,
+      "correct_routes": 3,
+      "committed_ticks": 3203,
+      "committed_packets": 786,
+      "route_decisions": 3,
+      "commands": {
+        "completed": 27
+      },
+      "neural_actions_by_robot": {
+        "humanoid-01": 296,
+        "amr-01": 1400,
+        "arm-01": 765,
+        "amr-02": 1480,
+        "gantry-01": 391
+      },
+      "actor_checkpoint_sha256": "a31f6dd477c03ae6848f1a96fd79004582d02bfbcdef84f1fb8825f2e99e1f5b",
+      "codec_checkpoint_sha256": "e3183e3c87318d13e0d5dba10f8d8a47ccc6d1ae8827c476edc3ca0421b14c00",
+      "spacetime_checked": true,
+      "durable_commits_checked": 3203,
+      "error_count": 0,
+      "issues": [],
+      "warnings": [],
+      "scope": "Full recorded causal/physical evidence consistency, not independent execution attestation; original RGB bytes are not retained in this trace.",
+      "directory": "runs/communication-benchmark-qwen-spacetime/seed-101-embeddings"
+    },
+    {
+      "directory": "runs/communication-benchmark-qwen-spacetime/seed-101-none",
+      "schema": "relay.factory.communication-audit.v1",
+      "run_id": "factory-360268e0a3d9416b",
+      "mode": "none",
+      "reported_status": "rejected",
+      "evidence_valid": true,
+      "success_verified": false,
+      "physical_completion_verified": true,
+      "correct_routes": 2,
+      "committed_ticks": 3218,
+      "committed_packets": 0,
+      "route_decisions": 3,
+      "commands": {
+        "completed": 27
+      },
+      "neural_actions_by_robot": {
+        "humanoid-01": 296,
+        "amr-01": 1400,
+        "arm-01": 765,
+        "amr-02": 1487,
+        "gantry-01": 407
+      },
+      "actor_checkpoint_sha256": "a31f6dd477c03ae6848f1a96fd79004582d02bfbcdef84f1fb8825f2e99e1f5b",
+      "codec_checkpoint_sha256": "e3183e3c87318d13e0d5dba10f8d8a47ccc6d1ae8827c476edc3ca0421b14c00",
+      "spacetime_checked": true,
+      "durable_commits_checked": 3218,
+      "error_count": 0,
+      "issues": [],
+      "warnings": [],
+      "scope": "Full recorded causal/physical evidence consistency, not independent execution attestation; original RGB bytes are not retained in this trace."
+    },
+    {
+      "schema": "relay.factory.communication-audit.v1",
+      "run_id": "factory-08dfb84635724444",
+      "mode": "text",
+      "reported_status": "succeeded",
+      "evidence_valid": true,
+      "success_verified": true,
+      "physical_completion_verified": true,
+      "correct_routes": 3,
+      "committed_ticks": 3203,
+      "committed_packets": 786,
+      "route_decisions": 3,
+      "commands": {
+        "completed": 27
+      },
+      "neural_actions_by_robot": {
+        "humanoid-01": 296,
+        "amr-01": 1400,
+        "arm-01": 765,
+        "amr-02": 1480,
+        "gantry-01": 391
+      },
+      "actor_checkpoint_sha256": "a31f6dd477c03ae6848f1a96fd79004582d02bfbcdef84f1fb8825f2e99e1f5b",
+      "codec_checkpoint_sha256": "e3183e3c87318d13e0d5dba10f8d8a47ccc6d1ae8827c476edc3ca0421b14c00",
+      "spacetime_checked": true,
+      "durable_commits_checked": 3203,
+      "error_count": 0,
+      "issues": [],
+      "warnings": [],
+      "scope": "Full recorded causal/physical evidence consistency, not independent execution attestation; original RGB bytes are not retained in this trace.",
+      "directory": "runs/communication-benchmark-qwen-spacetime/seed-101-text"
+    },
+    {
+      "directory": "runs/communication-benchmark-qwen-spacetime/seed-102-none",
+      "schema": "relay.factory.communication-audit.v1",
+      "run_id": "factory-7945d974ea2a4a21",
+      "mode": "none",
+      "reported_status": "rejected",
+      "evidence_valid": true,
+      "success_verified": false,
+      "physical_completion_verified": true,
+      "correct_routes": 1,
+      "committed_ticks": 3225,
+      "committed_packets": 0,
+      "route_decisions": 3,
+      "commands": {
+        "completed": 27
+      },
+      "neural_actions_by_robot": {
+        "humanoid-01": 295,
+        "amr-01": 1407,
+        "arm-01": 765,
+        "amr-02": 1487,
+        "gantry-01": 407
+      },
+      "actor_checkpoint_sha256": "a31f6dd477c03ae6848f1a96fd79004582d02bfbcdef84f1fb8825f2e99e1f5b",
+      "codec_checkpoint_sha256": "e3183e3c87318d13e0d5dba10f8d8a47ccc6d1ae8827c476edc3ca0421b14c00",
+      "spacetime_checked": true,
+      "durable_commits_checked": 3225,
+      "error_count": 0,
+      "issues": [],
+      "warnings": [],
+      "scope": "Full recorded causal/physical evidence consistency, not independent execution attestation; original RGB bytes are not retained in this trace."
+    },
+    {
+      "directory": "runs/communication-benchmark-qwen-spacetime/seed-102-text",
+      "schema": "relay.factory.communication-audit.v1",
+      "run_id": "factory-f21352fb35924c6a",
+      "mode": "text",
+      "reported_status": "succeeded",
+      "evidence_valid": true,
+      "success_verified": true,
+      "physical_completion_verified": true,
+      "correct_routes": 3,
+      "committed_ticks": 3190,
+      "committed_packets": 780,
+      "route_decisions": 3,
+      "commands": {
+        "completed": 27
+      },
+      "neural_actions_by_robot": {
+        "humanoid-01": 295,
+        "amr-01": 1407,
+        "arm-01": 765,
+        "amr-02": 1460,
+        "gantry-01": 389
+      },
+      "actor_checkpoint_sha256": "a31f6dd477c03ae6848f1a96fd79004582d02bfbcdef84f1fb8825f2e99e1f5b",
+      "codec_checkpoint_sha256": "e3183e3c87318d13e0d5dba10f8d8a47ccc6d1ae8827c476edc3ca0421b14c00",
+      "spacetime_checked": true,
+      "durable_commits_checked": 3190,
+      "error_count": 0,
+      "issues": [],
+      "warnings": [],
+      "scope": "Full recorded causal/physical evidence consistency, not independent execution attestation; original RGB bytes are not retained in this trace."
+    },
+    {
+      "schema": "relay.factory.communication-audit.v1",
+      "run_id": "factory-b98ce51eebc341fb",
+      "mode": "embeddings",
+      "reported_status": "succeeded",
+      "evidence_valid": true,
+      "success_verified": true,
+      "physical_completion_verified": true,
+      "correct_routes": 3,
+      "committed_ticks": 3190,
+      "committed_packets": 780,
+      "route_decisions": 3,
+      "commands": {
+        "completed": 27
+      },
+      "neural_actions_by_robot": {
+        "humanoid-01": 295,
+        "amr-01": 1407,
+        "arm-01": 765,
+        "amr-02": 1460,
+        "gantry-01": 389
+      },
+      "actor_checkpoint_sha256": "a31f6dd477c03ae6848f1a96fd79004582d02bfbcdef84f1fb8825f2e99e1f5b",
+      "codec_checkpoint_sha256": "e3183e3c87318d13e0d5dba10f8d8a47ccc6d1ae8827c476edc3ca0421b14c00",
+      "spacetime_checked": true,
+      "durable_commits_checked": 3190,
+      "error_count": 0,
+      "issues": [],
+      "warnings": [],
+      "scope": "Full recorded causal/physical evidence consistency, not independent execution attestation; original RGB bytes are not retained in this trace."
+    },
+    {
+      "schema": "relay.factory.communication-audit.v1",
+      "run_id": "factory-256ed2f4219d4f44",
+      "mode": "embeddings",
+      "reported_status": "failed",
+      "evidence_valid": true,
+      "success_verified": false,
+      "physical_completion_verified": false,
+      "correct_routes": 1,
+      "committed_ticks": 2339,
+      "committed_packets": 611,
+      "route_decisions": 2,
+      "commands": {
+        "completed": 19,
+        "running": 2
+      },
+      "neural_actions_by_robot": {
+        "humanoid-01": 295,
+        "amr-01": 1267,
+        "arm-01": 497,
+        "amr-02": 952,
+        "gantry-01": 250
+      },
+      "actor_checkpoint_sha256": "a31f6dd477c03ae6848f1a96fd79004582d02bfbcdef84f1fb8825f2e99e1f5b",
+      "codec_checkpoint_sha256": "e3183e3c87318d13e0d5dba10f8d8a47ccc6d1ae8827c476edc3ca0421b14c00",
+      "spacetime_checked": true,
+      "durable_commits_checked": 2339,
+      "error_count": 0,
+      "issues": [],
+      "warnings": [
+        "Incomplete run retained; terminal route correctness is not verified."
+      ],
+      "scope": "Full recorded causal/physical evidence consistency, not independent execution attestation; original RGB bytes are not retained in this trace."
+    },
+    {
+      "schema": "relay.factory.communication-audit.v1",
+      "run_id": "factory-bc19221d86364d91",
+      "mode": "none",
+      "reported_status": "rejected",
+      "evidence_valid": true,
+      "success_verified": false,
+      "physical_completion_verified": true,
+      "correct_routes": 1,
+      "committed_ticks": 3225,
+      "committed_packets": 0,
+      "route_decisions": 3,
+      "commands": {
+        "completed": 27
+      },
+      "neural_actions_by_robot": {
+        "humanoid-01": 295,
+        "amr-01": 1407,
+        "arm-01": 765,
+        "amr-02": 1487,
+        "gantry-01": 407
+      },
+      "actor_checkpoint_sha256": "a31f6dd477c03ae6848f1a96fd79004582d02bfbcdef84f1fb8825f2e99e1f5b",
+      "codec_checkpoint_sha256": "e3183e3c87318d13e0d5dba10f8d8a47ccc6d1ae8827c476edc3ca0421b14c00",
+      "spacetime_checked": true,
+      "durable_commits_checked": 3225,
+      "error_count": 0,
+      "issues": [],
+      "warnings": [],
+      "scope": "Full recorded causal/physical evidence consistency, not independent execution attestation; original RGB bytes are not retained in this trace."
+    },
+    {
+      "schema": "relay.factory.communication-audit.v1",
+      "run_id": "factory-bad2cba8078f43ee",
+      "mode": "text",
+      "reported_status": "succeeded",
+      "evidence_valid": true,
+      "success_verified": true,
+      "physical_completion_verified": true,
+      "correct_routes": 3,
+      "committed_ticks": 3212,
+      "committed_packets": 788,
+      "route_decisions": 3,
+      "commands": {
+        "completed": 27
+      },
+      "neural_actions_by_robot": {
+        "humanoid-01": 295,
+        "amr-01": 1407,
+        "arm-01": 765,
+        "amr-02": 1480,
+        "gantry-01": 393
+      },
+      "actor_checkpoint_sha256": "a31f6dd477c03ae6848f1a96fd79004582d02bfbcdef84f1fb8825f2e99e1f5b",
+      "codec_checkpoint_sha256": "e3183e3c87318d13e0d5dba10f8d8a47ccc6d1ae8827c476edc3ca0421b14c00",
+      "spacetime_checked": true,
+      "durable_commits_checked": 3212,
+      "error_count": 0,
+      "issues": [],
+      "warnings": [],
+      "scope": "Full recorded causal/physical evidence consistency, not independent execution attestation; original RGB bytes are not retained in this trace."
+    }
+  ],
+  "all_evidence_valid": true,
+  "completed_run_count": 5
+}

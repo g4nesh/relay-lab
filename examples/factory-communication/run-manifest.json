@@ -1,0 +1,902 @@
+[
+  {
+    "suite": "heldout",
+    "run_id": "factory-a0181cfbd8a943eb",
+    "directory": "runs/communication-benchmark-heldout/seed-101-embeddings",
+    "status": "succeeded",
+    "files": {
+      "events.jsonl.gz": {
+        "bytes": 5435760,
+        "sha256": "406827cd0ff51d0a6bfd0a42ecf40bb7369c04c1e0ff8249f5d263a75b051931"
+      },
+      "replay.json.gz": {
+        "bytes": 4611282,
+        "sha256": "f304f11ecdd5054c984c9b109ee2caab45390c8d4dc8d241e9ab6a8a6d31c0a8"
+      },
+      "summary.json": {
+        "bytes": 125272,
+        "sha256": "72cc2a4328993ad6b7972452ff5ce90f16a92b6ae985fcbcedd64e73c45b2649"
+      }
+    }
+  },
+  {
+    "suite": "heldout",
+    "run_id": "factory-306950123b6f46c0",
+    "directory": "runs/communication-benchmark-heldout/seed-101-none",
+    "status": "rejected",
+    "files": {
+      "events.jsonl.gz": {
+        "bytes": 4660521,
+        "sha256": "ce561c97a8cd89e2e541c030f9bdf84f93e398b901ac87ce8804007910ef2d00"
+      },
+      "replay.json.gz": {
+        "bytes": 4627500,
+        "sha256": "6d130a96d0103ac3e2746966676887c953b83f43689faadb4bd34a7110c07601"
+      },
+      "summary.json": {
+        "bytes": 124906,
+        "sha256": "e234f2c2796fc6a4f38bc1e311dd9cf289f88a1ae3f24f77855276d75212d582"
+      }
+    }
+  },
+  {
+    "suite": "heldout",
+    "run_id": "factory-216e9edf99604a78",
+    "directory": "runs/communication-benchmark-heldout/seed-101-text",
+    "status": "succeeded",
+    "files": {
+      "events.jsonl.gz": {
+        "bytes": 5095847,
+        "sha256": "7cfd9a696bf2a3759cc40dc9aa2a0d38e0717304fe015d68c231f34aacd0e925"
+      },
+      "replay.json.gz": {
+        "bytes": 4604549,
+        "sha256": "26c984eb8d7cd1bc9cf2066cd817c8c83e8ab14f4f5936c55b130bc59bc9a7c7"
+      },
+      "summary.json": {
+        "bytes": 125297,
+        "sha256": "9a4042b40eaa61db5dbe795d6bd31c2a5a523a84ec73d3fb856f3c08c7a3fcdd"
+      }
+    }
+  },
+  {
+    "suite": "heldout",
+    "run_id": "factory-c07b9e62456944e7",
+    "directory": "runs/communication-benchmark-heldout/seed-102-embeddings",
+    "status": "succeeded",
+    "files": {
+      "events.jsonl.gz": {
+        "bytes": 5403772,
+        "sha256": "48e80f4e005522e183c32daf2a54823096c1f00396afd588d9b23ea539747f23"
+      },
+      "replay.json.gz": {
+        "bytes": 4581961,
+        "sha256": "06a838e8bc62fbf6da64f3afc81624b2df16d590efc2aba13b10eba444f9efec"
+      },
+      "summary.json": {
+        "bytes": 125252,
+        "sha256": "c3c9cb26a8f2c244e2bc68ca9b4da2c272dec77d1646ed219070eb0f71922f6f"
+      }
+    }
+  },
+  {
+    "suite": "heldout",
+    "run_id": "factory-1c4b28c5ca9a467b",
+    "directory": "runs/communication-benchmark-heldout/seed-102-none",
+    "status": "rejected",
+    "files": {
+      "events.jsonl.gz": {
+        "bytes": 4679407,
+        "sha256": "47afe6a72d9973269db286b7886ef53547541d60b5e4370bb6fb1b0fbbf7c42c"
+      },
+      "replay.json.gz": {
+        "bytes": 4645501,
+        "sha256": "e23f3e9128b2d2ebe2f15bb276f8694e4062c9706dbdfd28d115f0c3e02d1e94"
+      },
+      "summary.json": {
+        "bytes": 124912,
+        "sha256": "428670270ce83b822eb7d959c7e0ff57e96ffd19dd88ce7103ab7adf2495051d"
+      }
+    }
+  },
+  {
+    "suite": "heldout",
+    "run_id": "factory-65df8e8af3cf47de",
+    "directory": "runs/communication-benchmark-heldout/seed-102-text",
+    "status": "succeeded",
+    "files": {
+      "events.jsonl.gz": {
+        "bytes": 5068394,
+        "sha256": "022407ac3b43bedb5016b6581e159cccaf4d4e7014266affcfe88a3af48e540a"
+      },
+      "replay.json.gz": {
+        "bytes": 4567681,
+        "sha256": "6fb58b6fdf9f357b5e8fd75381e73aa9fa7c1180debd432592e6719da41b9b6c"
+      },
+      "summary.json": {
+        "bytes": 125274,
+        "sha256": "fb992980a306d08aeeebb2b1b8f08bbcdc7862a79b8b1cab35e526aa60a98bc3"
+      }
+    }
+  },
+  {
+    "suite": "heldout",
+    "run_id": "factory-4e0333becb01498f",
+    "directory": "runs/communication-benchmark-heldout/seed-103-embeddings",
+    "status": "succeeded",
+    "files": {
+      "events.jsonl.gz": {
+        "bytes": 5464446,
+        "sha256": "9b1caca3d1b8aee0456ad8bb0e52a9ae0e0f6886d734f245e789ae0abd03d165"
+      },
+      "replay.json.gz": {
+        "bytes": 4589048,
+        "sha256": "8261626e929c3d1d339ca1d62cc03c9ae9da60a7959cd58e224f2b801ca3eb69"
+      },
+      "summary.json": {
+        "bytes": 125286,
+        "sha256": "9df103c1f6548b60e32110bdafcd007623ab644b741f2521b3e22d86a8f777d9"
+      }
+    }
+  },
+  {
+    "suite": "heldout",
+    "run_id": "factory-a8154872928a43a7",
+    "directory": "runs/communication-benchmark-heldout/seed-103-none",
+    "status": "rejected",
+    "files": {
+      "events.jsonl.gz": {
+        "bytes": 4679600,
+        "sha256": "bbf92477ceb868205646a51ba17c11491aa84ceb3f8bf3f84e7f048fe955f78e"
+      },
+      "replay.json.gz": {
+        "bytes": 4609511,
+        "sha256": "bcec066fbc0a5a0f88ca8370b9492d5758b65872f434466900e4dea27f196e53"
+      },
+      "summary.json": {
+        "bytes": 124918,
+        "sha256": "3a02dbef1c94d618c3071c387da69cbfc0c3dbc67b931bc4e37a6b232b93eb49"
+      }
+    }
+  },
+  {
+    "suite": "heldout",
+    "run_id": "factory-58dd53c7c1c04571",
+    "directory": "runs/communication-benchmark-heldout/seed-103-text",
+    "status": "succeeded",
+    "files": {
+      "events.jsonl.gz": {
+        "bytes": 5101665,
+        "sha256": "f1b594a07e4296c350123cdece90e63b06ea48529caf3f2541dfbdc4dadccfe6"
+      },
+      "replay.json.gz": {
+        "bytes": 4578311,
+        "sha256": "9adabc2311e9405d174941dd3f70ec46b393b750b40fc829b8ec108e101c22b0"
+      },
+      "summary.json": {
+        "bytes": 125313,
+        "sha256": "4e266a02b3f0da2651917a4a7f777633473ee70c07b950b6d9d7a5b3653bcc0f"
+      }
+    }
+  },
+  {
+    "suite": "heldout",
+    "run_id": "factory-463716c436c6497f",
+    "directory": "runs/communication-benchmark-heldout/seed-104-embeddings",
+    "status": "succeeded",
+    "files": {
+      "events.jsonl.gz": {
+        "bytes": 5431431,
+        "sha256": "1bc07d8e94ee5e76591f1e32bdc44cf5b53ec587d271afddb28bd45de012eeb0"
+      },
+      "replay.json.gz": {
+        "bytes": 4605761,
+        "sha256": "0a64cadab2959cea4de542aaae00da34effb5336c653001ef746c422bcf4019c"
+      },
+      "summary.json": {
+        "bytes": 125263,
+        "sha256": "61827169d7e7b4aa56ee819c52d62bb355d038501e83665ec2a5dafaabc435f0"
+      }
+    }
+  },
+  {
+    "suite": "heldout",
+    "run_id": "factory-6300365a930c4310",
+    "directory": "runs/communication-benchmark-heldout/seed-104-none",
+    "status": "rejected",
+    "files": {
+      "events.jsonl.gz": {
+        "bytes": 4677473,
+        "sha256": "7846e81b8d057c6d41c419ab83ae9d866379fa6ede12ad1598ed7e7afda746b8"
+      },
+      "replay.json.gz": {
+        "bytes": 4652548,
+        "sha256": "96438dcaeb97cc3d5793b1346ec0ec76fe3625c5aeed16f2f47844c21061b2a9"
+      },
+      "summary.json": {
+        "bytes": 124916,
+        "sha256": "e4c0bc0ff98fcb9ea8817246c26237a617a9c8cbc3787ee8028ecf43e3b72457"
+      }
+    }
+  },
+  {
+    "suite": "heldout",
+    "run_id": "factory-be0920f10a2942e6",
+    "directory": "runs/communication-benchmark-heldout/seed-104-text",
+    "status": "succeeded",
+    "files": {
+      "events.jsonl.gz": {
+        "bytes": 5060953,
+        "sha256": "5fab482888c46abe7a5da982bf098bde3654803b14305ae923dbf0765a105b67"
+      },
+      "replay.json.gz": {
+        "bytes": 4594908,
+        "sha256": "3022795e880bdcad045a75bae35210ca392c0fdf675b0798d003f9d5e1a7a643"
+      },
+      "summary.json": {
+        "bytes": 125291,
+        "sha256": "bb768e82ab726e8bd1431efe31d9163f58b23a746a4b6e3f65815d4416c9c8c4"
+      }
+    }
+  },
+  {
+    "suite": "heldout",
+    "run_id": "factory-d2b693e6d88f47e9",
+    "directory": "runs/communication-benchmark-heldout/seed-105-embeddings",
+    "status": "succeeded",
+    "files": {
+      "events.jsonl.gz": {
+        "bytes": 5515190,
+        "sha256": "60f2c8ade9e1c6f69c74a3fb93d3532de59ddd5226a6a68b55b4aad4d6f1db14"
+      },
+      "replay.json.gz": {
+        "bytes": 4660450,
+        "sha256": "3d07563db651ffae84816395b0313d9a2190b5ad9f733511c3c8bde2938cde86"
+      },
+      "summary.json": {
+        "bytes": 125270,
+        "sha256": "66a8bcfe2b8d8d41b235462595d0ea7ac1a7f2ebb2eb660f42156aa3259bd41d"
+      }
+    }
+  },
+  {
+    "suite": "heldout",
+    "run_id": "factory-9fca26dfacb54087",
+    "directory": "runs/communication-benchmark-heldout/seed-105-none",
+    "status": "succeeded",
+    "files": {
+      "events.jsonl.gz": {
+        "bytes": 4688339,
+        "sha256": "2729f68acbebdf0b7ad1719e1fbbc14f243909b8e08c39d546a59a8af573f935"
+      },
+      "replay.json.gz": {
+        "bytes": 4645522,
+        "sha256": "940ab72cd1c0a4290c567bd9d960b1881d3365916612339addad71184e416521"
+      },
+      "summary.json": {
+        "bytes": 124895,
+        "sha256": "2cae7f55165da6f0864288b7da04b73d879fe05e497d96479dd4f13323608612"
+      }
+    }
+  },
+  {
+    "suite": "heldout",
+    "run_id": "factory-c338a15b1c5c453e",
+    "directory": "runs/communication-benchmark-heldout/seed-105-text",
+    "status": "succeeded",
+    "files": {
+      "events.jsonl.gz": {
+        "bytes": 5151026,
+        "sha256": "9943fd089a91a6e914eab4d6f85e136c0e38656f461e6ddd74fe252bc3e012b2"
+      },
+      "replay.json.gz": {
+        "bytes": 4654023,
+        "sha256": "ef7e50718896575ebb5acd65a923841b1422218a67cbcf2b7da4a99399e78af8"
+      },
+      "summary.json": {
+        "bytes": 125295,
+        "sha256": "844131ed4883891be0ac5ac1fc58eda21eb2566494d5cf193a98f8f305243e65"
+      }
+    }
+  },
+  {
+    "suite": "heldout",
+    "run_id": "factory-78a3ff013e114d7d",
+    "directory": "runs/communication-benchmark-heldout/seed-106-embeddings",
+    "status": "succeeded",
+    "files": {
+      "events.jsonl.gz": {
+        "bytes": 5484281,
+        "sha256": "3d7483604d5bad9968d98ad11f7eb47df48ec49fb1b618b040fa1cf4ce7f9d1e"
+      },
+      "replay.json.gz": {
+        "bytes": 4621105,
+        "sha256": "d41d26598b4401b88f31bd87854afda2b26cfbd15d8e434745ed90fb8ac43e15"
+      },
+      "summary.json": {
+        "bytes": 125273,
+        "sha256": "7a0d0b94b09b499e5ffecc358d6eab3c932de4c8fda3b65c0dafd2435640b74e"
+      }
+    }
+  },
+  {
+    "suite": "heldout",
+    "run_id": "factory-b2cf7a94d3624beb",
+    "directory": "runs/communication-benchmark-heldout/seed-106-none",
+    "status": "succeeded",
+    "files": {
+      "events.jsonl.gz": {
+        "bytes": 4654624,
+        "sha256": "2e0349b7e20af80fb8766284c78b550857abb7bbf871bdace06f12563a93f38f"
+      },
+      "replay.json.gz": {
+        "bytes": 4610187,
+        "sha256": "58772792c785b6342550891927498bf0adc47574afac411fec484f8bb3ddeae6"
+      },
+      "summary.json": {
+        "bytes": 124901,
+        "sha256": "6804e5395731a198c9d0ce81065d3a0292acb5bfc55fb40bf63c7e535a9a7570"
+      }
+    }
+  },
+  {
+    "suite": "heldout",
+    "run_id": "factory-066db84e5f724d51",
+    "directory": "runs/communication-benchmark-heldout/seed-106-text",
+    "status": "succeeded",
+    "files": {
+      "events.jsonl.gz": {
+        "bytes": 5122369,
+        "sha256": "8f4f4b585584257a0509460b6ca0e13f7d280b08b52b9c5c5743c00a0ad9e3a9"
+      },
+      "replay.json.gz": {
+        "bytes": 4630077,
+        "sha256": "f1997c66d01f29da0722a810810deaa7a2c52b53a8bd61b968babeb043a4a412"
+      },
+      "summary.json": {
+        "bytes": 125298,
+        "sha256": "1c985a94900fcda51bd2c0e353723852baba25d7469dcca1f254c49e87871a57"
+      }
+    }
+  },
+  {
+    "suite": "heldout",
+    "run_id": "factory-ca69c2ba2ce14174",
+    "directory": "runs/communication-benchmark-heldout/seed-107-embeddings",
+    "status": "succeeded",
+    "files": {
+      "events.jsonl.gz": {
+        "bytes": 5435670,
+        "sha256": "a37b055123b009d8c56df294cd7649ed9ce724bf40afa83bbb3bbb78c1a02a80"
+      },
+      "replay.json.gz": {
+        "bytes": 4600574,
+        "sha256": "97381f31c7cc53386560261a73dcacb3f51032d31ffcdca1f65788f9a581b5e3"
+      },
+      "summary.json": {
+        "bytes": 125265,
+        "sha256": "e8e2739752d9301c1986f1c39f0c4988c1e80fc6e47db0f429ef3fa5a1be7bb5"
+      }
+    }
+  },
+  {
+    "suite": "heldout",
+    "run_id": "factory-7008721f418d4ff3",
+    "directory": "runs/communication-benchmark-heldout/seed-107-none",
+    "status": "rejected",
+    "files": {
+      "events.jsonl.gz": {
+        "bytes": 4669089,
+        "sha256": "e52084f7b9c4e346b4a7ea2a5690fc640e237b002b534d6da7b61dc4b1434157"
+      },
+      "replay.json.gz": {
+        "bytes": 4654155,
+        "sha256": "5c3b0d9301c90c5076339bf4ad5800bd82cf0980864300d94ea2d30b6344564c"
+      },
+      "summary.json": {
+        "bytes": 124916,
+        "sha256": "7a0348b70db6356b8e08f6bc34b4097f112aa179d7a339f18ca253b2556bf1d6"
+      }
+    }
+  },
+  {
+    "suite": "heldout",
+    "run_id": "factory-88be3f339c674a64",
+    "directory": "runs/communication-benchmark-heldout/seed-107-text",
+    "status": "succeeded",
+    "files": {
+      "events.jsonl.gz": {
+        "bytes": 5070747,
+        "sha256": "63f3427fcf4322ade9b61945657674b08f8eec9f722764e3771fcf67b7b7a9d7"
+      },
+      "replay.json.gz": {
+        "bytes": 4589053,
+        "sha256": "e4dadab12220a7d70bc2b2e77768ce5b0d45c0d04aff6aeea79367497e543810"
+      },
+      "summary.json": {
+        "bytes": 125290,
+        "sha256": "a5bea0dd21f4431f217b9eafab88c192e5813e1abea3f3e2d2fe3bd63783e219"
+      }
+    }
+  },
+  {
+    "suite": "heldout",
+    "run_id": "factory-c91643e556024a43",
+    "directory": "runs/communication-benchmark-heldout/seed-108-embeddings",
+    "status": "succeeded",
+    "files": {
+      "events.jsonl.gz": {
+        "bytes": 5446829,
+        "sha256": "16109777fa06372d4d437255dfc361de2a559b5ae068d71592ce9063ee24a05c"
+      },
+      "replay.json.gz": {
+        "bytes": 4611889,
+        "sha256": "d49cb8a9ad7a4d17f548c38941837fe0bf17b679354d3802e6546c0b794b069a"
+      },
+      "summary.json": {
+        "bytes": 125260,
+        "sha256": "85a665a26e43e81d5dab2011fa76bfdfc2aa0c31b4e2fa578a67ec99cdd50fc7"
+      }
+    }
+  },
+  {
+    "suite": "heldout",
+    "run_id": "factory-e3139b47d17840cb",
+    "directory": "runs/communication-benchmark-heldout/seed-108-none",
+    "status": "rejected",
+    "files": {
+      "events.jsonl.gz": {
+        "bytes": 4682821,
+        "sha256": "6e74ada6e7dd8fa3628dfcbda16f3c400b12780e1dabf4365772dd5c36767b67"
+      },
+      "replay.json.gz": {
+        "bytes": 4650444,
+        "sha256": "9c1ef9139cc7839d887e721e9ea934720d0049550b1860597016ffe400982ea2"
+      },
+      "summary.json": {
+        "bytes": 124905,
+        "sha256": "085bf4de3d453c6af4fd272872f2e34966aa84cca1f2575b5a404728a4e0a18c"
+      }
+    }
+  },
+  {
+    "suite": "heldout",
+    "run_id": "factory-a89335346a3b41bf",
+    "directory": "runs/communication-benchmark-heldout/seed-108-text",
+    "status": "succeeded",
+    "files": {
+      "events.jsonl.gz": {
+        "bytes": 5098147,
+        "sha256": "f375e10febd0eaa5d0c208f87df5d3eb50853019a6f2097419b1fc7d8ade24a7"
+      },
+      "replay.json.gz": {
+        "bytes": 4602767,
+        "sha256": "e60e37aac9c35ff5e106d8747626807c2198c857abf45a5339dcc5adc13e9923"
+      },
+      "summary.json": {
+        "bytes": 125276,
+        "sha256": "ae8f83bfbe04505fe23e90ca09dace00a072970774809c2ed7e9aedd4e368a04"
+      }
+    }
+  },
+  {
+    "suite": "heldout",
+    "run_id": "factory-93be5c60d69d4403",
+    "directory": "runs/communication-benchmark-heldout/seed-109-embeddings",
+    "status": "succeeded",
+    "files": {
+      "events.jsonl.gz": {
+        "bytes": 5397871,
+        "sha256": "0867c5b98cda5e5dd80038e09d4dab5115fef78795730d6c7856a03fe3a6c599"
+      },
+      "replay.json.gz": {
+        "bytes": 4578761,
+        "sha256": "b90675ee79041999419ee19ad50c31e01f85c0dafc01a8454a565d422d76965b"
+      },
+      "summary.json": {
+        "bytes": 125267,
+        "sha256": "8dd9f326254c289ef9fec7b888024f0dc567ca16ae56eef1cf29525c375a3ce7"
+      }
+    }
+  },
+  {
+    "suite": "heldout",
+    "run_id": "factory-edda9eb926624588",
+    "directory": "runs/communication-benchmark-heldout/seed-109-none",
+    "status": "rejected",
+    "files": {
+      "events.jsonl.gz": {
+        "bytes": 4656198,
+        "sha256": "ce903b874efdf3238908db2366de7b394ac7df48c60baffbf9fc309c086d3dd4"
+      },
+      "replay.json.gz": {
+        "bytes": 4650148,
+        "sha256": "77ad40a8f6afa7e132737ee95b7179dbc57e0083f02f993c19fae930bf042db1"
+      },
+      "summary.json": {
+        "bytes": 124916,
+        "sha256": "70c2262e7f84b1d32e10db3f96b43bdc71562ff1c05361f5c4c0597701d29d31"
+      }
+    }
+  },
+  {
+    "suite": "heldout",
+    "run_id": "factory-6e5fb641fc9143d2",
+    "directory": "runs/communication-benchmark-heldout/seed-109-text",
+    "status": "succeeded",
+    "files": {
+      "events.jsonl.gz": {
+        "bytes": 5059747,
+        "sha256": "3b215c0489039997c0dd560ddba5d21a0d40ce6fb012a0e47e7e8044e750b8eb"
+      },
+      "replay.json.gz": {
+        "bytes": 4571475,
+        "sha256": "dc5eeee1d11da451124e731aa13faab7aa013d587d0a320c8c69ebb17ca184f5"
+      },
+      "summary.json": {
+        "bytes": 125285,
+        "sha256": "f7c462223daa47e89d224083bdd645fdecf70073f3a5ea94b50cb681db2b2e71"
+      }
+    }
+  },
+  {
+    "suite": "heldout",
+    "run_id": "factory-319330ff8ba24ea2",
+    "directory": "runs/communication-benchmark-heldout/seed-110-embeddings",
+    "status": "succeeded",
+    "files": {
+      "events.jsonl.gz": {
+        "bytes": 5455240,
+        "sha256": "ff0eee78811e73b713ebd448571cda5ef6a80849e1cb4a41ebeb954ec52155b6"
+      },
+      "replay.json.gz": {
+        "bytes": 4617182,
+        "sha256": "741db37d9ddd90535bee8630bf02a8b00c81a17d947d5a8ab115c9cd15079973"
+      },
+      "summary.json": {
+        "bytes": 125289,
+        "sha256": "3c9a697c1b1ad76aae4ef1696709ab0c5fc8e973dfc2b3c454687ad6e6f63e27"
+      }
+    }
+  },
+  {
+    "suite": "heldout",
+    "run_id": "factory-11d435d134ad43be",
+    "directory": "runs/communication-benchmark-heldout/seed-110-none",
+    "status": "rejected",
+    "files": {
+      "events.jsonl.gz": {
+        "bytes": 4668088,
+        "sha256": "d3a7e2e271b290caea509f6e121142f74ae14be8e6271fce8ca752e1475e91f4"
+      },
+      "replay.json.gz": {
+        "bytes": 4640021,
+        "sha256": "9ce25372b7fd2498a3eee15c8b678f0163ab698507bd85ca1ada0168c0950d61"
+      },
+      "summary.json": {
+        "bytes": 124921,
+        "sha256": "aab32de8772db9b67e9a81220602c550502b1f1d60d3ecdd2fbe85b7a4f3a9ca"
+      }
+    }
+  },
+  {
+    "suite": "heldout",
+    "run_id": "factory-41ae5bb289dd4219",
+    "directory": "runs/communication-benchmark-heldout/seed-110-text",
+    "status": "succeeded",
+    "files": {
+      "events.jsonl.gz": {
+        "bytes": 5089222,
+        "sha256": "16a18744508243e226793b17647c70384180f30a6bd8e8b9542419b33f07a72f"
+      },
+      "replay.json.gz": {
+        "bytes": 4606940,
+        "sha256": "22aaef429c81f9d40e9edc06cd5e4a28ae8b0ca78b1471b9b5ce7de37d258744"
+      },
+      "summary.json": {
+        "bytes": 125312,
+        "sha256": "4da1ce7643e6f0795df600cb210d9a073a297259eed40858fbed3d543a5af606"
+      }
+    }
+  },
+  {
+    "suite": "heldout",
+    "run_id": "factory-6fc60d98a6d24e9c",
+    "directory": "runs/communication-benchmark-heldout/seed-111-embeddings",
+    "status": "succeeded",
+    "files": {
+      "events.jsonl.gz": {
+        "bytes": 5432925,
+        "sha256": "833d4a8229b3c42b28a2eed83571423991ab167582bd054ec1c4f69933c5afc9"
+      },
+      "replay.json.gz": {
+        "bytes": 4614525,
+        "sha256": "41714d4a201e414fcdfe1b275c919a051d68d3bdda662721f0df9a15d914bf27"
+      },
+      "summary.json": {
+        "bytes": 125271,
+        "sha256": "20eb979a316fa9d3eee65fcfde691ac1801efaa233aceb4c977b75e49387bb1b"
+      }
+    }
+  },
+  {
+    "suite": "heldout",
+    "run_id": "factory-2fa728165bc74a34",
+    "directory": "runs/communication-benchmark-heldout/seed-111-none",
+    "status": "rejected",
+    "files": {
+      "events.jsonl.gz": {
+        "bytes": 4683928,
+        "sha256": "4e0627ddbdfadc9a7b71b0deae6385486bc4ee1b0270068ff3ab2a6cc8caca8a"
+      },
+      "replay.json.gz": {
+        "bytes": 4616722,
+        "sha256": "f47cf7e4661c68c6462144b4db356e6aad033183da0bfaca14278031c1e033be"
+      },
+      "summary.json": {
+        "bytes": 124911,
+        "sha256": "b2a87f1d03ccbb7557e8fcc740be32ff04b0e4ab8df026be3b58677a7aa89d09"
+      }
+    }
+  },
+  {
+    "suite": "heldout",
+    "run_id": "factory-bd119f5698f64811",
+    "directory": "runs/communication-benchmark-heldout/seed-111-text",
+    "status": "succeeded",
+    "files": {
+      "events.jsonl.gz": {
+        "bytes": 5095829,
+        "sha256": "e6ea6a86711f1bd29304102d04e333e17b26eee98b123cc2e6756693abbe12c8"
+      },
+      "replay.json.gz": {
+        "bytes": 4602312,
+        "sha256": "6469c96402123f3eb724891157e374a96b900112b7f1c963d64eafa32832efde"
+      },
+      "summary.json": {
+        "bytes": 125292,
+        "sha256": "e4443fc725dd80a4524f2fdcd26b2eb562c9fce653692e491f559f3a1642fc1c"
+      }
+    }
+  },
+  {
+    "suite": "heldout",
+    "run_id": "factory-d50b773569d44b3e",
+    "directory": "runs/communication-benchmark-heldout/seed-112-embeddings",
+    "status": "succeeded",
+    "files": {
+      "events.jsonl.gz": {
+        "bytes": 5383917,
+        "sha256": "4b9fb69429e509935dce5f72946e441e740c5cb39573a3c94116a46c25e51e14"
+      },
+      "replay.json.gz": {
+        "bytes": 4592858,
+        "sha256": "8b1120003934e58822580c361afacb305b333ac632f93e7b019c07b0aed13de0"
+      },
+      "summary.json": {
+        "bytes": 125248,
+        "sha256": "651cc46a3d54df28ab574a6ab289aedc169ae43a38070fefc868ac670bc87ec3"
+      }
+    }
+  },
+  {
+    "suite": "heldout",
+    "run_id": "factory-5be21bb1962e4451",
+    "directory": "runs/communication-benchmark-heldout/seed-112-none",
+    "status": "rejected",
+    "files": {
+      "events.jsonl.gz": {
+        "bytes": 4668738,
+        "sha256": "4a681d7ea09206c43e9a069385662eeb2209477729cdf65519b5f28cbc00d7f1"
+      },
+      "replay.json.gz": {
+        "bytes": 4648633,
+        "sha256": "2bd0d608a8c4efcae8fc79b170e9d0e437c0e7c0cea886028662461a0c64d460"
+      },
+      "summary.json": {
+        "bytes": 124914,
+        "sha256": "74e3abba85a24fc601a0163cfa8a5b1a0d8bf4ab13cf801719f3f4dc445f2937"
+      }
+    }
+  },
+  {
+    "suite": "heldout",
+    "run_id": "factory-e471be6c7e9e4313",
+    "directory": "runs/communication-benchmark-heldout/seed-112-text",
+    "status": "succeeded",
+    "files": {
+      "events.jsonl.gz": {
+        "bytes": 5051736,
+        "sha256": "a54cb7f6aaa0818bb308af0ad0b45a227241de151ad890cacc8c06db3a06efc4"
+      },
+      "replay.json.gz": {
+        "bytes": 4580275,
+        "sha256": "be34a84e2e6750fc2e97894b5d8bdbacb6d40201cebef6f9ad5f1eef01984ff8"
+      },
+      "summary.json": {
+        "bytes": 125274,
+        "sha256": "76956e4f2f7fd7430bc45ff1928773f26849d837e01acb5bc175e5b5157dd872"
+      }
+    }
+  },
+  {
+    "suite": "qwen-spacetime",
+    "run_id": "factory-cb58d59059524ded",
+    "directory": "runs/communication-benchmark-qwen-spacetime/seed-101-embeddings",
+    "status": "succeeded",
+    "files": {
+      "events.jsonl.gz": {
+        "bytes": 5466573,
+        "sha256": "8e386c1ac9b88b7846cabd30631c6e79becc993e96a7834086477f723151f784"
+      },
+      "replay.json.gz": {
+        "bytes": 5190577,
+        "sha256": "70fd4081a9c77e998691709ff92e387f6d4c76b8a3585e79d65c7962a40d9aa9"
+      },
+      "summary.json": {
+        "bytes": 125889,
+        "sha256": "fc7350c3267bd77c9172ddf0440c76729b4287cf69e3f2ecdf7604b67c3f75ad"
+      }
+    }
+  },
+  {
+    "suite": "qwen-spacetime",
+    "run_id": "factory-360268e0a3d9416b",
+    "directory": "runs/communication-benchmark-qwen-spacetime/seed-101-none",
+    "status": "rejected",
+    "files": {
+      "events.jsonl.gz": {
+        "bytes": 4689631,
+        "sha256": "284e8ae0a100ab07ffba9d67149985d095216c144abda6c1ef19cbcbdf48324a"
+      },
+      "replay.json.gz": {
+        "bytes": 5222047,
+        "sha256": "87308a961c6946d42738d7be6d125d37c5305dfd3e1ae2d8c1b2a459f6583399"
+      },
+      "summary.json": {
+        "bytes": 125526,
+        "sha256": "49ae2658d97aa9c5db0c9d096bb26b786d9eb2a97b3e11a748a5b50a7c5179ca"
+      }
+    }
+  },
+  {
+    "suite": "qwen-spacetime",
+    "run_id": "factory-08dfb84635724444",
+    "directory": "runs/communication-benchmark-qwen-spacetime/seed-101-text",
+    "status": "succeeded",
+    "files": {
+      "events.jsonl.gz": {
+        "bytes": 5133496,
+        "sha256": "7c1a7b088e7905eabf416c58cd92540abfc91a2a9fc25e3faae815f5b0d33ee2"
+      },
+      "replay.json.gz": {
+        "bytes": 5212972,
+        "sha256": "f02c3ca3cc5a7acb702c362f350c4e02a4f06b5f31d5564c2c7caf7144749e75"
+      },
+      "summary.json": {
+        "bytes": 125917,
+        "sha256": "90c34cd7348315487681f943f4093d1c962ea9e3875254d7035cf23c86ed8436"
+      }
+    }
+  },
+  {
+    "suite": "qwen-spacetime",
+    "run_id": "factory-b98ce51eebc341fb",
+    "directory": "runs/communication-benchmark-qwen-spacetime/seed-102-embeddings",
+    "status": "succeeded",
+    "files": {
+      "events.jsonl.gz": {
+        "bytes": 5432045,
+        "sha256": "537a0a1cd0e915da6c85d30dccf4c3eaa5f20db49d9ed0d703d38f5fa5902fbd"
+      },
+      "replay.json.gz": {
+        "bytes": 5145319,
+        "sha256": "a88d05f721c22231fa0e277c03dcb3906c8d141ba9d9842737c2df72b6048695"
+      },
+      "summary.json": {
+        "bytes": 125875,
+        "sha256": "5481a4c22b0e65216a05407d0e0106b605de1e4f9bcfeb12661939ef516553d3"
+      }
+    }
+  },
+  {
+    "suite": "qwen-spacetime",
+    "run_id": "factory-7945d974ea2a4a21",
+    "directory": "runs/communication-benchmark-qwen-spacetime/seed-102-none",
+    "status": "rejected",
+    "files": {
+      "events.jsonl.gz": {
+        "bytes": 4714732,
+        "sha256": "08c4097cffe56dbb92777a60eaaf1e244e8618fb91c423b00653e5c9ea114aa9"
+      },
+      "replay.json.gz": {
+        "bytes": 5248632,
+        "sha256": "30b2c2a179a3f0ab732102302b128c181439119b48f528dce3bba3882c3e14de"
+      },
+      "summary.json": {
+        "bytes": 125534,
+        "sha256": "0d80f8c8438e6f0243a9ebae39eacc69c87722e748faa9c7068723775d98f62a"
+      }
+    }
+  },
+  {
+    "suite": "qwen-spacetime",
+    "run_id": "factory-f21352fb35924c6a",
+    "directory": "runs/communication-benchmark-qwen-spacetime/seed-102-text",
+    "status": "succeeded",
+    "files": {
+      "events.jsonl.gz": {
+        "bytes": 5088573,
+        "sha256": "855b0a373416a75fc32bf86a92153f3a1b77ee29d178310c5c5969d167ae3051"
+      },
+      "replay.json.gz": {
+        "bytes": 5167135,
+        "sha256": "278e4874b534be640362ce758dff6972d054aae473dd7abeabb9371c13570d5b"
+      },
+      "summary.json": {
+        "bytes": 125896,
+        "sha256": "ddac6bc703f7832eaa6c0ea99c6597941f162ce5f547bc125fd79423cafa6a05"
+      }
+    }
+  },
+  {
+    "suite": "qwen-spacetime",
+    "run_id": "factory-256ed2f4219d4f44",
+    "directory": "runs/communication-benchmark-qwen-spacetime/seed-103-embeddings",
+    "status": "failed",
+    "files": {
+      "events.jsonl.gz": {
+        "bytes": 3977797,
+        "sha256": "decb8a8b4b847bd0de1cde6861deba36f19148e9e59fe01396378e576c950f0f"
+      },
+      "replay.json.gz": {
+        "bytes": 3287070,
+        "sha256": "8ea2cabce5c86f88f0595df185047da04a2c9d1f32fa7e599e9e535e410f09a5"
+      },
+      "summary.json": {
+        "bytes": 102258,
+        "sha256": "9efb6cb46029531ca2da8250d1184c1c509705fbbedd048b0302dfc88832fc73"
+      }
+    }
+  },
+  {
+    "suite": "qwen-spacetime",
+    "run_id": "factory-bc19221d86364d91",
+    "directory": "runs/communication-benchmark-qwen-spacetime/seed-103-none",
+    "status": "rejected",
+    "files": {
+      "events.jsonl.gz": {
+        "bytes": 4676724,
+        "sha256": "5957d89cdcd3f4415c9fa1a3f9a67f63b8acbcf201e7add11f7868bbc1e27290"
+      },
+      "replay.json.gz": {
+        "bytes": 5219675,
+        "sha256": "261532f35d03912f88ffad90b0ce5cda122535b68d931ba2e1b82864b7aaaba3"
+      },
+      "summary.json": {
+        "bytes": 125539,
+        "sha256": "76fa9d9996f064a25712b37f4b0a5441d2b3ad2ae749f3a5b5dd8b137f28bceb"
+      }
+    }
+  },
+  {
+    "suite": "qwen-spacetime",
+    "run_id": "factory-bad2cba8078f43ee",
+    "directory": "runs/communication-benchmark-qwen-spacetime/seed-103-text",
+    "status": "succeeded",
+    "files": {
+      "events.jsonl.gz": {
+        "bytes": 5132804,
+        "sha256": "b9fd05bc57707e75a07e35a88615ee8bcfc98f54707615814a4431d3a83b5eae"
+      },
+      "replay.json.gz": {
+        "bytes": 5239137,
+        "sha256": "b4a0839c438c89a44f29d1080f4b102f47518de3d35d86d97aecd21831f216d1"
+      },
+      "summary.json": {
+        "bytes": 125933,
+        "sha256": "1521bc7901303aed63edf89b1572abb5eca1d2bff5a2550a8b207126c7443788"
+      }
+    }
+  }
+]

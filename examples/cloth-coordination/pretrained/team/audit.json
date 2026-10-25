@@ -1,0 +1,22 @@
+{
+  "kind": "measured_joint_pretrained_trial_audit",
+  "run_id": "cloth-pretrained-7707b7eeb252",
+  "spacetime_frames": 13,
+  "spacetime_packets": 24,
+  "database_packets_match_recorded_publications": true,
+  "actual_model_calls": 24,
+  "complete_token_roundtrips": 24,
+  "maximum_applied_delta_m": 0.018000011967599726,
+  "delta_audit_tolerance_m": 1e-07,
+  "delta_tolerance_reason": "The X-VLA proprioception input uses float32; action bounds computed from that input differ from saved float64 MuJoCo positions by numerical rounding.",
+  "physical_grasp_observations": 0,
+  "physical_fold_success": false,
+  "qwen_generations": 11,
+  "artifact_sha256": {
+    "report.json": "ae3a96eda1e6f503045316ed74b680b32f74214608e517ab47464fa8da5aa9ac",
+    "communication.json": "47dfe2cd7b3d7640b103574786a4b72c8fd96820b8a0c44899c5d39481840512",
+    "overview.mp4": "e9835bf7db061cb609c35b22d6e20084e1a5ea0dcd0a2009e445c81c57c9c215",
+    "initial.png": "1b777663ca03acf1dc10d02fddeb972541fda6e27286724b1d2592e9a40fbc6c",
+    "final.png": "732f5aefb1228703287e931820c2e3cad60f69a5194100cdb390e2d43fe3ef53"
+  }
+}

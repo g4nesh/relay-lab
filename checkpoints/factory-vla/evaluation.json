@@ -1,0 +1,41 @@
+{
+  "checkpoint_sha256": "a31f6dd477c03ae6848f1a96fd79004582d02bfbcdef84f1fb8825f2e99e1f5b",
+  "heldout_seed": 49271,
+  "rendered_scenes": 100,
+  "visible_samples": 2178,
+  "total_target_observations": 2200,
+  "visibility_threshold_mass": 0.25,
+  "ablations": {
+    "blank_rgb_detected_targets": 0,
+    "language_target_accuracy": 1.0,
+    "language_skill_accuracy": 1.0
+  },
+  "vision_mean_m": 0.02192118835150086,
+  "vision_p95_m": 0.07233388295364607,
+  "vision_by_robot": {
+    "humanoid-01": {
+      "mean_m": 0.009570619582180558,
+      "p95_m": 0.025063289825736343
+    },
+    "amr-01": {
+      "mean_m": 0.04551792659587662,
+      "p95_m": 0.08667065883619385
+    },
+    "arm-01": {
+      "mean_m": 0.007523193543731408,
+      "p95_m": 0.020534199100842386
+    },
+    "amr-02": {
+      "mean_m": 0.03546536302675551,
+      "p95_m": 0.0697665153495096
+    },
+    "gantry-01": {
+      "mean_m": 0.011486249778485775,
+      "p95_m": 0.038754872997042465
+    }
+  },
+  "motor_delta_rmse_m": 0.002280403859913349,
+  "zero_weights_motor_delta_rmse_m": 0.03930204510688782,
+  "codec_pose_mean_m": 0.020489245653152466,
+  "codec_pose_p95_m": 0.04811934381723404
+}

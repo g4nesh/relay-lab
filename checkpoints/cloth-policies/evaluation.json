@@ -1,0 +1,52 @@
+{
+  "left": {
+    "architecture": "spatial-cnn-affine-experts",
+    "training": {
+      "source": "original MuJoCo RGB contexts and local-state-augmented analytic demonstrations",
+      "external_demonstrations": false,
+      "foundation_weights": false,
+      "control_recipe": "reachable-arc-v2",
+      "state_examples": 18000,
+      "rendered_rgb_contexts": 80,
+      "steps": 300,
+      "training_seeds": [
+        40000,
+        42000
+      ],
+      "heldout_state_seed": 50000,
+      "note": "RGB contexts are randomized auxiliary inputs; these tests do not establish that RGB is required."
+    },
+    "checkpoint_sha256": "33d38794b1aea9f89bf622262d5482c405609a537350cc982b2c7c230737d709",
+    "parameters": 11444,
+    "heldout_examples": 3000,
+    "position_rmse_m": 3.736567668966018e-05,
+    "position_max_error_m": 0.00012190522102173418,
+    "grip_accuracy": 1.0,
+    "training_seconds": 5.483304541092366
+  },
+  "right": {
+    "architecture": "patch-attention-affine-experts",
+    "training": {
+      "source": "original MuJoCo RGB contexts and local-state-augmented analytic demonstrations",
+      "external_demonstrations": false,
+      "foundation_weights": false,
+      "control_recipe": "reachable-arc-v2",
+      "state_examples": 18000,
+      "rendered_rgb_contexts": 80,
+      "steps": 300,
+      "training_seeds": [
+        40001,
+        42001
+      ],
+      "heldout_state_seed": 50001,
+      "note": "RGB contexts are randomized auxiliary inputs; these tests do not establish that RGB is required."
+    },
+    "checkpoint_sha256": "1dfee3e300a46e9007bed395b4b2bac0102a1d37ec230cc0bd28d41bfc58555d",
+    "parameters": 11356,
+    "heldout_examples": 3000,
+    "position_rmse_m": 5.2468192734522745e-05,
+    "position_max_error_m": 0.00013261742424219847,
+    "grip_accuracy": 1.0,
+    "training_seconds": 2.3952737918589264
+  }
+}

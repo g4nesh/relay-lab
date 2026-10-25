@@ -1,0 +1,22 @@
+{
+  "captured": "Source snapshot taken during frozen evaluation; no control changes after benchmark launch.",
+  "python": "3.13.14",
+  "packages": {
+    "mujoco": "3.17.0",
+    "numpy": "2.2.6",
+    "torch": "2.11.0"
+  },
+  "sources": {
+    "src/relay_lab/cloth/world.py": "c0c869de1e59710b4ce56dc67a28a17b0ddb682e15c8160fe540ebc57361dd67",
+    "src/relay_lab/cloth/spacetime.py": "3f867b50d844404f91a7961f63ba7e47e5c823353ded45889ebb792df9dec182",
+    "src/relay_lab/cloth/benchmark.py": "ed9b6e44e92f4cb1947495b7cb20d1975a1ebc1ad8b5b51f1e5c365ff7453921",
+    "src/relay_lab/cloth/scene.py": "cff13df2b75980ecbb0ec7dd32217be635b0f3b57cd9f2033844f39f4c9504a6",
+    "src/relay_lab/cloth/runtime.py": "030e7d5e25b4ed4e2286cbc0362a64a36f026cbc6e4afb2725e0368621269367",
+    "src/relay_lab/cloth/communication.py": "bf68d6e23a4447f235c4ef6ace7e8d4774c01d6a684297278b53487c7ac25dbe",
+    "src/relay_lab/cloth/policies.py": "023a18c50af88aa4cbc5486fa05383e67634e979f629180a26825d0fd2300a7a",
+    "spacetimedb/src/index.ts": "6e903ee2f19808991a5ec70984f3aa78a575f967ea5b5ef039209fc70c7a1b97",
+    "src/relay_lab/llm.py": "c478e5f251d73d4de4535fdc99badd88e547982b45a74b687115d2f5f8ad634a",
+    "src/relay_lab/spacetime.py": "b5270b36ecf797918e15e6ae1eb44bf1ac58e87b237085f77c763dbe274bee19"
+  },
+  "scope": "Evaluated runtime, controllers, physical world and coordination dependencies. Separate pretrained transfer probes are outside this comparison."
+}

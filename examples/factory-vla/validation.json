@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-24",
+  "tests": {
+    "passed": 379,
+    "skipped": 0,
+    "live_spacetime": true
+  },
+  "checks": [
+    "Ruff",
+    "TypeScript",
+    "JavaScript bundle",
+    "browser completed playback",
+    "live camera512x128",
+    "pause/resume/reset",
+    "portable compressed trace audit"
+  ],
+  "checkpoint_sha256": "a31f6dd477c03ae6848f1a96fd79004582d02bfbcdef84f1fb8825f2e99e1f5b",
+  "sha256": {
+    "checkpoints/factory-vla/policy.pt": "a31f6dd477c03ae6848f1a96fd79004582d02bfbcdef84f1fb8825f2e99e1f5b",
+    "datasets/factory-vla/original.npz": "ffc44e2afcaa6be7ce4d0ea4db0670f8db99b7e7c70a13ab3ad412dd26700b81",
+    "examples/factory-vla/events.jsonl.gz": "817e077306e9a4e298a72537ec4e8e91271b85e90cf3b7690ef5d2ac2ba17a0c",
+    "examples/factory-vla/replay.json.gz": "459e434a8c262c969a0cfb80882c24d8f2b1ae3d0ca5ac1c645d6ef4ccb5738d"
+  },
+  "task_audit": "audit.json",
+  "ablation": "ablation.json"
+}

@@ -1,0 +1,596 @@
+{
+  "schema": "relay.cloth.latent-dataset.v1",
+  "kind": "original paired one-step action-imitation and peer-hazard diagnostic",
+  "rgb_shape": [
+    480,
+    128,
+    128,
+    3
+  ],
+  "rows": 480,
+  "pairs": 240,
+  "workers": 4,
+  "merge_order": [
+    "train-10010",
+    "train-10011",
+    "dev-11",
+    "test-104"
+  ],
+  "episodes": [
+    {
+      "episode_id": "train-10010",
+      "split": "train",
+      "seed": 10010,
+      "initial_state_sha256": "7d55f635a84efeeac766cc6b62ace26b532394822c0472e45bcd2420e05f3dac",
+      "initial_vertices_sha256": "e28ba741db553b69291f033a9b9830e2f90d6fff4b89c307bc976b9e2421f388",
+      "snapshots": 20,
+      "ticks": 880,
+      "phases": [
+        {
+          "phase": "approach_sleeve_above",
+          "end_tick": 45
+        },
+        {
+          "phase": "approach_sleeve",
+          "end_tick": 90
+        },
+        {
+          "phase": "grasp_sleeve",
+          "end_tick": 135
+        },
+        {
+          "phase": "lift_sleeve",
+          "end_tick": 180
+        },
+        {
+          "phase": "carry_sleeve",
+          "end_tick": 225
+        },
+        {
+          "phase": "fold_sleeve",
+          "end_tick": 270
+        },
+        {
+          "phase": "release_sleeve",
+          "end_tick": 315
+        },
+        {
+          "phase": "retreat_sleeve",
+          "end_tick": 360
+        },
+        {
+          "phase": "approach_hem_above",
+          "end_tick": 405
+        },
+        {
+          "phase": "approach_hem",
+          "end_tick": 450
+        },
+        {
+          "phase": "grasp_hem",
+          "end_tick": 495
+        },
+        {
+          "phase": "lift_hem",
+          "end_tick": 540
+        },
+        {
+          "phase": "carry_hem",
+          "end_tick": 585
+        },
+        {
+          "phase": "fold_hem",
+          "end_tick": 675
+        },
+        {
+          "phase": "release_hem",
+          "end_tick": 720
+        },
+        {
+          "phase": "settle",
+          "end_tick": 880
+        }
+      ],
+      "final_metrics": {
+        "success": true,
+        "physics_valid": true,
+        "peak_cloth_speed_m_s": 2.9537589545086846,
+        "peak_edge_strain": 0.3501209880286049,
+        "footprint": {
+          "projected_area_m2": 0.1438751220703125,
+          "target_coverage": 0.7685636862730368,
+          "inside_target_fraction": 1.0,
+          "span_x_m": 0.4401879011412211,
+          "span_y_m": 0.3600511732415578
+        },
+        "fold_geometry_ok": true,
+        "hem_alignment_m": {
+          "left": 0.039935610951619245,
+          "right": 0.039739846042626134
+        },
+        "sleeve_overhang_m": {
+          "left": 0.0,
+          "right": 0.0
+        },
+        "max_height_m": 0.049912525614643356,
+        "max_speed_m_s": 0.03127879885439194,
+        "stable_ticks": 160,
+        "on_table": true,
+        "finite": true
+      },
+      "physics_config": {
+        "engine": "MuJoCo 3.17",
+        "garment": "single-layer T-shirt silhouette, 271 vertices / 460 triangles",
+        "fixture": "six explicit upper-torso vacuum-table connect constraints, released before scoring",
+        "grasp": "distance-gated idealized marked-tab vertex clamp; no frictional pinch or layer inference",
+        "cloth_self_collision": true,
+        "cloth_table_collision": true,
+        "cloth_obstacle_collision": true,
+        "cloth_arm_shell_collision": false,
+        "arm_arm_collision": false,
+        "arm_table_collision": true,
+        "max_valid_cloth_speed_m_s": 5.0,
+        "material_calibration": "illustrative; not calibrated to a real textile",
+        "collision_masks": {
+          "cloth": [
+            4,
+            1
+          ],
+          "arms": [
+            2,
+            1
+          ],
+          "table": [
+            1,
+            3
+          ],
+          "obstacle": [
+            1,
+            3
+          ]
+        },
+        "cloth_contact_radius_m": 0.0018,
+        "elastic_thickness_m": 0.0004,
+        "actuation": "six revolute position motors per arm, analytic Cartesian IK, gravity compensation"
+      }
+    },
+    {
+      "episode_id": "train-10011",
+      "split": "train",
+      "seed": 10011,
+      "initial_state_sha256": "b4247be3bae24c33ff13c0573417b1b3c4706793fe4016ec61e222d948f47798",
+      "initial_vertices_sha256": "26dd9819fdab9e8cce019c6162b55eb5d3ae69f35147a85bcf3d1921e3fb577f",
+      "snapshots": 20,
+      "ticks": 880,
+      "phases": [
+        {
+          "phase": "approach_sleeve_above",
+          "end_tick": 45
+        },
+        {
+          "phase": "approach_sleeve",
+          "end_tick": 90
+        },
+        {
+          "phase": "grasp_sleeve",
+          "end_tick": 135
+        },
+        {
+          "phase": "lift_sleeve",
+          "end_tick": 180
+        },
+        {
+          "phase": "carry_sleeve",
+          "end_tick": 225
+        },
+        {
+          "phase": "fold_sleeve",
+          "end_tick": 270
+        },
+        {
+          "phase": "release_sleeve",
+          "end_tick": 315
+        },
+        {
+          "phase": "retreat_sleeve",
+          "end_tick": 360
+        },
+        {
+          "phase": "approach_hem_above",
+          "end_tick": 405
+        },
+        {
+          "phase": "approach_hem",
+          "end_tick": 450
+        },
+        {
+          "phase": "grasp_hem",
+          "end_tick": 495
+        },
+        {
+          "phase": "lift_hem",
+          "end_tick": 540
+        },
+        {
+          "phase": "carry_hem",
+          "end_tick": 585
+        },
+        {
+          "phase": "fold_hem",
+          "end_tick": 675
+        },
+        {
+          "phase": "release_hem",
+          "end_tick": 720
+        },
+        {
+          "phase": "settle",
+          "end_tick": 880
+        }
+      ],
+      "final_metrics": {
+        "success": true,
+        "physics_valid": true,
+        "peak_cloth_speed_m_s": 3.3291211227330386,
+        "peak_edge_strain": 0.38914149898233275,
+        "footprint": {
+          "projected_area_m2": 0.13922119140625,
+          "target_coverage": 0.7289495223607773,
+          "inside_target_fraction": 0.9801622095572118,
+          "span_x_m": 0.44286648853700206,
+          "span_y_m": 0.3603684561997474
+        },
+        "fold_geometry_ok": true,
+        "hem_alignment_m": {
+          "left": 0.05821398217301203,
+          "right": 0.05106606035919566
+        },
+        "sleeve_overhang_m": {
+          "left": 0.0,
+          "right": 0.0
+        },
+        "max_height_m": 0.04578152599700488,
+        "max_speed_m_s": 0.0056258650523707985,
+        "stable_ticks": 160,
+        "on_table": true,
+        "finite": true
+      },
+      "physics_config": {
+        "engine": "MuJoCo 3.17",
+        "garment": "single-layer T-shirt silhouette, 271 vertices / 460 triangles",
+        "fixture": "six explicit upper-torso vacuum-table connect constraints, released before scoring",
+        "grasp": "distance-gated idealized marked-tab vertex clamp; no frictional pinch or layer inference",
+        "cloth_self_collision": true,
+        "cloth_table_collision": true,
+        "cloth_obstacle_collision": true,
+        "cloth_arm_shell_collision": false,
+        "arm_arm_collision": false,
+        "arm_table_collision": true,
+        "max_valid_cloth_speed_m_s": 5.0,
+        "material_calibration": "illustrative; not calibrated to a real textile",
+        "collision_masks": {
+          "cloth": [
+            4,
+            1
+          ],
+          "arms": [
+            2,
+            1
+          ],
+          "table": [
+            1,
+            3
+          ],
+          "obstacle": [
+            1,
+            3
+          ]
+        },
+        "cloth_contact_radius_m": 0.0018,
+        "elastic_thickness_m": 0.0004,
+        "actuation": "six revolute position motors per arm, analytic Cartesian IK, gravity compensation"
+      }
+    },
+    {
+      "episode_id": "dev-11",
+      "split": "dev",
+      "seed": 11,
+      "initial_state_sha256": "24110333c8365544325dff0f07f0645e05542cd76451fc26cd2d27885efa38b3",
+      "initial_vertices_sha256": "8f7c832a62842de025e5a00da54b81b3c7fd4fb91ad74f5551e8357248480a10",
+      "snapshots": 20,
+      "ticks": 880,
+      "phases": [
+        {
+          "phase": "approach_sleeve_above",
+          "end_tick": 45
+        },
+        {
+          "phase": "approach_sleeve",
+          "end_tick": 90
+        },
+        {
+          "phase": "grasp_sleeve",
+          "end_tick": 135
+        },
+        {
+          "phase": "lift_sleeve",
+          "end_tick": 180
+        },
+        {
+          "phase": "carry_sleeve",
+          "end_tick": 225
+        },
+        {
+          "phase": "fold_sleeve",
+          "end_tick": 270
+        },
+        {
+          "phase": "release_sleeve",
+          "end_tick": 315
+        },
+        {
+          "phase": "retreat_sleeve",
+          "end_tick": 360
+        },
+        {
+          "phase": "approach_hem_above",
+          "end_tick": 405
+        },
+        {
+          "phase": "approach_hem",
+          "end_tick": 450
+        },
+        {
+          "phase": "grasp_hem",
+          "end_tick": 495
+        },
+        {
+          "phase": "lift_hem",
+          "end_tick": 540
+        },
+        {
+          "phase": "carry_hem",
+          "end_tick": 585
+        },
+        {
+          "phase": "fold_hem",
+          "end_tick": 675
+        },
+        {
+          "phase": "release_hem",
+          "end_tick": 720
+        },
+        {
+          "phase": "settle",
+          "end_tick": 880
+        }
+      ],
+      "final_metrics": {
+        "success": true,
+        "physics_valid": true,
+        "peak_cloth_speed_m_s": 2.3821102573795683,
+        "peak_edge_strain": 0.2518453069471154,
+        "footprint": {
+          "projected_area_m2": 0.1613006591796875,
+          "target_coverage": 0.8616488204043136,
+          "inside_target_fraction": 1.0,
+          "span_x_m": 0.4800328894974453,
+          "span_y_m": 0.36004418828655815
+        },
+        "fold_geometry_ok": true,
+        "hem_alignment_m": {
+          "left": 0.039999387945138146,
+          "right": 0.039997660625444874
+        },
+        "sleeve_overhang_m": {
+          "left": 0.0,
+          "right": 0.0
+        },
+        "max_height_m": 0.001803301365557757,
+        "max_speed_m_s": 0.03431121743593254,
+        "stable_ticks": 160,
+        "on_table": true,
+        "finite": true
+      },
+      "physics_config": {
+        "engine": "MuJoCo 3.17",
+        "garment": "single-layer T-shirt silhouette, 271 vertices / 460 triangles",
+        "fixture": "six explicit upper-torso vacuum-table connect constraints, released before scoring",
+        "grasp": "distance-gated idealized marked-tab vertex clamp; no frictional pinch or layer inference",
+        "cloth_self_collision": true,
+        "cloth_table_collision": true,
+        "cloth_obstacle_collision": true,
+        "cloth_arm_shell_collision": false,
+        "arm_arm_collision": false,
+        "arm_table_collision": true,
+        "max_valid_cloth_speed_m_s": 5.0,
+        "material_calibration": "illustrative; not calibrated to a real textile",
+        "collision_masks": {
+          "cloth": [
+            4,
+            1
+          ],
+          "arms": [
+            2,
+            1
+          ],
+          "table": [
+            1,
+            3
+          ],
+          "obstacle": [
+            1,
+            3
+          ]
+        },
+        "cloth_contact_radius_m": 0.0018,
+        "elastic_thickness_m": 0.0004,
+        "actuation": "six revolute position motors per arm, analytic Cartesian IK, gravity compensation"
+      }
+    },
+    {
+      "episode_id": "test-104",
+      "split": "test",
+      "seed": 104,
+      "initial_state_sha256": "54c1478af54d95757f11016f27e0d8dbc97af614a4708a1b1b19dd06df08eab9",
+      "initial_vertices_sha256": "fbac68ed8bc446480a547171a1d518b56e627a506c6abb95a1f5884c8b630a3c",
+      "snapshots": 20,
+      "ticks": 880,
+      "phases": [
+        {
+          "phase": "approach_sleeve_above",
+          "end_tick": 45
+        },
+        {
+          "phase": "approach_sleeve",
+          "end_tick": 90
+        },
+        {
+          "phase": "grasp_sleeve",
+          "end_tick": 135
+        },
+        {
+          "phase": "lift_sleeve",
+          "end_tick": 180
+        },
+        {
+          "phase": "carry_sleeve",
+          "end_tick": 225
+        },
+        {
+          "phase": "fold_sleeve",
+          "end_tick": 270
+        },
+        {
+          "phase": "release_sleeve",
+          "end_tick": 315
+        },
+        {
+          "phase": "retreat_sleeve",
+          "end_tick": 360
+        },
+        {
+          "phase": "approach_hem_above",
+          "end_tick": 405
+        },
+        {
+          "phase": "approach_hem",
+          "end_tick": 450
+        },
+        {
+          "phase": "grasp_hem",
+          "end_tick": 495
+        },
+        {
+          "phase": "lift_hem",
+          "end_tick": 540
+        },
+        {
+          "phase": "carry_hem",
+          "end_tick": 585
+        },
+        {
+          "phase": "fold_hem",
+          "end_tick": 675
+        },
+        {
+          "phase": "release_hem",
+          "end_tick": 720
+        },
+        {
+          "phase": "settle",
+          "end_tick": 880
+        }
+      ],
+      "final_metrics": {
+        "success": true,
+        "physics_valid": true,
+        "peak_cloth_speed_m_s": 3.7174803519500887,
+        "peak_edge_strain": 0.500343197761991,
+        "footprint": {
+          "projected_area_m2": 0.1309967041015625,
+          "target_coverage": 0.6997687184912527,
+          "inside_target_fraction": 1.0,
+          "span_x_m": 0.4000095094735437,
+          "span_y_m": 0.36000246196762037
+        },
+        "fold_geometry_ok": true,
+        "hem_alignment_m": {
+          "left": 0.03999543461427336,
+          "right": 0.039997770783368906
+        },
+        "sleeve_overhang_m": {
+          "left": 0.0,
+          "right": 0.0
+        },
+        "max_height_m": 0.0017982940610902802,
+        "max_speed_m_s": 2.174931945136972e-06,
+        "stable_ticks": 160,
+        "on_table": true,
+        "finite": true
+      },
+      "physics_config": {
+        "engine": "MuJoCo 3.17",
+        "garment": "single-layer T-shirt silhouette, 271 vertices / 460 triangles",
+        "fixture": "six explicit upper-torso vacuum-table connect constraints, released before scoring",
+        "grasp": "distance-gated idealized marked-tab vertex clamp; no frictional pinch or layer inference",
+        "cloth_self_collision": true,
+        "cloth_table_collision": true,
+        "cloth_obstacle_collision": true,
+        "cloth_arm_shell_collision": false,
+        "arm_arm_collision": false,
+        "arm_table_collision": true,
+        "max_valid_cloth_speed_m_s": 5.0,
+        "material_calibration": "illustrative; not calibrated to a real textile",
+        "collision_masks": {
+          "cloth": [
+            4,
+            1
+          ],
+          "arms": [
+            2,
+            1
+          ],
+          "table": [
+            1,
+            3
+          ],
+          "obstacle": [
+            1,
+            3
+          ]
+        },
+        "cloth_contact_radius_m": 0.0018,
+        "elastic_thickness_m": 0.0004,
+        "actuation": "six revolute position motors per arm, analytic Cartesian IK, gravity compensation"
+      }
+    }
+  ],
+  "camera_restriction": "Own narrow overhead camera; peer-side obstacle geometry is explicitly removed during rendering, including its shadows. Own measurements are unchanged. This controlled visibility mask is not a raw-camera occlusion claim.",
+  "teacher": "Privileged geometric reference_target; either hazard makes both labels hold.",
+  "actor_inputs": [
+    "local RGB",
+    "own observation",
+    "phase instruction"
+  ],
+  "label_only_fields": [
+    "labels",
+    "action",
+    "counterfactual"
+  ],
+  "split_policy": "Whole episodes; seeds train>=10000, dev<100, test in [100,10000).",
+  "counterfactual_physics": "No stepping; qpos/qvel/qacc_warmstart/ctrl/constraints/time and controller targets verified unchanged.",
+  "hidden_peer_input_parity": "Exact RGB and observation hashes match the clear case.",
+  "limitations": [
+    "A tiny diagnostic dataset, not a generalization benchmark or successful-fold corpus.",
+    "Local measured state is available; vision-only control is not established.",
+    "Counterfactual hazards change sensing and one-step teacher labels, not the trajectory.",
+    "Privileged teacher labels must never be passed as policy inputs.",
+    "Phase instructions are supplied; no language planning is learned here."
+  ],
+  "files": {
+    "rgb.npz": "c57ffad2762eb3a7d48251501d772a135c153473f581df8dd870157aec04a408",
+    "rows.json": "42d081a3f8eceeb2ebeda4344b16de4cc689d5b082be57399f11bb4d76185720"
+  },
+  "wall_seconds": 467.6234077080153
+}
