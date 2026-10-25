@@ -58,12 +58,44 @@ def _json(value: Mapping[str, Any]) -> str:
     return result
 
 
+_TOKEN_FILE = Path(".relay-lab/spacetime-token")
+
+
+def _default_token_path(cwd: Path | None = None) -> Path:
+    """The checkout's token file, or the main checkout's when run from a git worktree.
+
+    `.relay-lab/` is private, untracked machine state, so a linked worktree never
+    has its own copy; it shares the one beside the repository's common `.git`.
+    """
+    cwd = Path.cwd() if cwd is None else cwd
+    local = cwd / _TOKEN_FILE
+    if local.exists():
+        return local
+    marker = cwd / ".git"
+    if marker.is_file():
+        try:
+            text = marker.read_text(encoding="utf-8").strip()
+        except OSError:
+            return local
+        if text.startswith("gitdir:"):
+            gitdir = Path(text[len("gitdir:"):].strip())
+            gitdir = gitdir if gitdir.is_absolute() else (cwd / gitdir).resolve()
+            if gitdir.parent.name == "worktrees":
+                shared = gitdir.parent.parent.parent / _TOKEN_FILE
+                if shared.exists():
+                    return shared
+    return local
+
+
 def _read_token(path: Path) -> str:
     """Read a user-owned private regular file without following its final symlink."""
     try:
         descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
     except OSError:
-        raise ValueError("Cannot read private Spacetime token file; run Spacetime setup") from None
+        raise ValueError(
+            "Cannot read private Spacetime token file; run Spacetime setup "
+            "or set RELAY_SPACETIME_TOKEN_FILE"
+        ) from None
     with os.fdopen(descriptor, "r", encoding="utf-8") as stream:
         info = os.fstat(stream.fileno())
         if not stat.S_ISREG(info.st_mode) or info.st_mode & 0o077 or info.st_uid != os.getuid():
@@ -125,9 +157,9 @@ class SpacetimeConfig:
     def from_env(cls, *, token_file: Path | None = None) -> SpacetimeConfig:
         token = os.environ.get("RELAY_SPACETIME_TOKEN", "")
         if not token:
+            configured = os.environ.get("RELAY_SPACETIME_TOKEN_FILE")
             token = _read_token(
-                token_file
-                or Path(os.environ.get("RELAY_SPACETIME_TOKEN_FILE", ".relay-lab/spacetime-token"))
+                token_file or (Path(configured) if configured else _default_token_path())
             )
         return cls(
             server=os.environ.get("RELAY_SPACETIME_SERVER", "http://127.0.0.1:3000"),
