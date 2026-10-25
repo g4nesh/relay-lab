@@ -5,8 +5,8 @@ runs inspectable communication exchanges through the existing **SpacetimeDB
 factory coordinator**. The learned path uses the repository's trained
 **CoLA-inspired SmolVLA/X-VLA adapters**. Text paths use the pinned local Qwen model.
 Robot coordination keeps the existing Spacetime schema. Dashboard identities,
-model approvals and change requests use private local SQLite stores; the
-simulation runners remain separate.
+model approvals and change requests use private local SQLite stores. A bounded
+local simulation recipe also connects the Tasks view to the two-arm cloth runner.
 
 The default **Tasks** view turns an objective into a durable assignment for an
 approved agent or pair. A scoped outbound runtime receives that exact goal,
@@ -24,8 +24,8 @@ uv run --extra learned relay-lab studio --port 8770
 
 Open <http://127.0.0.1:8770/>. The README describes Spacetime setup and the isolated
 `.venv-llm` runtime. Qwen3-1.7B MLX runs locally on Apple Silicon; latent-only
-exchanges do not require Qwen. The cloth experiment remains available separately
-from the Studio interface.
+exchanges do not require Qwen. The full cloth experiment and its comparison tools
+remain available separately from Studio's fixed task recipe.
 
 The local dashboard opens directly with a selected account. Use **Switch account**
 in the sidebar or top bar to move between Manager and Operator profiles; no
@@ -39,6 +39,81 @@ on localhost as well, start with `RELAY_STUDIO_PASSWORD_LOGIN=1` and an existing
 password-backed account or a fresh workspace. First-time password mode uses the
 private `.relay-lab/studio/setup-code` file; no default password is created.
 
+## Complete a local two-arm simulation task
+
+The checked-in [completed task evidence](../examples/studio/task-completion/task-report.json)
+records a fresh dashboard-launched run: both agent reports were confirmed at
+Spacetime revision 36, with 1,126 physics steps, 2,252 neural actions, 32 Qwen
+phase reviews and 564 packets across 282 durable frames. The
+[recording](../examples/studio/task-completion/overview.mp4),
+[Spacetime audit](../examples/studio/task-completion/audit.json) and
+[independent action replay](../examples/studio/task-completion/verification.json)
+are separate evidence. Replay reproduced identical final vertices and metrics,
+with zero recorded robot-state error. This is one fixed-seed simulation result,
+not a reliability benchmark or hardware validation.
+
+The **Two-arm simulation** card on Tasks launches a fresh MuJoCo cloth-folding
+run. It joins the dashboard objective, both approved controllers, Qwen phase
+review, Spacetime coordination, agent reports, and measured simulator evidence.
+It is available only in the local installation with the required controller
+checkpoints, simulator dependencies, Qwen runtime and Spacetime connection.
+Hosted workspaces continue using outbound customer runtimes.
+
+Use the repository's `learned` Python environment and existing isolated
+`.venv-llm` installation described in the README. The pinned Qwen weights must
+already be present in the local Hugging Face cache; prepare that runtime through
+the documented Qwen setup before launching the recipe. The recipe runs with
+`HF_HUB_OFFLINE=1` and never downloads a model implicitly. It also requires the
+tracked `scripts/replay_cloth_actions.py` verification runner. Readiness checks
+local prerequisites; launch performs the live Spacetime preflight. A readiness
+badge alone is not evidence of successful model generation or task completion.
+
+1. Select a Manager profile and open **Tasks**. The recipe distinguishes runtime
+   availability from model-release readiness. Missing dependencies or failed
+   runtime checks are displayed rather than selecting a fallback controller.
+2. Choose **Prepare model pair**, then review the confirmation. Saving this recipe
+   **replaces the active workspace pair and communication configuration**. It
+   retains prior model records and task history. It does not approve the models.
+3. In **Models & channels**, review and explicitly release both exact model
+   configurations. The left controller is a task-trained CNN; the right is a
+   separate task-trained attention architecture. Both use RGB, local landmark
+   measurements, proprioception and a fixed phase vocabulary.
+4. Return to Tasks and choose **Run folding task**. The recipe uses a fixed
+   objective, criteria, seed and configuration. A launch request has a persistent
+   request identity; if its response is uncertain, **Retry same launch** retains
+   that identity instead of intentionally creating another run.
+5. Open the resulting task to follow each arm's reported progress and the
+   simulation phases. The geometry panel reports worst-arm hem alignment,
+   worst-arm sleeve overhang, maximum cloth height and the geometry check.
+6. After recording finishes, inspect the overview video, individual camera
+   recordings, run summary and verification record. The UI exposes only bounded,
+   authenticated artifact routes for that run. A failed or interrupted run stays
+   visible with its available evidence.
+
+After the controller rollout, **Verifying action replay** means the recorded
+actions are being re-executed in a fresh simulator world and compared with the
+saved final geometry and metrics. This is a consistency check of that rollout,
+not a second neural-policy run. Completion waits for the verification outcome.
+
+One local team runtime owns the shared MuJoCo world and two separate policy
+contexts; these are not two independent simulations. **Cancel task** uses the
+normal revision-checked cancellation flow. The runtime must observe cancellation
+or lost authorization before advancing its next authorized step; cancellation is
+cooperative and does not imply an emergency stop for arbitrary customer hardware.
+
+The successful baseline uses original **task-trained, state-assisted neural
+controllers**, not the native SmolVLA/X-VLA policies or the learned 64D adapter
+experiment. Qwen reviews phase transitions; Spacetime stores coordination and
+task reports. The result distinguishes a measured simulation outcome from
+agent-reported task completion. It does not establish hardware performance,
+general foundation-VLA folding, or calibrated real-garment physics. Cloth uses
+idealized grasp tabs and a stabilizing fixture, released before final scoring;
+the [cloth protocol](cloth-coordination.md) documents the physical assumptions.
+
+The custom objective form, external runtime connections and communication probes
+remain available. Preparing this recipe is an explicit workflow choice; Studio
+does not silently replace another approved pair or auto-release its models.
+
 ## Roles and model releases
 
 | Operation | Manager | Employee |
@@ -49,6 +124,8 @@ private `.relay-lab/studio/setup-code` file; no default password is created.
 | Assign objectives and inspect agent-reported outcomes | Yes | Yes |
 | Cancel objectives | Any workspace task | Own tasks only |
 | Create/revoke scoped runtime credentials | Yes | No |
+| Prepare and launch the bundled local simulation recipe | Yes | No |
+| Inspect simulation progress, measured outcomes and recordings | Yes | Yes |
 | Submit model change requests | Yes | Yes |
 | View requests | All | Own requests |
 | Add/upload/edit models or change the workspace | Yes | No |
@@ -191,7 +268,9 @@ A successful exchange confirms communication, not a grasp or completed task.
 The prior live learned-controller trial missed 12 of 14 required obstacle holds,
 with zero grasps and no fold. Fresh-message diagnostic performance does not
 establish delay robustness. Studio does not add automatic strategy selection,
-universal latent alignment, or an end-to-end folding controller.
+universal latent alignment, or a foundation-VLA folding controller. The local
+task-trained simulation recipe above is a separate path with its own model
+provenance and measured results.
 
 ## Local bridge API
 
@@ -221,6 +300,9 @@ or provide an asynchronous hardware driver.
 | `GET /api/sessions/{id}` | Read the latest 50 exchanges and current release eligibility without resuming |
 | `GET /api/samples/{condition}/{arm}.png` | Exact captured local camera image; condition is `clear`, `left_obstacle`, or `right_obstacle`, and arm is `left` or `right` |
 | `POST /api/upload` | Manager-only inert safetensors upload; return asset ID, byte count, and SHA-256 |
+| `GET /api/simulations` | Read local recipe, runtime availability, model-release readiness, active run and retained results |
+| `POST /api/simulations` | Manager-only launch of the fixed local recipe with `{request_id}`; does not bypass model approval |
+| `GET /api/simulations/{goal-id}` | Inspect simulation progress, final metrics and authenticated artifact links |
 
 JSON mutations require `Content-Type: application/json` and `X-Relay-Token` from
 bootstrap. First sign in using a cookie-aware HTTP client; the dashboard's Runtime

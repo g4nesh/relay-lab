@@ -373,7 +373,17 @@ function bind() {
     document.querySelectorAll('a[href^="http://127.0.0.1:"]').forEach((link) => { link.hidden = true; });
   }
   window.RelayAnalytics.mount({api, notify: toast, authenticated: () => state.authenticated});
-  window.RelayTasks.mount({api, notify: toast, authenticated: () => state.authenticated, context: () => ({workspace: state.savedWorkspace, models: state.models, user: state.user, permissions: state.permissions}), onWorkspace: () => setStudioView("workspace")});
+  window.RelayTasks.mount({api, notify: toast, authenticated: () => state.authenticated, context: () => ({workspace: state.savedWorkspace, models: state.models, user: state.user, permissions: state.permissions}), onWorkspace: async (savedWorkspace = null) => {
+    if (savedWorkspace) {
+      state.workspace = structuredClone(savedWorkspace);
+      state.savedWorkspace = structuredClone(savedWorkspace);
+      state.dirty = false;
+      clearSession();
+      await refreshModels();
+      render();
+    }
+    setStudioView("workspace");
+  }});
   const showWorkspace = () => setStudioView("workspace");
   for (const id of ["nav-team", "nav-stream", "nav-history", "nav-access", "nav-bridge", "mobile-workspace"]) $(id).addEventListener("click", showWorkspace);
   for (const id of ["nav-analytics", "mobile-analytics"]) $(id).addEventListener("click", () => setStudioView("analytics"));

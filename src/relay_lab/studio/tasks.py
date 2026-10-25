@@ -378,7 +378,9 @@ class TaskService:
             goal["assignments"][agent_id]["summary"]
             if agent_id
             else (
-                "Task cancelled by an operator; see the task cancellation reason."
+                "Simulation runtime stopped; see the task reason."
+                if operation == "cancelled" and identity == "simulation-supervisor"
+                else "Task cancelled by an operator; see the task cancellation reason."
                 if operation == "cancelled"
                 else "Task state updated."
             )
@@ -440,6 +442,8 @@ class TaskService:
                 if pending["key"] == key and pending["signature"] == signature:
                     result = pending["result"]
                     replay = True
+                elif pending["key"] == key:
+                    raise TaskConflict("This request_id was reused for a different pending update")
                 elif operation == "cancelled":
                     # No external action is dispatched until commit + exact readback.
                     # A cancellation may supersede an uncommitted assignment/report.
@@ -617,4 +621,66 @@ class TaskService:
             "cancelled",
             request_id=value["request_id"],
             identity=actor["id"],
+        )
+
+    @_locked
+    def cancel_managed(self, task_id, worker_ids, reason):
+        """Stop one supervisor-owned pair without impersonating a former manager.
+
+        Internal lifecycle cleanup only: there is deliberately no HTTP route.
+        The caller supplies IDs from its private launch manifest, including an
+        empty list if startup failed before credential creation. Already-claimed
+        assignments must belong to those exact simulation credentials. Approval
+        retirement cannot prevent the owner from recording a stop.
+        """
+        if (
+            not isinstance(worker_ids, (list, tuple, set))
+            or len(worker_ids) > 2
+            or any(
+                not isinstance(worker, str) or re.fullmatch(r"worker-[a-f0-9]{16}", worker) is None
+                for worker in worker_ids
+            )
+        ):
+            raise ValueError("Managed cleanup requires the run's scoped worker identifiers")
+        reason = _text(reason, "Cancellation reason", 1000)
+        _, current = self._load(task_id)
+        goal = current["state"]["goal"]
+        if set(goal["assignments"]) != {"left", "right"} or any(
+            assignment["execution_kind"] not in (None, "simulation")
+            or assignment["worker_id"] is not None
+            and assignment["worker_id"] not in worker_ids
+            for assignment in goal["assignments"].values()
+        ):
+            raise PermissionError("This task is not owned by the managed simulation runtimes")
+        if goal["status"] in TERMINAL:
+            return self._public(current)
+        identity = "simulation-supervisor"
+        value = {
+            "request_id": f"managed-stop-{task_id}-{current['revision']}",
+            "expected_revision": current["revision"],
+            "reason": reason,
+        }
+        coordinator, snapshot, key, signature, duplicate = self._begin(
+            task_id, value, identity, "cancel"
+        )
+        if duplicate:
+            return self._public(snapshot)
+        state = copy.deepcopy(snapshot["state"])
+        state["goal"].update(status="cancelled", cancel_reason=reason)
+        for assignment in state["goal"]["assignments"].values():
+            if assignment["status"] not in TERMINAL:
+                assignment.update(
+                    status="cancelled",
+                    summary="Simulation runtime stopped; see the task reason.",
+                    updated_at=time.time(),
+                )
+        return self._commit(
+            coordinator,
+            snapshot,
+            state,
+            key,
+            signature,
+            "cancelled",
+            request_id=value["request_id"],
+            identity=identity,
         )

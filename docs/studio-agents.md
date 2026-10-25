@@ -41,12 +41,21 @@ verified. Manager/employee identities, model approvals, and hashed worker creden
 remain in the private workspace's local SQLite stores. Back up both the app state
 and the Spacetime database.
 
-This goal loop currently exchanges **structured text feedback**. Its stored
+The generic outbound goal loop exchanges **structured text feedback**. Its stored
 communication profile records the saved workspace mode, but does not automatically
-invoke Qwen, the learned latent adapters, or a VLA. The existing communication
-console still supports those separate probes. A customer's handler must explicitly
-integrate its desired inference and peer-context path. No universal latent
-compatibility or automatic robot connection algorithm is implied.
+invoke Qwen, the learned latent adapters, or a VLA. A customer's handler must
+explicitly integrate its desired inference and peer-context path. The existing
+communication console supports its separate learned and language probes.
+
+For a complete bundled task, the local **Two-arm simulation** recipe integrates
+two original task-trained controllers, actual Qwen phase review, MuJoCo execution,
+and Spacetime coordination. A team runtime owns both controller contexts in one
+shared world and reports through the same task APIs. Managers explicitly prepare
+and approve the exact model pair before launching. Read the
+[simulation workflow](studio.md#complete-a-local-two-arm-simulation-task) for
+prerequisites, cancellation, recordings and measured-outcome limits. This recipe
+is distinct from the SmolVLA inference-only probe below and does not establish
+universal latent compatibility or automatic robot discovery.
 
 ## Run the outbound worker
 

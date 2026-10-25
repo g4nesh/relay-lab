@@ -83,6 +83,7 @@ class StudioHandler(BaseHTTPRequestHandler):
         deployment=None,
         tasks=None,
         workers=None,
+        simulations=None,
         **kwargs,
     ):
         self.service, self.access, self.registry = service, access, registry
@@ -90,6 +91,7 @@ class StudioHandler(BaseHTTPRequestHandler):
         self.deployment = deployment
         self.tasks = tasks
         self.workers = workers
+        self.simulations = simulations
         self.identity = None
         super().__init__(*args, **kwargs)
 
@@ -282,6 +284,15 @@ class StudioHandler(BaseHTTPRequestHandler):
             return self.agent_request(path, mutation)
         actor = self.authenticate(mutation)
         if not mutation:
+            if path == "/api/simulations":
+                return self.respond(self.simulation_service.list(actor))
+            if match := re.fullmatch(r"/api/simulations/(goal-[a-f0-9]{16})", path):
+                return self.respond(self.simulation_service.get(actor, match[1]))
+            if match := re.fullmatch(
+                r"/api/simulations/(goal-[a-f0-9]{16})/artifacts/([a-z0-9.]+)", path
+            ):
+                artifact, mime = self.simulation_service.artifact(actor, match[1], match[2])
+                return self.serve_artifact(artifact, mime)
             if path == "/api/tasks":
                 return self.respond(self.task_service.list(actor))
             if match := re.fullmatch(r"/api/tasks/(goal-[a-f0-9]{16})", path):
@@ -349,6 +360,14 @@ class StudioHandler(BaseHTTPRequestHandler):
                 self.require("models.manage")
                 return self.upload()
             value = self.body()
+            if path == "/api/simulations":
+                self.require("models.manage")
+                return self.respond(
+                    self.simulation_service.start(
+                        actor, value, origin=f"http://127.0.0.1:{self.server.server_port}"
+                    ),
+                    201,
+                )
             if path == "/api/tasks":
                 self.require("sessions.run")
                 return self.respond(self.task_service.create(actor, value), 201)
@@ -457,6 +476,66 @@ class StudioHandler(BaseHTTPRequestHandler):
                     self.authorize_history(actor, history)
                     return self.respond(self.session_status(actor, self.service.recover(match[1])))
         self.respond({"error": "Not found"}, 404)
+
+    @property
+    def simulation_service(self):
+        # Share one process supervisor across request-handler instances.
+        from .simulations import SimulationService
+
+        with self.registry.lock:
+            if getattr(self, "simulations", None) is None:
+                if not hasattr(self.service, "simulations"):
+                    self.service.simulations = SimulationService(
+                        self.service,
+                        self.access,
+                        self.registry,
+                        self.task_service,
+                        self.worker_store,
+                        hosted=bool(self.deployment is not None and self.deployment.hosted),
+                    )
+                self.simulations = self.service.simulations
+        return self.simulations
+
+    def serve_artifact(self, path, mime):
+        """Authenticated, bounded files with single-range support for video seeking."""
+        size = path.stat().st_size
+        start, end, status = 0, size - 1, 200
+        requested = self.headers.get("Range")
+        if requested:
+            match = re.fullmatch(r"bytes=([0-9]*)-([0-9]*)", requested)
+            if not match or not any(match.groups()):
+                raise ValueError("Only one byte range is supported")
+            left, right = match.groups()
+            if left:
+                start, end = int(left), min(int(right), size - 1) if right else size - 1
+            else:
+                start = max(0, size - int(right))
+            if not 0 <= start <= end < size:
+                self.send_response(416)
+                self.send_header("Content-Range", f"bytes */{size}")
+                self.send_header("Content-Length", "0")
+                self.send_header("Content-Type", "application/octet-stream")
+                self.end_headers()
+                return
+            status = 206
+        self.send_response(status)
+        self.send_header("Content-Type", mime)
+        self.send_header("Content-Length", str(end - start + 1))
+        self.send_header("Accept-Ranges", "bytes")
+        self.send_header("Cache-Control", "private, no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        if status == 206:
+            self.send_header("Content-Range", f"bytes {start}-{end}/{size}")
+        self.end_headers()
+        with path.open("rb") as stream:
+            stream.seek(start)
+            remaining = end - start + 1
+            while remaining:
+                part = stream.read(min(remaining, 1024 * 1024))
+                if not part:
+                    break
+                self.wfile.write(part)
+                remaining -= len(part)
 
     @property
     def task_service(self):

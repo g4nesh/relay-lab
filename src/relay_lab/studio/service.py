@@ -923,4 +923,6 @@ class StudioService:
         return decisions
 
     def close(self):
+        if hasattr(self, "simulations"):
+            self.simulations.close()
         self.llm.close()

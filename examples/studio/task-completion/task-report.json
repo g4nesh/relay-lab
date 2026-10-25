@@ -1,0 +1,103 @@
+{
+  "id": "goal-19b83704a0a780e5",
+  "title": "Two-arm T-shirt fold",
+  "objective": "Fold the T-shirt with both simulated arms. Share local observations, wait for fresh peer reports, and hold when either arm observes an obstacle. Release the garment and vacuum fixture, then verify the final cloth geometry.",
+  "success_criteria": [
+    "Both grippers and the vacuum fixture are released; cloth is stable for at least 15 ticks.",
+    "Hem error is below 0.095 m, sleeve overhang below 0.06 m, and height below 0.12 m.",
+    "Footprint coverage is at least 0.40, containment at least 0.75, and area at least 0.075 m\u00b2.",
+    "Fresh-world action replay reproduces the final cloth vertices and measured metrics."
+  ],
+  "status": "succeeded",
+  "revision": 36,
+  "readback_verified": true,
+  "backend": "SpacetimeDB",
+  "success_basis": "agent_reported",
+  "verified_physical_outcome": false,
+  "assignments": {
+    "left": {
+      "agent_id": "left",
+      "name": "Left cloth controller",
+      "status": "succeeded",
+      "execution_kind": "simulation",
+      "progress": 100,
+      "model_id": "mdl_a961f8630ea93aec31c40ab0d60ae59ec66a197f3b1943a2199433b3cc719281",
+      "release_revision": 2,
+      "summary": "Cloth folded and measured; fresh-world action replay verified.",
+      "evidence": [
+        "Measured MuJoCo simulation, 1126 physics ticks.",
+        "Original task-trained state-assisted cloth controllers; not foundation VLAs.",
+        "Independent action replay verified identical final geometry and metrics.",
+        "Simulation evidence only; no physical hardware outcome is attested."
+      ]
+    },
+    "right": {
+      "agent_id": "right",
+      "name": "Right cloth controller",
+      "status": "succeeded",
+      "execution_kind": "simulation",
+      "progress": 100,
+      "model_id": "mdl_9a168b7054f909358abb177a476c3af9dd42bc8f4b43b0f9a8a45b539b89ec0f",
+      "release_revision": 2,
+      "summary": "Cloth folded and measured; fresh-world action replay verified.",
+      "evidence": [
+        "Measured MuJoCo simulation, 1126 physics ticks.",
+        "Original task-trained state-assisted cloth controllers; not foundation VLAs.",
+        "Independent action replay verified identical final geometry and metrics.",
+        "Simulation evidence only; no physical hardware outcome is attested."
+      ]
+    }
+  },
+  "distinct_runtime_identities": 2,
+  "simulation_result": {
+    "status": "succeeded",
+    "success": true,
+    "metrics": {
+      "success": true,
+      "physics_valid": true,
+      "peak_cloth_speed_m_s": 2.647820704980426,
+      "peak_edge_strain": 0.33011024607568507,
+      "footprint": {
+        "projected_area_m2": 0.139984130859375,
+        "target_coverage": 0.7393828824035122,
+        "inside_target_fraction": 0.9887726182690212,
+        "span_x_m": 0.4634499798411007,
+        "span_y_m": 0.3605705418063988
+      },
+      "fold_geometry_ok": true,
+      "hem_alignment_m": {
+        "left": 0.027070248515327567,
+        "right": 0.04714364147514342
+      },
+      "sleeve_overhang_m": {
+        "left": 0.0,
+        "right": 0.0
+      },
+      "max_height_m": 0.08871451644870451,
+      "max_speed_m_s": 0.004307976874878415,
+      "stable_ticks": 160,
+      "on_table": true,
+      "finite": true
+    },
+    "verification": {
+      "kind": "independent_mujoco_action_reexecution",
+      "source_run_id": "cloth-1ae35b3c7c144c5b",
+      "source_artifact_sha256": {
+        "summary.json": "a3a7e0e834a3439a45e1529bae53b83f96eecd9da7b15b54f25bb5f2f6d88757",
+        "final.json": "4a01e673cb0e8e480d0e11260c277146e40e6310a3d6ad48e0a246e5dbc4bce4",
+        "events.jsonl.gz": "3e67bb5ee00a4c65f9407345ac175457610a9f1a47dac5c9d735dfd833ea02a0"
+      },
+      "reexecutes_neural_models": false,
+      "reexecutes_communication": false,
+      "verified": true,
+      "steps": 1126,
+      "maximum_robot_state_error": 0.0,
+      "video_fps": null,
+      "final_vertices_bitwise_equal": true,
+      "same_final_metrics": true,
+      "same_fixture_state": true,
+      "same_tick_count": true
+    },
+    "verified_physical_outcome": false
+  }
+}
