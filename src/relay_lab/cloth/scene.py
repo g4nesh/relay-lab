@@ -175,7 +175,7 @@ def build_scene() -> tuple[str, np.ndarray, np.ndarray, dict]:
       <compiler angle="degree" autolimits="true"/>
       <option timestep=".004" gravity="0 0 -9.81" integrator="discrete" solver="Newton" iterations="30" tolerance="1e-7" jacobian="sparse"/>
       <size memory="256M"/><statistic center="0 0 .1" extent="2.2"/>
-      <visual><global offwidth="1600" offheight="1200"/><quality shadowsize="8192" offsamples="8" numslices="32" numstacks="16"/><headlight ambient=".30 .32 .34" diffuse=".14 .14 .14" specular=".08 .08 .08"/><map znear=".005" shadowclip="1.4"/><rgba haze=".88 .9 .93 1"/></visual>
+      <visual><global offwidth="2560" offheight="1600"/><quality shadowsize="8192" offsamples="8" numslices="32" numstacks="16"/><headlight ambient=".30 .32 .34" diffuse=".14 .14 .14" specular=".08 .08 .08"/><map znear=".005" shadowclip="1.4"/><rgba haze=".88 .9 .93 1"/></visual>
       <default><joint damping="2" armature=".04"/><geom friction=".65 .008 .001" solref=".012 1" solimp=".95 .99 .001" contype="2" conaffinity="1" density="700"/><default class="visual"><geom contype="0" conaffinity="0"/></default><default class="cloth_node"><joint damping="0" armature="0"/></default></default>
       <asset>
         <texture name="sky" type="skybox" builtin="gradient" rgb1=".65 .74 .81" rgb2=".94 .96 .98" width="256" height="1536"/>
@@ -191,19 +191,42 @@ def build_scene() -> tuple[str, np.ndarray, np.ndarray, dict]:
         <material name="rubber" rgba=".025 .03 .04 1" specular=".05"/>
         <material name="teal" rgba=".03 .57 .60 1" specular=".35" shininess=".5"/>
         <material name="amber" rgba=".98 .49 .10 1" specular=".35" shininess=".5"/>
+        <material name="wall" rgba=".91 .94 .95 1" specular=".45" shininess=".65"/>
+        <material name="cabinet" rgba=".91 .94 .95 1" specular=".45" shininess=".65"/>
+        <!-- Presentation-only materials, swapped in by presentation.StudioOverlay. -->
+        <texture name="jersey" type="2d" file="jersey.png"/>
+        <texture name="concrete" type="2d" file="concrete.png"/>
+                <texture name="benchtop" type="2d" file="benchtop.png"/>
+        <material name="cloth_studio" texture="jersey" texrepeat="1 1" specular=".05" shininess=".08" rgba="1 1 1 1"/>
+        <material name="floor_studio" texture="concrete" texuniform="true" texrepeat=".45 .45" reflectance=".06" specular=".22" shininess=".35" rgba="1 1 1 1"/>
+        <material name="table_studio" texture="benchtop" texuniform="true" texrepeat="1.6 1.6" specular=".10" shininess=".22" rgba=".80 .80 .79 1"/>
+        <material name="wall_studio" specular=".03" shininess=".06" rgba=".78 .77 .75 1"/>
+        <material name="cabinet_studio" rgba=".70 .71 .70 1" specular=".18" shininess=".3"/>
+        <material name="shell_studio" rgba=".90 .90 .885 1" specular=".55" shininess=".72"/>
+        <material name="aluminum_studio" rgba=".70 .72 .74 1" specular=".85" shininess=".88"/>
+        <material name="steel_studio" rgba=".30 .32 .35 1" specular=".7" shininess=".75"/>
+        <material name="graphite_studio" rgba=".055 .06 .068 1" specular=".35" shininess=".55"/>
+        <material name="rubber_studio" rgba=".028 .028 .03 1" specular=".04" shininess=".1"/>
+        <material name="teal_studio" rgba=".04 .50 .54 1" specular=".45" shininess=".6"/>
+        <material name="amber_studio" rgba=".92 .46 .12 1" specular=".45" shininess=".6"/>
       </asset>
       <worldbody>
         <light pos="-1 -1 3" dir=".2 .3 -1" directional="true" diffuse=".29 .28 .26" specular=".18 .18 .18"/>
         <light pos="2 1 2.8" dir="-.4 -.2 -1" directional="true" diffuse=".23 .27 .31" castshadow="false"/>
         <light pos="0 2 2" dir="0 -.4 -1" directional="true" diffuse=".15 .18 .22" castshadow="false"/>
-        <camera name="overview" pos="0 -1.85 1.40" xyaxes="1 0 0 0 .584 .812" fovy="48"/>
+        <!-- Presentation-only studio lights; inactive for the arm cameras. -->
+        <light name="studio_key" type="spot" active="false" pos="-1.7 -1.6 2.5" dir="1.7 1.65 -2.5" diffuse=".62 .58 .52" specular=".30 .28 .26" castshadow="true" bulbradius=".35" cutoff="40" exponent="3"/>
+        <light name="studio_top" type="spot" active="false" pos=".2 .3 2.6" dir="0 0 -1" diffuse=".26 .265 .275" specular=".06 .06 .06" castshadow="true" bulbradius=".8" cutoff="55" exponent="1"/>
+        <light name="studio_fill" type="directional" active="false" dir="-.6 1 -.6" diffuse=".17 .185 .21" specular="0 0 0" castshadow="false"/>
+        <light name="studio_rim" type="spot" active="false" pos=".9 2.4 2.0" dir="-.9 -2.4 -2" diffuse=".34 .35 .38" specular=".25 .25 .27" castshadow="false" cutoff="35" exponent="2"/>
+        <camera name="overview" pos="0 -2.2 1.45" xyaxes="1 0 0 0 .528 .849" fovy="36"/>
         <camera name="top" pos="0 0 1.65" xyaxes="1 0 0 0 1 0" fovy="49"/>
         <camera name="left" pos="-.33 0 .93" xyaxes="1 0 0 0 1 0" fovy="43"/>
         <camera name="right" pos=".33 0 .93" xyaxes="1 0 0 0 1 0" fovy="43"/>
         <geom type="plane" size="20 20 .1" pos="0 0 -.84" material="floor" contype="1" conaffinity="3"/>
         <geom name="table" type="box" size=".98 .66 .035" pos="0 0 -.035" material="table" contype="1" conaffinity="3" friction=".65 .005 .001"/>
         <geom class="visual" type="box" size=".99 .67 .012" pos="0 0 -.082" material="graphite"/>
-        <geom class="visual" type="box" size=".94 .62 .07" pos="0 0 -.14" material="shell"/>
+        <geom class="visual" type="box" size=".94 .62 .07" pos="0 0 -.14" material="cabinet"/>
         <geom class="visual" type="box" size=".27 .004 .011" pos="-.56 -.626 -.14" material="teal"/>
         <geom class="visual" type="box" size=".27 .004 .011" pos=".56 -.626 -.14" material="amber"/>
         <geom class="visual" type="box" size=".04 .04 .30" pos="-.84 -.50 -.51" material="aluminum"/>
@@ -211,8 +234,8 @@ def build_scene() -> tuple[str, np.ndarray, np.ndarray, dict]:
         <geom class="visual" type="box" size=".04 .04 .30" pos="-.84 .50 -.51" material="aluminum"/>
         <geom class="visual" type="box" size=".04 .04 .30" pos=".84 .50 -.51" material="aluminum"/>
         <geom class="visual" type="box" size=".84 .024 .024" pos="0 .50 -.65" material="steel"/>
-        <geom class="visual" type="box" size=".05 2 1.5" pos="-2.8 1 .66" material="shell"/>
-        <geom class="visual" type="box" size="3 .05 1.5" pos="0 2.8 .66" material="shell"/>
+        <geom class="visual" type="box" size=".05 2 1.5" pos="-2.8 1 .66" material="wall"/>
+        <geom class="visual" type="box" size="3 .05 1.5" pos="0 2.8 .66" material="wall"/>
         <geom class="visual" type="box" size=".62 .055 .42" pos=".8 2.73 .8" rgba=".12 .2 .26 1"/>
         <geom class="visual" type="box" size=".59 .058 .39" pos=".8 2.72 .8" rgba=".25 .39 .47 1"/>
         <geom class="visual" type="box" size=".013 .06 .4" pos=".8 2.71 .8" material="aluminum"/>

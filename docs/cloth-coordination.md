@@ -30,6 +30,17 @@ This remains a simulation approximation:
 - MuJoCo raster rendering is a view of the actual simulation. It is not a
   photorealism or real-world transfer claim.
 
+The evaluator cameras (`overview`, `top`) use a presentation-only studio look
+from `relay_lab/cloth/presentation.py`: soft-shadowed studio lights, jersey,
+concrete and laminate textures, 2× supersampling, depth-based crease occlusion
+and filmic tone mapping. These overrides are applied only while rendering those
+cameras and are restored afterwards. The arm cameras that feed policies and
+cached VLA features render exactly as before, and physics is unchanged; the
+tests check that the model state and arm pixels are untouched after a
+presentation render. `scripts/cloth_lookdev.py` renders comparison stills.
+
+![Before and after the studio look](../examples/cloth-coordination/studio-look.png)
+
 MuJoCo 3.17 or later is required for this flex/bending configuration. The project
 lockfile retains the tested version. See `world.snapshot().physics_config` for
 the physical assumptions recorded with each experiment.
