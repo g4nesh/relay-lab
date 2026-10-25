@@ -16,7 +16,7 @@ from io import BytesIO
 
 import mujoco
 import numpy as np
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 
 from .scene import shirt_mesh
 
@@ -341,3 +341,81 @@ def grade(rgb, depth, output_size, *, exposure=1.3):
     mapped *= (1 - 0.22 * radius**2.4)[..., None]
     srgb = (np.clip(_to_srgb(np.clip(mapped, 0, 1)), 0, 1) * 255 + 0.5).astype(np.uint8)
     return np.asarray(Image.fromarray(srgb).resize(output_size, Image.LANCZOS))
+
+
+# ------------------------------------------------------------- annotation --
+_FONT_CANDIDATES = (
+    "/System/Library/Fonts/Helvetica.ttc",
+    "/System/Library/Fonts/Supplemental/Arial.ttf",
+    "DejaVuSans.ttf",
+)
+
+
+@lru_cache(maxsize=16)
+def _font(size):
+    for path in _FONT_CANDIDATES:
+        try:
+            return ImageFont.truetype(path, size)
+        except OSError:
+            continue
+    return ImageFont.load_default(size=size)
+
+
+def project(point, camera_position, camera_matrix, fovy_degrees, width, height):
+    """Pixel coordinates of a world point for a MuJoCo camera, or None if behind it.
+
+    MuJoCo cameras look along their local -z axis with +y up.
+    """
+    local = np.asarray(camera_matrix).reshape(3, 3).T @ (np.asarray(point) - camera_position)
+    if local[2] >= -1e-6:
+        return None
+    focal = (height / 2) / np.tan(np.radians(fovy_degrees) / 2)
+    return (width / 2 + focal * local[0] / -local[2], height / 2 - focal * local[1] / -local[2])
+
+
+def annotate(image, anchor, title, subtitle, *, side=1, opacity=1.0, accent=(235, 125, 30)):
+    """Draw a callout: a dot on the anchor, a leader line, and a two-line label.
+
+    ``side`` (+1 or -1) places the label to the right or left of the anchor.
+    """
+    if anchor is None or opacity <= 0:
+        return image
+    h, w = image.shape[:2]
+    ax, ay = anchor
+    if not (0 <= ax < w and 0 <= ay < h):
+        return image
+    unit = h / 800
+    title_font, sub_font = _font(max(10, round(25 * unit))), _font(max(9, round(18 * unit)))
+    base = Image.fromarray(image).convert("RGBA")
+    layer = Image.new("RGBA", base.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(layer)
+    pad, gap, bar = 12 * unit, 5 * unit, 4 * unit
+    tw = max(draw.textlength(title, font=title_font), draw.textlength(subtitle, font=sub_font))
+    th = title_font.size + gap + sub_font.size
+    box_w, box_h = tw + 2 * pad + bar, th + 2 * pad
+    bx = ax + side * 70 * unit - (box_w if side < 0 else 0)
+    by = ay - 120 * unit - box_h
+    bx = float(np.clip(bx, 10 * unit, w - box_w - 10 * unit))
+    by = float(np.clip(by, 10 * unit, h - box_h - 10 * unit))
+    alpha = round(255 * float(opacity))
+    corner = (bx + (box_w - 6 * unit if side < 0 else 6 * unit), by + box_h)
+    draw.line([anchor, corner], fill=(*accent, alpha), width=max(2, round(2 * unit)))
+    r = 5 * unit
+    draw.ellipse(
+        [ax - r, ay - r, ax + r, ay + r],
+        fill=(*accent, alpha),
+        outline=(255, 255, 255, alpha),
+        width=max(1, round(1.5 * unit)),
+    )
+    draw.rounded_rectangle(
+        [bx, by, bx + box_w, by + box_h], radius=8 * unit, fill=(12, 14, 19, int(205 * opacity))
+    )
+    draw.rectangle([bx, by + 6 * unit, bx + bar, by + box_h - 6 * unit], fill=(*accent, alpha))
+    draw.text((bx + bar + pad, by + pad), title, font=title_font, fill=(240, 242, 245, alpha))
+    draw.text(
+        (bx + bar + pad, by + pad + title_font.size + gap),
+        subtitle,
+        font=sub_font,
+        fill=(170, 178, 190, alpha),
+    )
+    return np.asarray(Image.alpha_composite(base, layer).convert("RGB"))

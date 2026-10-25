@@ -512,13 +512,16 @@ class ClothWorld:
             "metrics": self.metrics(),
         }
 
-    def render(self, camera: str = "overview", width: int = 960, height: int = 720):
+    def render(
+        self, camera: str = "overview", width: int = 960, height: int = 720, *, annotate=True
+    ):
         """Render a camera. Arm cameras are the unmodified policy observation path;
-        presentation cameras use the studio look in ``presentation.py``."""
+        presentation cameras use the studio look in ``presentation.py`` and, when
+        ``annotate`` is true, label the interfering object while it is present."""
         if self._closed:
             raise RuntimeError("world is closed")
         if camera in presentation.PRESENTATION_CAMERAS:
-            return self._render_studio(camera, width, height)
+            return self._render_studio(camera, width, height, annotate)
         key = width, height
         if key not in self._renderers:
             self._renderers[key] = mujoco.Renderer(self.model, height=height, width=width)
@@ -526,7 +529,7 @@ class ClothWorld:
         renderer.update_scene(self.data, camera=camera)
         return renderer.render().copy()
 
-    def _render_studio(self, camera, width, height):
+    def _render_studio(self, camera, width, height, annotate=True):
         scale = max(
             1,
             min(
@@ -552,7 +555,30 @@ class ClothWorld:
                 depth = renderer.render().copy()
             finally:
                 renderer.disable_depth_rendering()
-        return presentation.grade(rgb, depth, (width, height))
+        image = presentation.grade(rgb, depth, (width, height))
+        if annotate and self._obstacle_active:
+            image = self._label_obstacle(image, camera)
+        return image
+
+    def _label_obstacle(self, image, camera):
+        h, w = image.shape[:2]
+        cam = self.model.camera(camera).id
+        position = self.data.mocap_pos[self._obstacle_mocap]
+        top = position + [0, 0, 0.075]  # cylinder half-height
+        anchor = presentation.project(
+            top, self.data.cam_xpos[cam], self.data.cam_xmat[cam], self.model.cam_fovy[cam], w, h
+        )
+        # Fade in while the object slides from the table edge to its stop.
+        opacity = float(np.clip((0.67 - abs(position[0])) / 0.13, 0, 1))
+        side = self._obstacle_side
+        return presentation.annotate(
+            image,
+            anchor,
+            "Interfering object",
+            f"detected only by the {side} arm",
+            side=-1 if side == "left" else 1,
+            opacity=opacity,
+        )
 
     def close(self):
         for renderer in self._renderers.values():
