@@ -18,6 +18,7 @@ from relay_lab.studio.profiles import ProfileStore
 from relay_lab.studio.access import AccessStore
 from relay_lab.studio.governance import ModelRegistry
 from relay_lab.studio.analytics import AnalyticsService
+from relay_lab.studio.schedules import SchedulePump, ScheduleService
 from relay_lab.studio.tasks import TaskService
 from relay_lab.studio.workers import WorkerStore
 
@@ -75,10 +76,12 @@ if __name__ == '__main__':
     if isinstance(access,ProfileStore):
         manager=next((p for p in access.profiles()['profiles'] if p['role']=='manager'),None)
         if manager:registry.sync_workspace(manager,service.workspace())
-    handler=partial(LocalWorkspace,service=service,access=access,registry=registry,analytics=AnalyticsService(BACKEND,service,registry,access),tasks=TaskService(service,registry),workers=WorkerStore(service.storage,access,registry,service))
+    tasks=TaskService(service,registry);schedules=ScheduleService(tasks,access);pump=SchedulePump(schedules);pump.start()
+    handler=partial(LocalWorkspace,service=service,access=access,registry=registry,analytics=AnalyticsService(BACKEND,service,registry,access),tasks=tasks,workers=WorkerStore(service.storage,access,registry,service),schedules=schedules)
     try:
         with ThreadingHTTPServer(('127.0.0.1',args.port),handler) as server:
             print(f'Relay website: http://127.0.0.1:{args.port}/',flush=True)
             print(f'Working Studio: http://127.0.0.1:{args.port}/projects/studio/',flush=True)
             server.serve_forever()
-    finally:service.close()
+    finally:
+        pump.stop();service.close()

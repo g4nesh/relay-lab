@@ -95,3 +95,32 @@
 .tk-assignment .tk-assignment-runtime { display:block; color:#849b75; font-size:8px; line-height:1.7; margin-top:11px; overflow-wrap:anywhere; }
 
 .tk-cancel-target { padding:15px; border:1px solid #dce7d2; border-radius:6px; background:#f6faf1; margin:0 0 20px; }.tk-cancel-target strong { display:block; font-size:12px; color:#5f8051; overflow-wrap:anywhere; }.tk-cancel-target span { display:block; margin-top:7px; font:9px/1.6 var(--mono); color:#8aa073; overflow-wrap:anywhere; }.tk-cancel-target p { font-size:10px; color:#81976e; line-height:1.8; margin:9px 0 0; white-space:pre-wrap; overflow-wrap:anywhere; }
+
+/* Scheduled runs and deadlines (SpacetimeDB scheduled reducers). */
+.tk-timing { margin:4px 0 14px; }
+.tk-timing-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; }
+.tk-timing-row>label { min-width:0; }
+.tk-schedules { margin-top:26px; }
+#tk-schedule-list { padding:0 25px 23px; }
+.tk-schedule { border:1px solid #e3e6e9; border-radius:10px; padding:14px 16px; background:#fff; }
+.tk-schedule+.tk-schedule { margin-top:12px; }
+.tk-schedule-head { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+.tk-schedule-head>div { display:flex; align-items:center; gap:10px; min-width:0; }
+.tk-schedule-head strong { font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.tk-schedule-meta { display:flex; flex-wrap:wrap; gap:6px 18px; margin-top:10px; font-size:12px; color:#6b747c; }
+.tk-schedule-meta span { display:inline-flex; align-items:center; gap:6px; }
+.tk-schedule-meta svg,.tk-deadline svg { width:13px; height:13px; flex:none; }
+.tk-schedule-runs { list-style:none; margin:12px 0 0; padding:0; border-top:1px solid #eceef0; }
+.tk-schedule-runs li { display:grid; grid-template-columns:56px 150px minmax(0,1fr) auto; gap:10px; align-items:center; padding:8px 0; border-bottom:1px solid #eceef0; font-size:12px; color:#4a5258; }
+.tk-schedule-runs li:last-child { border-bottom:0; }
+.tk-schedule-runs li.blocked>span:nth-of-type(2) { color:#a4442c; }
+.tk-schedule-runs li.skipped>span:nth-of-type(2) { color:#8a6d1f; }
+.tk-deadline { display:inline-flex; align-items:center; gap:5px; margin-left:8px; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:550; background:#eef3f6; color:#3d5560; white-space:nowrap; }
+.tk-deadline.missed { background:#fbe9e5; color:#a4442c; }
+.tk-deadline.met { background:#e6f4ec; color:#2d6a48; }
+.tk-deadline.ended { background:#f1f2f4; color:#5b636a; }
+@media (max-width:600px) {
+  #tk-schedule-list { padding:0 16px 16px; }
+  .tk-schedule-runs li { grid-template-columns:1fr 1fr; }
+  .tk-schedule-head { flex-wrap:wrap; }
+}

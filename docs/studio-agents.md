@@ -229,6 +229,32 @@ terminal. Other agents must observe terminal state and stop their own work.
 
 ![Agent-reported result from the real SmolVLA inference probe](../examples/studio/tasks/smolvla-result.png)
 
+## Scheduled runs and deadlines
+
+In the New task form, **Start** can be "At a set time", **Repeat** can run the
+same objective every 5, 15 or 30 minutes, hourly, every 6 hours or daily (2–20
+runs), and **Deadline** arms a watchdog (5 minutes to 24 hours) on each task.
+
+SpacetimeDB owns the clock. Each run is a timer row in a scheduled table; when it
+is due, the database fires the `fire_task_schedule` reducer, even if Studio is
+closed. That reducer only records a due dispatch and chains the next timer. Studio's
+background pump (every 5 seconds) then re-checks the creator's account and the
+current model releases, creates the task through the normal path with the dispatch
+key as its `request_id`, and records the outcome as **Task created** or **Blocked**
+with the reason. A run that fires while the previous one is still waiting is
+recorded as **Skipped** instead of queuing twice. If Studio was offline for several
+intervals, missed slots are skipped and the next run is one interval from now.
+
+A deadline timer fires `check_task_deadline`, which reads the task's journal at the
+deadline and records **met** (finished in time) or **missed**. Missed deadlines on
+open tasks appear under **Needs attention**. Scheduled reducers reject any caller
+other than the database's own scheduler, and none of them write the task journal.
+
+Cancel an active schedule to delete its pending timer; remove a finished schedule
+to delete its records. Tasks a schedule created always stay in task history.
+Scheduling needs the module published from this branch (`python3 scripts/spacetime.py publish`);
+until then the Scheduled runs panel explains that it is unavailable.
+
 ## Retry, cancellation, and release changes
 
 Task creation uses an idempotency `request_id`. Claims, reports, and cancellation
@@ -286,9 +312,13 @@ permissions.
 | Route | Purpose |
 | --- | --- |
 | `GET /api/tasks` | Current workspace's task history |
-| `POST /api/tasks` | Queue `{request_id, objective, success_criteria, target, title?}` |
+| `POST /api/tasks` | Queue `{request_id, objective, success_criteria, target, title?, deadline_minutes?}` |
 | `GET /api/tasks/{goal-id}` | Read one task and its recorded outcome |
 | `POST /api/tasks/{goal-id}/cancel` | Cancel with `{request_id, expected_revision, reason}` |
+| `GET /api/schedules` | Schedules, their runs, and task deadlines |
+| `POST /api/schedules` | Schedule `{request_id, objective, success_criteria, target, title?, start_at, repeat_minutes, max_runs, deadline_minutes?}` |
+| `POST /api/schedules/{sched-id}/cancel` | Cancel an active schedule with `{reason?}` |
+| `POST /api/schedules/{sched-id}/remove` | Delete a finished schedule's records |
 | `GET /api/workers` | Scoped connection metadata; never returns existing tokens |
 | `POST /api/workers` | Manager creates `{name, agent_id, execution_kind}` and receives the token once |
 | `POST /api/workers/{worker-id}/revoke` | Manager revokes that connection |

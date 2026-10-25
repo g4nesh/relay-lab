@@ -57,6 +57,27 @@ feedback for future planning. Reducer calls use the HTTP API's durable
 the same task and tick is rejected. The Python client emits canonical JSON so
 byte equality is unambiguous.
 
+## Scheduled reducers
+
+Studio schedules and deadlines use SpacetimeDB scheduled tables:
+
+```text
+create_task_schedule   → task_schedule (active) + task_schedule_timer (Time = first due)
+fire_task_schedule     ← timer fires: task_dispatch (pending, or skipped if one is pending),
+                         next timer chained until max_runs, then completed
+resolve_task_dispatch  → created (with the goal id) / blocked (with the reason)
+cancel_task_schedule   → cancelled; pending timers deleted
+remove_task_schedule   → finished schedule and its dispatch rows deleted
+set_task_deadline      → task_deadline (watching) + task_deadline_timer
+check_task_deadline    ← timer fires: met / missed from the objective's journal state
+clear_task_deadline    → deadline and any pending timer deleted
+```
+
+`fire_task_schedule` and `check_task_deadline` reject every caller except the
+database scheduler (`ctx.sender == ctx.databaseIdentity`). The other reducers are
+owner-only and idempotent for exact retries. Scheduled reducers never write
+`factory_run`; Studio creates objectives after re-checking accounts and releases.
+
 ## Ownership and failure semantics
 
 The publisher's identity is captured in `init`. Every reducer checks this

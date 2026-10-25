@@ -228,6 +228,8 @@ class StudioApplication:
     async def close(self):
         self.closed = True
         await asyncio.to_thread(self.executor.shutdown, wait=True, cancel_futures=True)
+        if pump := self.runtime.get("schedule_pump"):
+            pump.stop()
         self.runtime["service"].close()
         if self.state_lock is not None:
             self.state_lock.close()
@@ -265,17 +267,23 @@ def create_app(*, config=None, runtime=None):
             )
             if manager:
                 registry.sync_workspace(manager, service.workspace())
+        from .schedules import SchedulePump, ScheduleService
         from .tasks import TaskService
         from .workers import WorkerStore
 
+        tasks = TaskService(service, registry)
+        schedules = ScheduleService(tasks, access)
         runtime = {
             "service": service,
             "access": access,
             "registry": registry,
             "analytics": AnalyticsService(root, service, registry, access),
-            "tasks": TaskService(service, registry),
+            "tasks": tasks,
             "workers": WorkerStore(service.storage, access, registry, service),
+            "schedules": schedules,
+            "schedule_pump": SchedulePump(schedules),
         }
+        runtime["schedule_pump"].start()
     return StudioApplication(runtime, config)
 
 

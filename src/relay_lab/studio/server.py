@@ -17,10 +17,13 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
+from relay_lab.spacetime import SpacetimeError
+
 from .access import AccessStore, AuthenticationError
 from .analytics import AnalyticsService, estimate_effort
 from .governance import ModelRegistry, RegistryConflict
 from .profiles import ProfileStore
+from .schedules import SchedulePump, ScheduleService, ScheduleUnavailable, deadline_minutes
 from .service import StudioService, example_workspace
 from .tasks import TaskConflict, TaskService
 from .workers import WorkerStore
@@ -84,6 +87,7 @@ class StudioHandler(BaseHTTPRequestHandler):
         tasks=None,
         workers=None,
         simulations=None,
+        schedules=None,
         **kwargs,
     ):
         self.service, self.access, self.registry = service, access, registry
@@ -92,6 +96,7 @@ class StudioHandler(BaseHTTPRequestHandler):
         self.tasks = tasks
         self.workers = workers
         self.simulations = simulations
+        self.schedules = schedules
         self.identity = None
         super().__init__(*args, **kwargs)
 
@@ -297,6 +302,8 @@ class StudioHandler(BaseHTTPRequestHandler):
                 return self.respond(self.task_service.list(actor))
             if match := re.fullmatch(r"/api/tasks/(goal-[a-f0-9]{16})", path):
                 return self.respond(self.task_service.get(actor, match[1]))
+            if path == "/api/schedules":
+                return self.respond(self.schedule_service.list(actor))
             if path == "/api/workers":
                 return self.respond(self.worker_store.list(actor))
             if path == "/api/analytics":
@@ -370,7 +377,23 @@ class StudioHandler(BaseHTTPRequestHandler):
                 )
             if path == "/api/tasks":
                 self.require("sessions.run")
-                return self.respond(self.task_service.create(actor, value), 201)
+                minutes = deadline_minutes(value)  # validate before anything is created
+                task = self.task_service.create(actor, value)
+                if minutes:
+                    try:
+                        task["deadline"] = self.schedule_service.set_deadline(task, minutes)
+                    except (ScheduleUnavailable, SpacetimeError) as error:
+                        task["deadline_error"] = str(error)
+                return self.respond(task, 201)
+            if path == "/api/schedules":
+                self.require("sessions.run")
+                return self.respond(self.schedule_service.create(actor, value), 201)
+            if match := re.fullmatch(r"/api/schedules/(sched-[a-f0-9]{16})/cancel", path):
+                self.require("sessions.run")
+                return self.respond(self.schedule_service.cancel(actor, match[1], value))
+            if match := re.fullmatch(r"/api/schedules/(sched-[a-f0-9]{16})/remove", path):
+                self.require("sessions.run")
+                return self.respond(self.schedule_service.remove(actor, match[1]))
             if match := re.fullmatch(r"/api/tasks/(goal-[a-f0-9]{16})/cancel", path):
                 self.require("sessions.run")
                 return self.respond(self.task_service.cancel(actor, match[1], value))
@@ -544,6 +567,12 @@ class StudioHandler(BaseHTTPRequestHandler):
         return self.tasks
 
     @property
+    def schedule_service(self):
+        if self.schedules is None:
+            self.schedules = ScheduleService(self.task_service, self.access)
+        return self.schedules
+
+    @property
     def worker_store(self):
         if self.workers is None:
             self.workers = WorkerStore(
@@ -636,6 +665,8 @@ class StudioHandler(BaseHTTPRequestHandler):
             self.respond({"error": str(error)}, 401)
         except (RegistryConflict, TaskConflict) as error:
             self.respond({"error": str(error)}, 409)
+        except ScheduleUnavailable as error:
+            self.respond({"error": str(error)}, 503)
         except PermissionError as error:
             self.respond({"error": str(error)}, 403)
         except (ValueError, TypeError, KeyError) as error:
@@ -676,6 +707,8 @@ def serve_studio(root=None, port=8770):
     analytics = AnalyticsService(service.root, service, registry, access)
     tasks = TaskService(service, registry)
     workers = WorkerStore(service.storage, access, registry, service)
+    schedules = ScheduleService(tasks, access)
+    pump = SchedulePump(schedules)
     handler = partial(
         StudioHandler,
         service=service,
@@ -684,7 +717,9 @@ def serve_studio(root=None, port=8770):
         analytics=analytics,
         tasks=tasks,
         workers=workers,
+        schedules=schedules,
     )
+    pump.start()
     try:
         with ThreadingHTTPServer(("127.0.0.1", port), handler) as server:
             print(f"Relay Studio: http://127.0.0.1:{server.server_port}/", flush=True)
@@ -692,6 +727,7 @@ def serve_studio(root=None, port=8770):
                 print(f"First manager setup code: {service.storage / 'setup-code'}", flush=True)
             server.serve_forever()
     finally:
+        pump.stop()
         service.close()
 
 
