@@ -6,6 +6,29 @@ with different local observations, moving obstacles, delayed messages, Qwen
 phase review and SpacetimeDB storage. Earlier factory and parcel workcells remain
 available as separate experiments.
 
+## Two-model developer workspace
+
+[Relay Studio](docs/studio.md) is a coordination console for two VLA models,
+their weights or endpoints, and optional rig details. Inspect separate captured
+camera views, the learned encoder/receiver path, committed packets, latency and
+action previews. Select LLM mediation, central orchestration, compatible learned
+latents or hybrid communication.
+
+The CoLA-inspired backend loads the repository's verified SmolVLA/X-VLA adapter
+bundle. SpacetimeDB stores ordered exchanges and request identities so compatible
+sessions can resume after a restart without regenerating old messages. Readiness
+checks report the actual database connection, adapter provenance and local Qwen
+runtime. Historical sessions remain inspectable.
+
+```bash
+uv run --extra learned relay-lab studio --port 8770
+```
+
+Open <http://127.0.0.1:8770/>. Registration does not automatically load arbitrary
+weights or drive hardware. The supported SmolVLA/X-VLA example tests communication
+using captured features and fresh Qwen/adapter inference; other models can use
+the local report API through their own runtime adapters.
+
 ## Learned messages between different VLA families
 
 The new [learned adapter experiment](docs/latent-coordination.md) uses **actual
