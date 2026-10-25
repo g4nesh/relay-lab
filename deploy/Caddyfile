@@ -1,0 +1,16 @@
+{$RELAY_STUDIO_DOMAIN} {
+	header Strict-Transport-Security "max-age=31536000"
+	request_body {
+		max_size 128KiB
+	}
+	reverse_proxy studio:8770 {
+		# Preserve the configured public Host. The app ignores forwarded headers.
+		header_up -X-Forwarded-For
+		header_up -X-Forwarded-Proto
+		header_up -X-Forwarded-Host
+		transport http {
+			dial_timeout 5s
+			response_header_timeout 125s
+		}
+	}
+}

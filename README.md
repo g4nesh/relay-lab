@@ -6,6 +6,22 @@ with different local observations, moving obstacles, delayed messages, Qwen
 phase review and SpacetimeDB storage. Earlier factory and parcel workcells remain
 available as separate experiments.
 
+## Customer tasks and private deployment
+
+The local Studio opens without a login screen; use **Switch account** to select
+a Manager or Operator profile. Studio opens on **Tasks**: assign an objective and success criteria to an approved
+agent or pair, connect an outbound runtime, and follow agent-reported progress
+through SpacetimeDB. Managers control exact model releases and scoped runtime
+credentials; employees can assign tasks and inspect the results. Your local
+adapter owns inference and execution. A completed status records agent reports,
+not independently verified physical completion.
+
+See the [customer task and worker guide](docs/studio-agents.md) and
+[private HTTPS deployment guide](docs/studio-deployment.md). The deployment package
+uses one customer workspace per installation, persistent state, and a private
+Spacetime database; it is not an already hosted service. The existing learned and
+language communication probes remain available separately.
+
 ## Two-model developer workspace
 
 [Relay Studio](docs/studio.md) is a coordination console for two VLA models,
@@ -29,10 +45,12 @@ weights or drive hardware. The supported SmolVLA/X-VLA example tests communicati
 using captured features and fresh Qwen/adapter inference; other models can use
 the local report API through their own runtime adapters.
 
-Studio now has individual **manager and employee accounts**. Managers register,
-release and retire exact model configurations; employees run approved pairs and
-submit change requests. First launch requires the private setup code at
-`.relay-lab/studio/setup-code`. See the [roles and setup guide](docs/studio.md).
+Studio has **manager and employee roles**. Managers register, release and retire
+exact model configurations; employees run approved pairs and submit change
+requests. Local startup uses the account switcher. Hosted installations and
+explicit password mode use authenticated accounts; first-time password setup
+requires the private `.relay-lab/studio/setup-code` file. See the
+[roles and setup guide](docs/studio.md).
 
 Open **Analytics** in Studio for matched communication experiments, per-mode
 latency and timing coverage, model-release counts, and an editable engineering

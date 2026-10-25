@@ -213,6 +213,11 @@ class AccessStore:
             raise AuthorizationError("A manager account is required for this action")
         return _public_user(row)
 
+    def authorize_actor(self, actor, permission=None):
+        """Reload an account before using a delegated runtime credential."""
+        with self._transaction() as db:
+            return self._actor(db, actor, permission)
+
     @staticmethod
     def _audit(db, actor, action, target, detail=None):
         if not isinstance(action, str) or not 1 <= len(action) <= 100:

@@ -1,0 +1,14 @@
+{
+  "seed": 103,
+  "mode": "structured_text",
+  "scenario": "delayed",
+  "coordination": "spacetime",
+  "planner": "llm",
+  "max_ticks": 1800,
+  "publish_every": 4,
+  "video_every": 4,
+  "video": true,
+  "fixture": true,
+  "codec": "/Users/ganeshtalluri/Documents/ChatGPT/vla-comms/.relay-lab/simulation-preview/checkpoints/cloth-policies/communication.json",
+  "run_id": "cloth-1ae35b3c7c144c5b"
+}

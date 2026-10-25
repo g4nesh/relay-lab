@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import secrets
 import struct
@@ -19,7 +20,10 @@ from urllib.parse import unquote, urlsplit
 from .access import AccessStore, AuthenticationError
 from .analytics import AnalyticsService, estimate_effort
 from .governance import ModelRegistry, RegistryConflict
+from .profiles import ProfileStore
 from .service import StudioService, example_workspace
+from .tasks import TaskConflict, TaskService
+from .workers import WorkerStore
 
 WEB = Path(__file__).parent / "web"
 ASSETS = {
@@ -28,6 +32,10 @@ ASSETS = {
     "/studio.js": ("studio.js", "text/javascript"),
     "/analytics.js": ("analytics.js", "text/javascript"),
     "/analytics.css": ("analytics.css", "text/css"),
+    "/tasks.js": ("tasks.js", "text/javascript"),
+    "/tasks.css": ("tasks.css", "text/css"),
+    "/profiles.js": ("profiles.js", "text/javascript"),
+    "/profiles.css": ("profiles.css", "text/css"),
 }
 MAX_UPLOAD = 4 * 1024**3
 SESSION_ROUTE = r"/api/sessions/(studio-[a-f0-9]{16})"
@@ -65,9 +73,25 @@ def validate_safetensors(path):
 
 
 class StudioHandler(BaseHTTPRequestHandler):
-    def __init__(self, *args, service, access, registry, analytics=None, **kwargs):
+    def __init__(
+        self,
+        *args,
+        service,
+        access,
+        registry,
+        analytics=None,
+        deployment=None,
+        tasks=None,
+        workers=None,
+        simulations=None,
+        **kwargs,
+    ):
         self.service, self.access, self.registry = service, access, registry
         self.analytics = analytics
+        self.deployment = deployment
+        self.tasks = tasks
+        self.workers = workers
+        self.simulations = simulations
         self.identity = None
         super().__init__(*args, **kwargs)
 
@@ -91,6 +115,9 @@ class StudioHandler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def guard(self):
+        if self.deployment is not None:
+            self.deployment.guard(self.headers, self.server.server_port)
+            return
         port = self.server.server_port
         hosts = {f"127.0.0.1:{port}", f"localhost:{port}"}
         if self.headers.get("Host") not in hosts:
@@ -101,7 +128,19 @@ class StudioHandler(BaseHTTPRequestHandler):
 
     @property
     def cookie_name(self):
+        if self.deployment is not None and self.deployment.hosted:
+            return "__Host-relay_studio"
         return f"relay_studio_{self.server.server_port}"
+
+    @property
+    def cookie_security(self):
+        return "; Secure" if self.deployment is not None and self.deployment.hosted else ""
+
+    @property
+    def profile_access(self):
+        return isinstance(self.access, ProfileStore) and not (
+            self.deployment is not None and self.deployment.hosted
+        )
 
     def credential(self):
         authorization = self.headers.get("Authorization", "")
@@ -129,7 +168,7 @@ class StudioHandler(BaseHTTPRequestHandler):
     def auth_response(self, credentials):
         cookie = (
             f"{self.cookie_name}={credentials['token']}; Path=/; HttpOnly; "
-            "SameSite=Strict; Max-Age=28800"
+            f"SameSite=Strict; Max-Age=28800{self.cookie_security}"
         )
         return self.respond(
             {
@@ -203,6 +242,8 @@ class StudioHandler(BaseHTTPRequestHandler):
             return self.respond((WEB / filename).read_bytes(), mime=mime)
         if not mutation and path == "/api/auth/status":
             result = {**self.access.status(), "authenticated": False}
+            if self.profile_access:
+                result["account_switching"] = True
             try:
                 actor = self.authenticate()
                 result.update(
@@ -211,6 +252,18 @@ class StudioHandler(BaseHTTPRequestHandler):
             except AuthenticationError:
                 pass
             return self.respond(result)
+        if path in ("/api/auth/profiles", "/api/auth/select-profile"):
+            if not self.profile_access:
+                return self.respond({"error": "Not found"}, 404)
+            if not mutation and path == "/api/auth/profiles":
+                return self.respond(self.access.profiles())
+            if mutation and path == "/api/auth/select-profile":
+                value = self.body()
+                credentials = self.access.select_profile(
+                    value.get("user_id"), value.get("nonce"), self.credential()
+                )
+                return self.auth_response(credentials)
+            return self.respond({"error": "Method not allowed"}, 405)
         if mutation and path in ("/api/auth/login", "/api/auth/setup", "/api/auth/join"):
             value = self.body()
             if path.endswith("/login"):
@@ -227,8 +280,25 @@ class StudioHandler(BaseHTTPRequestHandler):
             if path.endswith("/setup"):
                 self.registry.sync_workspace(credentials["user"], self.service.workspace())
             return self.auth_response(credentials)
+        if path.startswith("/api/agent/"):
+            return self.agent_request(path, mutation)
         actor = self.authenticate(mutation)
         if not mutation:
+            if path == "/api/simulations":
+                return self.respond(self.simulation_service.list(actor))
+            if match := re.fullmatch(r"/api/simulations/(goal-[a-f0-9]{16})", path):
+                return self.respond(self.simulation_service.get(actor, match[1]))
+            if match := re.fullmatch(
+                r"/api/simulations/(goal-[a-f0-9]{16})/artifacts/([a-z0-9.]+)", path
+            ):
+                artifact, mime = self.simulation_service.artifact(actor, match[1], match[2])
+                return self.serve_artifact(artifact, mime)
+            if path == "/api/tasks":
+                return self.respond(self.task_service.list(actor))
+            if match := re.fullmatch(r"/api/tasks/(goal-[a-f0-9]{16})", path):
+                return self.respond(self.task_service.get(actor, match[1]))
+            if path == "/api/workers":
+                return self.respond(self.worker_store.list(actor))
             if path == "/api/analytics":
                 analytics = self.analytics or AnalyticsService(
                     self.service.root, self.service, self.registry, self.access
@@ -290,6 +360,26 @@ class StudioHandler(BaseHTTPRequestHandler):
                 self.require("models.manage")
                 return self.upload()
             value = self.body()
+            if path == "/api/simulations":
+                self.require("models.manage")
+                return self.respond(
+                    self.simulation_service.start(
+                        actor, value, origin=f"http://127.0.0.1:{self.server.server_port}"
+                    ),
+                    201,
+                )
+            if path == "/api/tasks":
+                self.require("sessions.run")
+                return self.respond(self.task_service.create(actor, value), 201)
+            if match := re.fullmatch(r"/api/tasks/(goal-[a-f0-9]{16})/cancel", path):
+                self.require("sessions.run")
+                return self.respond(self.task_service.cancel(actor, match[1], value))
+            if path == "/api/workers":
+                self.require("models.manage")
+                return self.respond(self.worker_store.create(actor, value), 201)
+            if match := re.fullmatch(r"/api/workers/(worker-[a-f0-9]{16})/revoke", path):
+                self.require("models.manage")
+                return self.respond(self.worker_store.revoke(actor, match[1]))
             if path == "/api/analytics/estimate":
                 return self.respond(estimate_effort(value))
             if path == "/api/requests":
@@ -309,7 +399,10 @@ class StudioHandler(BaseHTTPRequestHandler):
                 self.access.logout(self.credential())
                 return self.respond(
                     {"signed_out": True},
-                    cookie=(f"{self.cookie_name}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0"),
+                    cookie=(
+                        f"{self.cookie_name}=; Path=/; HttpOnly; SameSite=Strict; "
+                        f"Max-Age=0{self.cookie_security}"
+                    ),
                 )
             if path == "/api/team/invitations":
                 return self.respond(
@@ -384,7 +477,110 @@ class StudioHandler(BaseHTTPRequestHandler):
                     return self.respond(self.session_status(actor, self.service.recover(match[1])))
         self.respond({"error": "Not found"}, 404)
 
+    @property
+    def simulation_service(self):
+        # Share one process supervisor across request-handler instances.
+        from .simulations import SimulationService
+
+        with self.registry.lock:
+            if getattr(self, "simulations", None) is None:
+                if not hasattr(self.service, "simulations"):
+                    self.service.simulations = SimulationService(
+                        self.service,
+                        self.access,
+                        self.registry,
+                        self.task_service,
+                        self.worker_store,
+                        hosted=bool(self.deployment is not None and self.deployment.hosted),
+                    )
+                self.simulations = self.service.simulations
+        return self.simulations
+
+    def serve_artifact(self, path, mime):
+        """Authenticated, bounded files with single-range support for video seeking."""
+        size = path.stat().st_size
+        start, end, status = 0, size - 1, 200
+        requested = self.headers.get("Range")
+        if requested:
+            match = re.fullmatch(r"bytes=([0-9]*)-([0-9]*)", requested)
+            if not match or not any(match.groups()):
+                raise ValueError("Only one byte range is supported")
+            left, right = match.groups()
+            if left:
+                start, end = int(left), min(int(right), size - 1) if right else size - 1
+            else:
+                start = max(0, size - int(right))
+            if not 0 <= start <= end < size:
+                self.send_response(416)
+                self.send_header("Content-Range", f"bytes */{size}")
+                self.send_header("Content-Length", "0")
+                self.send_header("Content-Type", "application/octet-stream")
+                self.end_headers()
+                return
+            status = 206
+        self.send_response(status)
+        self.send_header("Content-Type", mime)
+        self.send_header("Content-Length", str(end - start + 1))
+        self.send_header("Accept-Ranges", "bytes")
+        self.send_header("Cache-Control", "private, no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        if status == 206:
+            self.send_header("Content-Range", f"bytes {start}-{end}/{size}")
+        self.end_headers()
+        with path.open("rb") as stream:
+            stream.seek(start)
+            remaining = end - start + 1
+            while remaining:
+                part = stream.read(min(remaining, 1024 * 1024))
+                if not part:
+                    break
+                self.wfile.write(part)
+                remaining -= len(part)
+
+    @property
+    def task_service(self):
+        if self.tasks is None:
+            self.tasks = TaskService(self.service, self.registry)
+        return self.tasks
+
+    @property
+    def worker_store(self):
+        if self.workers is None:
+            self.workers = WorkerStore(
+                self.service.storage, self.access, self.registry, self.service
+            )
+        return self.workers
+
+    def agent_request(self, path, mutation):
+        # Worker tokens never inherit browser authority and cannot create tasks,
+        # approve releases, change accounts, or read another runtime's inbox.
+        authorization = self.headers.get("Authorization", "")
+        if not authorization.startswith("Bearer relay_worker_"):
+            raise AuthenticationError("Use an agent connection token")
+        worker = self.worker_store.authenticate(authorization.removeprefix("Bearer "))
+        if not mutation:
+            if path == "/api/agent/me":
+                return self.respond({"worker": worker})
+            if path == "/api/agent/tasks":
+                return self.respond(self.task_service.inbox(worker))
+            if match := re.fullmatch(r"/api/agent/tasks/(goal-[a-f0-9]{16})", path):
+                return self.respond(self.task_service.worker_get(worker, match[1]))
+        else:
+            value = self.body()
+            if path == "/api/agent/heartbeat":
+                return self.respond(self.worker_store.heartbeat(worker, value))
+            if match := re.fullmatch(r"/api/agent/tasks/(goal-[a-f0-9]{16})/(claim|report)", path):
+                method = (
+                    self.task_service.claim if match[2] == "claim" else self.task_service.report
+                )
+                return self.respond(method(worker, match[1], value))
+        return self.respond({"error": "Not found"}, 404)
+
     def upload(self):
+        if self.deployment is not None and self.deployment.hosted:
+            raise PermissionError(
+                "Upload model weights on the agent host; hosted uploads are disabled"
+            )
         name = unquote(self.headers.get("X-Filename", ""))
         if (
             not name
@@ -438,7 +634,7 @@ class StudioHandler(BaseHTTPRequestHandler):
             self.dispatch(mutation)
         except AuthenticationError as error:
             self.respond({"error": str(error)}, 401)
-        except RegistryConflict as error:
+        except (RegistryConflict, TaskConflict) as error:
             self.respond({"error": str(error)}, 409)
         except PermissionError as error:
             self.respond({"error": str(error)}, 403)
@@ -448,7 +644,12 @@ class StudioHandler(BaseHTTPRequestHandler):
             pass
         except Exception as error:  # noqa: BLE001 - report failed services without a fallback
             # Surface failures; never manufacture successful inference/DB results.
-            self.respond({"error": f"{type(error).__name__}: {error}"}, 503)
+            detail = (
+                "The service could not complete this request; inspect the operation before retrying"
+                if self.deployment is not None and self.deployment.hosted
+                else f"{type(error).__name__}: {error}"
+            )
+            self.respond({"error": detail}, 503)
 
     def do_GET(self):
         self.handle_request()
@@ -464,11 +665,25 @@ def serve_studio(root=None, port=8770):
     if type(port) is not int or not 0 <= port <= 65535:
         raise ValueError("Invalid Studio port")
     service = StudioService(root or Path.cwd())
-    access = AccessStore(service.storage)
+    access = (
+        AccessStore if os.environ.get("RELAY_STUDIO_PASSWORD_LOGIN") == "1" else ProfileStore
+    )(service.storage)
     registry = ModelRegistry(service.storage)
+    if isinstance(access, ProfileStore):
+        manager = next((p for p in access.profiles()["profiles"] if p["role"] == "manager"), None)
+        if manager:
+            registry.sync_workspace(manager, service.workspace())
     analytics = AnalyticsService(service.root, service, registry, access)
+    tasks = TaskService(service, registry)
+    workers = WorkerStore(service.storage, access, registry, service)
     handler = partial(
-        StudioHandler, service=service, access=access, registry=registry, analytics=analytics
+        StudioHandler,
+        service=service,
+        access=access,
+        registry=registry,
+        analytics=analytics,
+        tasks=tasks,
+        workers=workers,
     )
     try:
         with ThreadingHTTPServer(("127.0.0.1", port), handler) as server:

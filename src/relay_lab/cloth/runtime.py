@@ -9,9 +9,10 @@ from __future__ import annotations
 import gzip
 import hashlib
 import json
-import shutil
+import re
 import time
 import uuid
+from collections.abc import Callable, Mapping
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -21,6 +22,10 @@ from .communication import Channel, LearnedFeatureCodec, NetworkConfig, observat
 
 AGENTS = ("left", "right")
 DEFAULT_CODEC = Path("checkpoints/cloth-policies/communication.json")
+
+
+class ClothCancelled(RuntimeError):
+    """The caller withdrew permission to advance this simulation."""
 
 
 def write_json(path, value):
@@ -253,9 +258,42 @@ class LocalPhaseController:
         }
 
 
-def run_cloth(config: ClothConfig, output: str | Path):
-    from .policies import ClothPolicy
+def run_cloth(
+    config: ClothConfig,
+    output: str | Path,
+    *,
+    checkpoint_paths: Mapping[str, str | Path] | None = None,
+    expected_checkpoint_hashes: Mapping[str, str] | None = None,
+    should_stop: Callable[[], bool] | None = None,
+    on_progress: Callable[[dict], None] | None = None,
+):
+    """Run one shared world with optional authorization and reporting hooks.
+
+    Hooks are application callbacks, never part of the replay configuration.
+    Progress is emitted at startup, phase transitions and final cleanup; this is
+    bounded by the controller's phase count, not the number of physics ticks.
+    Callback failures stop execution and retain the partial evidence. Cancellation
+    closes the world without issuing another action or releasing held fixtures.
+    """
+    from .policies import DEFAULT_DIRECTORY, ClothPolicy
     from .world import ClothWorld
+
+    for name, callback in (("should_stop", should_stop), ("on_progress", on_progress)):
+        if callback is not None and not callable(callback):
+            raise TypeError(f"{name} must be callable")
+    if checkpoint_paths is not None and (
+        not isinstance(checkpoint_paths, Mapping) or set(checkpoint_paths) != set(AGENTS)
+    ):
+        raise ValueError("checkpoint_paths must contain exactly left and right")
+    if expected_checkpoint_hashes is not None and (
+        not isinstance(expected_checkpoint_hashes, Mapping)
+        or set(expected_checkpoint_hashes) != set(AGENTS)
+        or any(
+            not isinstance(value, str) or re.fullmatch(r"[a-f0-9]{64}", value) is None
+            for value in expected_checkpoint_hashes.values()
+        )
+    ):
+        raise ValueError("expected_checkpoint_hashes requires a SHA-256 for left and right")
 
     output = Path(output).resolve()
     output.mkdir(parents=True, exist_ok=False)
@@ -266,7 +304,47 @@ def run_cloth(config: ClothConfig, output: str | Path):
     error, status = None, "starting"
     policies, controllers, initial, initial_hash, first_rgb_hash = {}, {}, None, None, {}
     started = time.perf_counter()
+    progress_available = on_progress is not None
+
+    def check_cancelled():
+        if should_stop is not None and should_stop():
+            raise ClothCancelled("Simulation authorization was withdrawn; no further action issued")
+
+    def progress(metrics=None):
+        nonlocal progress_available
+        if not progress_available:
+            return
+        value = {
+            "run_id": run_id,
+            "tick": world.tick if world else 0,
+            "status": status,
+            "phases": {a: c.phase for a, c in controllers.items()},
+            "phase_indices": {a: c.index for a, c in controllers.items()},
+            "done": {a: c.done for a, c in controllers.items()},
+            "total_phases": len(world.PHASES) if world else 0,
+            "hold_reasons": {a: c.last_decision.get("reason") for a, c in controllers.items()},
+            "metrics": metrics if metrics is not None else world.metrics() if world else {},
+        }
+        try:
+            # Do not give a reporting callback references to controller/world state.
+            on_progress(json.loads(json.dumps(value, allow_nan=False)))
+        except Exception:
+            progress_available = False
+            raise
+
     try:
+        check_cancelled()
+        sources = checkpoint_paths or {a: DEFAULT_DIRECTORY / f"{a}.pt" for a in AGENTS}
+        checkpoint_bytes = {a: Path(sources[a]).read_bytes() for a in AGENTS}
+        for a, content in checkpoint_bytes.items():
+            digest = hashlib.sha256(content).hexdigest()
+            if expected_checkpoint_hashes is not None and digest != expected_checkpoint_hashes[a]:
+                raise ValueError(f"Approved {a} checkpoint SHA-256 does not match its bytes")
+        # Load the exact verified byte snapshots, so a source-path replacement
+        # after verification cannot substitute unapproved weights into the run.
+        (output / "models").mkdir()
+        for a, content in checkpoint_bytes.items():
+            (output / "models" / f"{a}.pt").write_bytes(content)
         codec = LearnedFeatureCodec.load(config.codec)
         world = ClothWorld(
             seed=config.seed, disturbances=config.scenario != "clear", fixture=config.fixture
@@ -275,11 +353,7 @@ def run_cloth(config: ClothConfig, output: str | Path):
         initial_hash = hashlib.sha256(
             np.asarray(initial["vertices"], dtype=np.float64).tobytes()
         ).hexdigest()
-        policies = {a: ClothPolicy(a) for a in AGENTS}
-        # Keep the exact evaluated weights with their evidence, even after refits.
-        (output / "models").mkdir()
-        for a, policy in policies.items():
-            shutil.copyfile(policy.path, output / "models" / f"{a}.pt")
+        policies = {a: ClothPolicy(a, output / "models" / f"{a}.pt") for a in AGENTS}
         codec.save(output / "models" / "communication.json")
         controllers = {a: LocalPhaseController(a, world.PHASES) for a in AGENTS}
         judge = PhaseJudge(config.planner)
@@ -305,9 +379,11 @@ def run_cloth(config: ClothConfig, output: str | Path):
                 )
             Image.fromarray(world.render(width=1280, height=800)).save(output / "poster.png")
         status = "running"
+        progress()
         previous_events = 0
         with gzip.open(output / "events.jsonl.gz", "wt") as log:
             while world.tick < config.max_ticks:
+                check_cancelled()
                 tick = world.tick
                 observations = {a: world.observe(a, rgb=True) for a in AGENTS}
                 if tick == 0:
@@ -352,6 +428,9 @@ def run_cloth(config: ClothConfig, output: str | Path):
                             if controllers[a].done
                             else "required local landmark unavailable"
                         )
+                # Checking here also covers authorization lost during observation,
+                # communication or inference. No fixture change precedes the check.
+                check_cancelled()
                 if world.fixture_active and all(c.phase == "settle" for c in controllers.values()):
                     world.release_fixture()
                 snapshot = world.step(actions)
@@ -365,11 +444,16 @@ def run_cloth(config: ClothConfig, output: str | Path):
                         )
                         if transition:
                             outcome_events.append(transition)
+                        # Qwen review can block for a model call. Check before the
+                        # other arm's review and before any subsequent physics step.
+                        check_cancelled()
                     except Exception as exc:  # noqa: BLE001 - log executed tick, then re-raise
                         transition_error = exc
                         outcome_events.append(
                             {
-                                "event": "phase_error",
+                                "event": "cancelled"
+                                if isinstance(exc, ClothCancelled)
+                                else "phase_error",
                                 "agent": a,
                                 "tick": world.tick,
                                 "error": str(exc),
@@ -421,11 +505,17 @@ def run_cloth(config: ClothConfig, output: str | Path):
                         writers[a].append_data(world.render(a, width=384, height=384))
                 if transition_error:
                     raise transition_error
+                if any(event.get("event") == "phase_completed" for event in outcome_events):
+                    progress(snapshot["metrics"])
+                    check_cancelled()
                 if all(c.done for c in controllers.values()):
                     status = "succeeded" if world.metrics()["success"] else "rejected"
                     break
             else:
                 status = "exhausted"
+    except ClothCancelled as exc:
+        status, error = "cancelled", str(exc)
+        events.append({"event": "cancelled", "tick": world.tick if world else 0})
     except Exception as exc:  # noqa: BLE001 - record every failed benchmark condition
         status, error = "failed", f"{type(exc).__name__}: {exc}"
     finally:
@@ -463,6 +553,10 @@ def run_cloth(config: ClothConfig, output: str | Path):
             except Exception as exc:  # noqa: BLE001 - bounded cleanup reporting
                 cleanup_failure("planner close", exc)
         metrics = final.get("metrics", {})
+        try:
+            progress(metrics)
+        except Exception as exc:  # noqa: BLE001 - a missing terminal report is not success
+            cleanup_failure("progress callback", exc)
         summary = {
             "schema": "relay.cloth.run.v1",
             "run_id": run_id,

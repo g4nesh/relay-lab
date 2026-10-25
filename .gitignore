@@ -48,6 +48,10 @@ checkpoints/cloth-policies/*
 !checkpoints/cloth-policies/communication*.npy
 !checkpoints/cloth-policies/training/
 .relay-lab/
+.relay-agent/
+.agent-venv/
+agent-state/
+worker-token
 .env
 .env.*
 !.env.example

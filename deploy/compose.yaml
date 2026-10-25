@@ -1,0 +1,55 @@
+name: relay-studio
+services:
+  studio:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    init: true
+    environment:
+      RELAY_STUDIO_PUBLIC_ORIGIN: https://${RELAY_STUDIO_DOMAIN:?Set RELAY_STUDIO_DOMAIN}
+      RELAY_STUDIO_BIND: 0.0.0.0
+      RELAY_SPACETIME_SERVER: ${RELAY_SPACETIME_SERVER:?Set the HTTPS Spacetime origin}
+      RELAY_SPACETIME_DATABASE: ${RELAY_SPACETIME_DATABASE:?Set the private database name}
+      RELAY_SPACETIME_TOKEN_FILE: /data/.relay-lab/spacetime-token
+    volumes:
+      - studio_state:/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 128
+    mem_limit: 768m
+    cpus: 2
+    stop_grace_period: 180s
+    healthcheck:
+      test: [CMD, python, -m, relay_lab.studio.healthcheck]
+      interval: 30s
+      timeout: 12s
+      start_period: 20s
+      retries: 3
+    networks: [private]
+  edge:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    environment:
+      RELAY_STUDIO_DOMAIN: ${RELAY_STUDIO_DOMAIN:?Set RELAY_STUDIO_DOMAIN}
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    security_opt: [no-new-privileges:true]
+    depends_on: [studio]
+    networks: [private]
+volumes:
+  studio_state:
+  caddy_data:
+  caddy_config:
+networks:
+  private:
