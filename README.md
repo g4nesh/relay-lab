@@ -6,6 +6,21 @@ with different local observations, moving obstacles, delayed messages, Qwen
 phase review and SpacetimeDB storage. Earlier factory and parcel workcells remain
 available as separate experiments.
 
+## Customer tasks and private deployment
+
+Studio opens on **Tasks**: assign an objective and success criteria to an approved
+agent or pair, connect an outbound runtime, and follow agent-reported progress
+through SpacetimeDB. Managers control exact model releases and scoped runtime
+credentials; employees can assign tasks and inspect the results. Your local
+adapter owns inference and execution. A completed status records agent reports,
+not independently verified physical completion.
+
+See the [customer task and worker guide](docs/studio-agents.md) and
+[private HTTPS deployment guide](docs/studio-deployment.md). The deployment package
+uses one customer workspace per installation, persistent state, and a private
+Spacetime database; it is not an already hosted service. The existing learned and
+language communication probes remain available separately.
+
 ## Two-model developer workspace
 
 [Relay Studio](docs/studio.md) is a coordination console for two VLA models,

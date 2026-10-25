@@ -8,6 +8,12 @@ Robot coordination keeps the existing Spacetime schema. Dashboard identities,
 model approvals and change requests use private local SQLite stores; the
 simulation runners remain separate.
 
+The default **Tasks** view turns an objective into a durable assignment for an
+approved agent or pair. A scoped outbound runtime receives that exact goal,
+reports outcomes, and reads peer feedback. See the [customer task and SDK guide](studio-agents.md)
+for its handler contract, limits, and distinction from the communication probes.
+For a customer installation, use the [private HTTPS deployment package](studio-deployment.md).
+
 ## Start and check the backend
 
 From the repository root, with the existing Spacetime service running:
@@ -35,6 +41,9 @@ under **Team & access**; the invited person chooses their own password.
 | Inspect model configurations, cameras and session history | Yes | Yes |
 | View aggregate analytics and calculate effort scenarios | Yes | Yes |
 | Run the saved workspace using released models | Yes | Yes |
+| Assign objectives and inspect agent-reported outcomes | Yes | Yes |
+| Cancel objectives | Any workspace task | Own tasks only |
+| Create/revoke scoped runtime credentials | Yes | No |
 | Submit model change requests | Yes | Yes |
 | View requests | All | Own requests |
 | Add/upload/edit models or change the workspace | Yes | No |
@@ -71,12 +80,13 @@ a session-specific CSRF token. Login attempts are throttled. Account, model and
 request operations have audit records. This follows the request-level checks in
 the [OWASP authorization guidance](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html).
 
-This is a **single-server, loopback deployment**. Trusted Python callers and the
-OS account owning its private files remain administrators; these roles protect
-the Studio HTTP interface, not the separate experiment servers or the host OS.
-Do not expose this HTTP server as a hosted team service without HTTPS and a
-deployment identity/access design. Keep the local access and model-governance
-stores with the workspace when backing up or restoring it.
+The development command runs a **single-server, loopback deployment**. For a
+hosted workspace, use the separate [HTTPS deployment entry point](studio-deployment.md),
+which retains one process and one private state volume per customer installation.
+Trusted Python callers and the OS account owning its private files remain
+administrators; dashboard roles do not protect the separate experiment servers or
+the host OS. Back up the access, approval, and worker-credential stores with the
+workspace and its Spacetime database.
 
 The health panel distinguishes an authenticated database read, verified adapter
 artifacts, and the local Qwen interpreter's presence. Interpreter presence is not

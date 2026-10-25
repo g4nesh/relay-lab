@@ -1,0 +1,23 @@
+{
+  "schema": "relay-studio-objective-verification-v1",
+  "created_at": 1792903453.964021,
+  "backend": "SpacetimeDB",
+  "scope": "Direct TaskService protocol test using trusted software test-worker identities; no VLA or hardware execution.",
+  "success_task": {
+    "id": "goal-43cc4494e2cd171f",
+    "status": "succeeded",
+    "revision": 5,
+    "feedback_packets": 5
+  },
+  "cancel_task": {
+    "id": "goal-1f9730c8ca896b82",
+    "status": "cancelled",
+    "late_report_rejected": true
+  },
+  "peer_feedback_verified": true,
+  "restart_recovery_verified": true,
+  "exact_objective_delivered": true,
+  "success_basis": "agent_reported",
+  "verified_physical_outcome": false,
+  "elapsed_ms": 563.71
+}

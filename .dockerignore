@@ -1,0 +1,24 @@
+# Allowlist: credentials, history, datasets and weights never enter build context.
+**
+!Dockerfile
+!pyproject.toml
+!src/
+!src/**
+!deploy/
+!deploy/init-state.py
+**/__pycache__/
+**/*.pyc
+**/node_modules/
+**/.DS_Store
+**/.git/
+**/.relay-lab/
+**/.env
+**/.env.*
+**/*.pem
+**/*.key
+**/dist/
+**/*.pt
+**/*.safetensors
+**/*.npz
+**/*.npy
+**/*.mp4

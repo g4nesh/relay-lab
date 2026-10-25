@@ -18,12 +18,14 @@ dependencies = [
 [project.optional-dependencies]
 vla = ["lerobot[smolvla,xvla]==0.6.1"]
 learned = ["torch==2.11.0"]
+deploy = ["uvicorn==0.53.0"]
 
 [dependency-groups]
 dev = ["pytest>=8,<10", "ruff>=0.9,<1"]
 
 [project.scripts]
 relay-lab = "relay_lab.cli:main"
+relay-studio = "relay_lab.studio.asgi:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/relay_lab"]

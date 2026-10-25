@@ -1,0 +1,56 @@
+{
+  "checked_at": "2026-10-25T04:46:58.612858+00:00",
+  "transport": "Uvicorn 0.53.0 on isolated localhost workspace with hosted origin policy",
+  "tls": "Configured reverse proxy, not a public TLS deployment",
+  "database": "Existing private local SpacetimeDB; readiness read only",
+  "checks": {
+    "live": 200,
+    "spacetime_ready": 200,
+    "unauthenticated_tasks": 401,
+    "wrong_host": 403,
+    "wrong_origin": 403,
+    "oversized_body": 413,
+    "hosted_upload_disabled": 403,
+    "manager_setup": 200,
+    "secure_session_cookie": true,
+    "authenticated_bootstrap": 200,
+    "csrf_required": 403,
+    "logout": 200
+  },
+  "publicly_deployed": false,
+  "models_loaded": false,
+  "hardware_executed": false,
+  "container": {
+    "checked_at": "2026-10-25T05:02:46.134121+00:00",
+    "image": "relay-studio:customer-ready",
+    "image_id": "sha256:b516493cfb57261fa6a818c05afe76e518e122a4c0d1cdab6672936155a03b76",
+    "built": true,
+    "uid": 10001,
+    "read_only_root": true,
+    "disposable_state": true,
+    "credential": "Invalid smoke-test token; no database writes",
+    "checks": {
+      "/": 200,
+      "/studio.js": 200,
+      "/tasks.js": 200,
+      "/tasks.css": 200,
+      "/api/auth/status": 200,
+      "/api/tasks": 401,
+      "/api/workers": 401,
+      "/api/agent/tasks": 401,
+      "/livez": 200
+    },
+    "source_sha256": {
+      "worker.py": "f1f72e3815cc2765e236cb605277514d37c6b145307583bc6eb5ccc0120f80a8",
+      "tasks.py": "a2612c1724871db9b2ad241175d75cfe9623ebc109b1210772664cd47fd4d2c3"
+    },
+    "asset_sha256": {
+      "/studio.js": "6d51a45fbb1afe953b6638e83f96f8d11b40ef88b5e08d9ef688107d74b0a0a6",
+      "/tasks.js": "ea8b1538a9ad381462fe28de5fe6e342b9b576d3fd78d75930b9bf9f78f7d0e2",
+      "/tasks.css": "0cc2122ba3fd3e272978866d79f3f021bda31a67c53b2cc4c33e09ee733b3e3a"
+    },
+    "sources_match_final_workspace": true,
+    "model_libraries_present": false,
+    "caddy_config_validated": true
+  }
+}
