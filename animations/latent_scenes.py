@@ -99,12 +99,33 @@ def M(markup, size=28, color=FG, font=SERIF):
     return MarkupText(markup, font=font, font_size=size, color=color)
 
 
+def strut_text(text, size=28, color=FG):
+    """Text padded with invisible full-height glyphs so labels share a baseline."""
+    t = T(f"|{text}|", size, color)
+    t[0].set_opacity(0)
+    t[-1].set_opacity(0)
+    return t
+
+
+def lines(*markups, size=24, color=FG, buff=0.12):
+    """Centered multi-line MarkupText, one mobject per line."""
+    return VGroup(*(M(m, size, color) for m in markups)).arrange(DOWN, buff=buff)
+
+
+def fixed4(value):
+    """Four decimals without a negative zero."""
+    return f"{0.0 if abs(value) < 5e-5 else value:.4f}"
+
+
 def code(text, size=22, color=MUTED):
     return Text(text, font=MONO, font_size=size, color=color)
 
 
 def title(text, sub=None):
-    head = T(text, 42).to_edge(UP, buff=0.42)
+    head = T(text, 42)
+    if head.width > 13:
+        head.scale_to_fit_width(13)
+    head.to_edge(UP, buff=0.42)
     if sub is None:
         return VGroup(head)
     return VGroup(head, T(sub, 22, MUTED).next_to(head, DOWN, buff=0.16))
@@ -150,6 +171,9 @@ def recolor_grid(grid, values):
 
 
 def block(lines, width, height, color, size=22):
+    text = VGroup(*(code(line, size, FG) for line in lines)).arrange(DOWN, buff=0.12)
+    width = max(width, text.width + 0.45)
+    height = max(height, text.height + 0.35)
     box = RoundedRectangle(
         corner_radius=0.14,
         width=width,
@@ -159,7 +183,6 @@ def block(lines, width, height, color, size=22):
         fill_color=color,
         fill_opacity=0.07,
     )
-    text = VGroup(*(code(line, size, FG) for line in lines)).arrange(DOWN, buff=0.12)
     text.move_to(box)
     return VGroup(box, text)
 
@@ -207,6 +230,12 @@ def snapshot_label():
     snap = SAMPLE["snapshot"]  # e.g. test-104-s005
     _, seed, state = snap.split("-")
     return seed, state
+
+
+def swap(scene, old, new, run_time=0.8, *extra):
+    """Crossfade one text for another (glyph morphs look garbled)."""
+    scene.play(FadeOut(old, shift=UP * 0.08), FadeIn(new, shift=UP * 0.08), *extra, run_time=run_time)
+    return new
 
 
 def clear_scene(scene, run_time=0.8):
@@ -336,14 +365,15 @@ def two_spaces(s: Scene):
     for p in panels:
         s.play(Create(p[0]), Create(p[1]), FadeIn(p[3]), FadeIn(p[4]), FadeIn(p[5]), run_time=0.6)
         s.play(LaggedStart(*(FadeIn(m, scale=0.5) for m in p[2]), lag_ratio=0.02), run_time=1.4)
-    key = legend().to_edge(DOWN, buff=0.35)
+    key = legend().to_edge(DOWN, buff=0.18)
     s.play(FadeIn(key), run_time=0.6)
-    note = M(
-        f'Each model only encodes what <i>its</i> camera saw: '
-        f'<span foreground="{COND["right_obstacle"]}">right-side</span> obstacles land exactly on '
-        f'<span foreground="{COND["clear"]}">clear</span> points for SmolVLA, and vice versa.',
-        21,
-    ).next_to(panels, DOWN, buff=0.5)
+    note = lines(
+        "Each model only encodes what <i>its</i> camera saw:",
+        f'for SmolVLA, <span foreground="{COND["right_obstacle"]}">right-side</span> obstacles land exactly on '
+        f'<span foreground="{COND["clear"]}">clear</span> points, and vice versa for X-VLA.',
+        size=21,
+        buff=0.08,
+    ).next_to(panels, DOWN, buff=0.22)
     s.play(FadeIn(note, shift=UP * 0.1), run_time=1.0)
     s.wait(3.0)
     s.play(FadeOut(panels), FadeOut(key), FadeOut(note), run_time=0.8)
@@ -359,7 +389,7 @@ def two_spaces(s: Scene):
     ticks = VGroup()
     for v in (-4, -2, 0, 2, 4):
         x = origin[0] + (v - bins[0]) / (bins[-1] - bins[0]) * width
-        ticks.add(T(f"{v:+d}" if v else "0", 18, MUTED).move_to([x, origin[1] - 0.25, 0]))
+        ticks.add(T(f"{v:+d}".replace("-", "−") if v else "0", 18, MUTED).move_to([x, origin[1] - 0.25, 0]))
     curves = VGroup()
     for arm, color in (("left", SMOL), ("right", XVLA)):
         pts = []
@@ -374,27 +404,23 @@ def two_spaces(s: Scene):
         curves.add(curve)
     s.play(Create(axis), FadeIn(ticks), run_time=0.6)
     s.play(Create(curves[0]), Create(curves[1]), run_time=1.6)
-    stats = VGroup(
-        M(
-            f'<span foreground="{SMOL}">SmolVLA</span>  mean {NORM["stats"]["left"]["mean"]:+.4f}   std {NORM["stats"]["left"]["std"]:.4f}',
-            22,
-        ),
-        M(
-            f'<span foreground="{XVLA}">X-VLA</span>      mean {NORM["stats"]["right"]["mean"]:+.4f}   std {NORM["stats"]["right"]["std"]:.4f}',
-            22,
-        ),
-    ).arrange(DOWN, aligned_edge=LEFT, buff=0.12)
+    cells = []
+    for arm, color, name in (("left", SMOL, "SmolVLA"), ("right", XVLA, "X-VLA")):
+        st = NORM["stats"][arm]
+        cells += [T(name, 22, color), T(f"mean {fixed4(st['mean'])}", 22), T(f"std {fixed4(st['std'])}", 22)]
+    stats = VGroup(*cells).arrange_in_grid(rows=2, cols=3, buff=(0.4, 0.12), col_alignments="lll")
     stats.next_to(axis, UP, buff=height + 0.15).align_to(axis, RIGHT).shift(RIGHT * 1.3)
     hist_cap = T(f"per-vector LayerNorm of all {NORM['samples']} held-out features, pooled histogram", 18, MUTED)
     hist_cap.next_to(ticks, DOWN, buff=0.15)
     s.play(FadeIn(stats), FadeIn(hist_cap), run_time=0.8)
     s.wait(1.6)
-    point = M(
-        "…but dimension <i>k</i> of one space has no counterpart in the other.\n"
-        f'960 ≠ 1024 coordinates, trained by different models. A <span foreground="{MSG}">learned translation</span> is required.',
-        24,
+    point = lines(
+        "…but dimension <i>k</i> of one space has no counterpart in the other.",
+        f'960 vs 1024 coordinates from different models: a <span foreground="{MSG}">learned translation</span> is required.',
+        size=24,
+        buff=0.1,
     )
-    point.move_to(sub)
+    point.next_to(head, DOWN, buff=0.3)
     s.play(FadeOut(sub), FadeIn(point, shift=UP * 0.1), run_time=1.0)
     s.wait(3.0)
 
@@ -446,20 +472,20 @@ def sender(s: Scene):
 
     # Same physical state, obstacle removed from the scene: the message changes.
     clear_caption = T("same state, clear scene: the message changes", 20, MUTED).move_to(caption)
-    s.play(recolor_grid(grid, SAMPLE["left_message_clear"]), Transform(caption, clear_caption), run_time=1.4)
+    caption = swap(s, caption, clear_caption, 1.4, recolor_grid(grid, SAMPLE["left_message_clear"]))
     s.wait(0.8)
     back = T(f"obstacle visible again · {DIMS['parameters_by_module']['senders'] // 2:,} sender weights per arm, trained", 20, MUTED).move_to(caption)
-    s.play(recolor_grid(grid, SAMPLE["left_stages"]["tanh"]), Transform(caption, back), run_time=1.4)
+    caption = swap(s, caption, back, 1.4, recolor_grid(grid, SAMPLE["left_stages"]["tanh"]))
     s.wait(1.2)
 
     top = Group(p, a, lab, name)
-    s.play(top.animate.scale(0.72).move_to(UP * 1.25 + RIGHT * 0.2), FadeOut(caption), run_time=1.0)
-    p2, a2, lab2, name2 = row("right", XVLA, -1.95, scale=0.72)
+    s.play(top.animate.scale(0.68).move_to(UP * 0.95 + RIGHT * 0.2), FadeOut(caption), run_time=1.0)
+    p2, a2, lab2, name2 = row("right", XVLA, -2.05, scale=0.68)
     s.play(FadeIn(Group(p2, a2, lab2, name2), shift=UP * 0.2), run_time=1.2)
     same = M(
         f'separate weights for each model, same <span foreground="{MSG}">64-number</span> interface',
         24,
-    ).to_edge(DOWN, buff=0.32)
+    ).to_edge(DOWN, buff=0.22)
     s.play(FadeIn(same), run_time=0.8)
     s.wait(2.0)
     clear_scene(s)
@@ -477,7 +503,7 @@ def sender(s: Scene):
         s.play(LaggedStart(*(FadeIn(m, scale=0.5) for m in pnl[2]), lag_ratio=0.02), run_time=1.3)
     key = legend().to_edge(DOWN, buff=0.35)
     note = M(
-        "The first principal axis of each sender's messages splits on the one thing only it can see.",
+        "The first principal axis of each sender’s messages splits on the one thing only it can see.",
         22,
     ).next_to(panels, DOWN, buff=0.5)
     s.play(FadeIn(key), FadeIn(note, shift=UP * 0.1), run_time=1.0)
@@ -485,7 +511,7 @@ def sender(s: Scene):
 
 
 def receiver(s: Scene):
-    head = title("Directed receivers translate the peer's message")
+    head = title("Directed receivers translate the peer’s message")
     s.play(Write(head), run_time=1.2)
 
     # Channel: each arm's message crosses SpacetimeDB to the other arm's receiver.
@@ -493,10 +519,10 @@ def receiver(s: Scene):
     band.move_to(DOWN * 0.4)
     band_label = VGroup(T("SpacetimeDB", 24), code("relay.cloth.learned-latent.v1", 15)).arrange(DOWN, buff=0.1)
     band_label.next_to(band, UP, buff=0.14)
-    ls = block(["senders['left']"], 3.0, 0.8, SMOL, 20).move_to(LEFT * 5.0 + UP * 0.6)
-    rr = block(["receivers['right']"], 3.0, 0.8, XVLA, 20).move_to(RIGHT * 5.0 + UP * 0.6)
-    rs = block(["senders['right']"], 3.0, 0.8, XVLA, 20).move_to(RIGHT * 5.0 + DOWN * 1.6)
-    lr = block(["receivers['left']"], 3.0, 0.8, SMOL, 20).move_to(LEFT * 5.0 + DOWN * 1.6)
+    ls = block(["senders['left']"], 3.0, 0.8, SMOL, 20).move_to(LEFT * 4.55 + UP * 0.6)
+    rr = block(["receivers['right']"], 3.0, 0.8, XVLA, 20).move_to(RIGHT * 4.55 + UP * 0.6)
+    rs = block(["senders['right']"], 3.0, 0.8, XVLA, 20).move_to(RIGHT * 4.55 + DOWN * 1.6)
+    lr = block(["receivers['left']"], 3.0, 0.8, SMOL, 20).move_to(LEFT * 4.55 + DOWN * 1.6)
     top_arrow = Arrow(ls.get_right(), rr.get_left(), buff=0.1, color=MSG, stroke_width=3)
     bot_arrow = Arrow(rs.get_left(), lr.get_right(), buff=0.1, color=MSG, stroke_width=3)
     m1 = M("<i>m</i><sub>L</sub> ∈ ℝ<sup>64</sup>", 22, MSG).next_to(top_arrow, UP, buff=0.1)
@@ -533,7 +559,7 @@ def receiver(s: Scene):
     )
     lab = VGroup(
         M("<i>m</i><sub>L</sub> (from SmolVLA)", 22, MSG).next_to(grid, DOWN, buff=0.2),
-        M("<i>c</i> ∈ ℝ<sup>32</sup> (for X-VLA's head)", 22, CTX).next_to(ctx, DOWN, buff=0.2),
+        M("<i>c</i> ∈ ℝ<sup>32</sup> (for X-VLA’s head)", 22, CTX).next_to(ctx, DOWN, buff=0.2),
     )
     s.play(LaggedStart(*(FadeIn(c, scale=0.4) for c in grid), lag_ratio=0.01), FadeIn(lab[0]), run_time=1.0)
     s.play(GrowArrow(arrows[0]), FadeIn(rx), run_time=0.8)
@@ -556,11 +582,11 @@ def receiver(s: Scene):
     clear_scene(s)
 
     # The receivers' contexts, on held-out data, separate the PEER's obstacle.
-    head3 = title("After translation, each arm 'knows' its peer's view")
+    head3 = title("After translation, each arm ‘knows’ its peer’s view")
     cf = TEST["counterfactual"]
     panels = VGroup(
-        scatter_panel(TEST["arms"]["left"]["context_pca"], cf, 5.0, 3.6, "SmolVLA arm's context (from X-VLA)", TEST["arms"]["left"]["context_pca_explained"]),
-        scatter_panel(TEST["arms"]["right"]["context_pca"], cf, 5.0, 3.6, "X-VLA arm's context (from SmolVLA)", TEST["arms"]["right"]["context_pca_explained"]),
+        scatter_panel(TEST["arms"]["left"]["context_pca"], cf, 5.0, 3.6, "SmolVLA arm’s context (from X-VLA)", TEST["arms"]["left"]["context_pca_explained"]),
+        scatter_panel(TEST["arms"]["right"]["context_pca"], cf, 5.0, 3.6, "X-VLA arm’s context (from SmolVLA)", TEST["arms"]["right"]["context_pca_explained"]),
     ).arrange(RIGHT, buff=1.4).shift(DOWN * 0.15)
     s.play(Write(head3), run_time=1.0)
     for pnl in panels:
@@ -612,6 +638,7 @@ def head_scene(s: Scene):
     tiny_label.next_to(tiny, DOWN, buff=0.16).align_to(tiny, RIGHT)
     s.play(LaggedStart(*(FadeIn(l, shift=DOWN * 0.1) for l in labels), lag_ratio=0.15), FadeIn(tiny_label), run_time=1.6)
     total_label = M(f"concatenated input ∈ ℝ<sup>{total}</sup>", 24).next_to(bar, DOWN, buff=0.75)
+    total_label.set_x(-2.9)
     s.play(FadeIn(total_label), run_time=0.6)
 
     mlp = block([f"Linear({total} → 96) → GELU", "Linear(96 → 64) → GELU", "Linear(64 → 5)"], 4.6, 1.5, FG, 20)
@@ -634,41 +661,41 @@ def head_scene(s: Scene):
 
 
 def training(s: Scene):
-    head = title("Trained jointly: one arm's loss teaches the other arm's sender")
-    s.play(Write(head), run_time=1.4)
+    head = title("Trained jointly across the channel", "one arm’s loss trains the other arm’s sender")
+    s.play(Write(head[0]), FadeIn(head[1]), run_time=1.4)
     loss = M(
         "<i>L</i> = ‖tanh(Δ̂) − Δ*‖² + 0.3 · BCE(grip) + BCE(hold)      averaged over both arms",
         26,
-    ).next_to(head, DOWN, buff=0.35)
+    ).next_to(head, DOWN, buff=0.28)
     s.play(FadeIn(loss, shift=DOWN * 0.1), run_time=1.0)
 
     # Gradient path, left side of the frame.
-    smol = block(["SmolVLA", "frozen"], 1.9, 0.9, MUTED, 18).move_to(LEFT * 5.6 + UP * 0.5)
-    snd = block(["senders['left']"], 2.4, 0.7, SMOL, 17).move_to(LEFT * 5.35 + DOWN * 0.9)
-    rcv = block(["receivers['right']"], 2.6, 0.7, XVLA, 17).move_to(LEFT * 2.3 + DOWN * 0.9)
-    hd = block(["heads['right']"], 2.2, 0.7, XVLA, 17).move_to(LEFT * 2.3 + UP * 0.5)
-    lossbox = block(["right-arm loss"], 2.2, 0.7, GRAD, 17).move_to(LEFT * 2.3 + UP * 1.75)
+    smol = block(["SmolVLA", "frozen"], 1.9, 0.9, MUTED, 18).move_to(LEFT * 5.2 + UP * 0.35)
+    snd = block(["senders['left']"], 2.4, 0.7, SMOL, 17).move_to(LEFT * 5.0 + DOWN * 1.05)
+    rcv = block(["receivers['right']"], 2.6, 0.7, XVLA, 17).move_to(LEFT * 1.7 + DOWN * 1.05)
+    hd = block(["heads['right']"], 2.2, 0.7, XVLA, 17).move_to(LEFT * 1.7 + UP * 0.35)
+    lossbox = block(["right-arm loss"], 2.2, 0.7, GRAD, 17).move_to(LEFT * 1.7 + UP * 1.5)
     fwd = VGroup(
         Arrow(smol.get_bottom(), snd.get_top(), buff=0.06, color=MUTED, stroke_width=2),
         Arrow(snd.get_right(), rcv.get_left(), buff=0.06, color=MSG, stroke_width=2.5),
         Arrow(rcv.get_top(), hd.get_bottom(), buff=0.06, color=MUTED, stroke_width=2),
         Arrow(hd.get_top(), lossbox.get_bottom(), buff=0.06, color=MUTED, stroke_width=2),
     )
-    cache_note = T("features cached once, one backbone at a time", 16, MUTED).next_to(smol, UP, buff=0.12)
+    cache_note = VGroup(T("features cached once,", 16, MUTED), T("one backbone at a time", 16, MUTED)).arrange(DOWN, buff=0.05, aligned_edge=LEFT)
+    cache_note.next_to(smol, UP, buff=0.12).align_to(smol, LEFT)
     s.play(FadeIn(smol), FadeIn(cache_note), run_time=0.6)
     s.play(LaggedStart(*(FadeIn(b) for b in (snd, rcv, hd, lossbox)), lag_ratio=0.2), LaggedStart(*(GrowArrow(a) for a in fwd), lag_ratio=0.2), run_time=1.6)
     grad_path = VMobject(stroke_color=GRAD, stroke_width=6)
     grad_path.set_points_as_corners(
         [lossbox.get_bottom(), hd.get_top(), hd.get_bottom(), rcv.get_top(), rcv.get_left(), snd.get_right()]
     )
-    stop = T("no gradient into the frozen backbone", 16, GRAD).next_to(smol, LEFT, buff=0.1).shift(DOWN * 0.0)
-    stop.next_to(snd, DOWN, buff=0.15)
+    stop = T("no gradient into the frozen backbone", 16, GRAD).next_to(snd, DOWN, buff=0.15).align_to(snd, LEFT)
     for _ in range(2):
         s.play(ShowPassingFlash(grad_path.copy(), time_width=0.45), run_time=1.3)
     s.play(FadeIn(stop), run_time=0.6)
 
     # Real loss curves from evaluation.json.
-    ox, oy, W, H = 0.6, -2.6, 5.6, 3.6
+    ox, oy, W, H = 1.0, -2.6, 5.3, 3.6
     max_epoch = max(p["epoch"] for p in CURVES["embeddings"])
     max_loss = max(p["train_loss"] for p in CURVES["embeddings"]) * 1.05
 
@@ -695,14 +722,15 @@ def training(s: Scene):
     emb_dev = polyline("embeddings", "dev_loss", MSG, 4)
     none_dev = polyline("none", "dev_loss", MUTED, 3)
     s.play(Create(none_dev), run_time=1.4)
-    none_label = T("no communication · dev", 17, MUTED).next_to(to_xy(max_epoch, CURVES["none"][-1]["dev_loss"]), UP, buff=0.12).shift(LEFT * 1.2)
+    none_label = T("no communication · dev", 17, MUTED).next_to(to_xy(185, CURVES["none"][-1]["dev_loss"]), UP, buff=0.12)
     s.play(FadeIn(none_label), run_time=0.5)
     s.play(Create(emb_dev), Create(emb_train.set_stroke(opacity=0.45)), run_time=1.8)
-    emb_label = T("learned messages · dev", 17, MSG).next_to(to_xy(max_epoch, CURVES["embeddings"][-1]["dev_loss"]), UP, buff=0.12).shift(LEFT * 1.2)
+    emb_label = T("learned messages · dev", 17, MSG).next_to(to_xy(185, CURVES["embeddings"][-1]["dev_loss"]), UP, buff=0.12)
     s.play(FadeIn(emb_label), run_time=0.5)
     sel = SOURCE["selected_epoch"]
     vline = DashedLine(to_xy(sel, 0), to_xy(sel, max_loss * 0.9), stroke_color=FG, stroke_width=1.5, dash_length=0.08)
     sel_label = T(f"selected epoch {sel} · lowest dev loss", 16, FG).next_to(vline, UP, buff=0.08)
+    sel_label.align_to(axes[0], RIGHT)
     s.play(Create(vline), FadeIn(sel_label), run_time=0.8)
     opt = T("AdamW · lr 0.001 · weight decay 0.01 · clip 5 · 400 epochs · CPU", 17, MUTED).to_edge(DOWN, buff=0.28)
     s.play(FadeIn(opt), run_time=0.6)
@@ -710,7 +738,7 @@ def training(s: Scene):
 
 
 def results(s: Scene):
-    head = title("Does the receiver use the message?", "80 held-out decisions where the receiver's own view is clear")
+    head = title("Does the receiver use the message?", "80 held-out decisions where the receiver’s own view is clear")
     s.play(Write(head[0]), FadeIn(head[1]), run_time=1.2)
 
     # Hidden-peer subset: receiver sees no local obstacle; half need a hold.
@@ -765,7 +793,7 @@ def results(s: Scene):
         new_group, new_acc = dots(key)
         assert abs(new_acc - RESULTS["embeddings"][result_key]["hidden_peer_accuracy"]) < 1e-9
         new_label = acc_text(name, new_acc)
-        s.play(Transform(group, new_group), Transform(label, new_label), run_time=1.6)
+        label = swap(s, label, new_label, 1.6, Transform(group, new_group))
         s.wait(1.6)
     same = T("same trained checkpoint; only the delivered message changes", 19, MUTED).to_edge(DOWN, buff=0.25)
     s.play(FadeIn(same), run_time=0.6)
@@ -791,8 +819,8 @@ def results(s: Scene):
         bar = Rectangle(width=bw, height=max(r["hidden_peer_accuracy"] * H, 0.01), stroke_width=0, fill_color=color, fill_opacity=0.85)
         bar.move_to([x, base_y, 0], aligned_edge=DOWN)
         pct = T(f"{r['hidden_peer_accuracy'] * 100:.0f}%", 26, color).next_to(bar, UP, buff=0.12)
-        nm = T(name, 19, color).next_to([x, base_y, 0], DOWN, buff=0.22)
-        err = T(f"{r['action_error_mm']:.2f} mm action error", 16, MUTED).next_to(nm, DOWN, buff=0.1)
+        nm = strut_text(name, 19, color).next_to([x, base_y, 0], DOWN, buff=0.22)
+        err = strut_text(f"{r['action_error_mm']:.2f} mm action error", 16, MUTED).next_to(nm, DOWN, buff=0.06)
         bars.add(bar)
         texts.add(VGroup(pct, nm, err))
     ylab = T("hidden-peer hold accuracy", 18, MUTED).rotate(np.pi / 2).move_to([-5.3, base_y + H / 2, 0])
