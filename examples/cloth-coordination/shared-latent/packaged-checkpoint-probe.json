@@ -1,0 +1,16 @@
+{
+ "checkpoint": "examples/cloth-coordination/learned-latent/models/embeddings.pt",
+ "obstacle_direction_cosine": -0.03470223769545555,
+ "receivers": {
+  "left": {
+   "delivered": 1.0,
+   "swapped_sender": 0.4749999940395355,
+   "decisions": 40
+  },
+  "right": {
+   "delivered": 1.0,
+   "swapped_sender": 0.10000000149011612,
+   "decisions": 40
+  }
+ }
+}
