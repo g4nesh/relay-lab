@@ -11,8 +11,13 @@ been removed from the active runtime.
 Run these commands from the repository root. Python 3.12+, Node.js 22+ and npm
 are required. The provided installer is verified on Apple Silicon; other
 platforms need the matching official CLI placed in the path printed by it.
-The setup pins the server, CLI, and TypeScript SDK to **2.10.0**.
+The setup pins the server, CLI, and TypeScript SDK to **2.13.0**.
 No hosted database, account, or paid API is required.
+
+For an existing installation, stop the local server and back up its data directory
+and owner token before upgrading. Keep the matching server version with each
+backup; rollback restores that backup rather than opening newer state with an
+older binary. The installer does not stop, replace or clear a running database.
 
 ```bash
 python3 scripts/spacetime.py install
@@ -84,8 +89,11 @@ worker-reported evidence; it is not independent sensing of a malicious worker.
 The client requests `confirmed=true` for durable reducer acknowledgements and
 reads back authoritative rows. A lost response can only trigger an identical
 idempotent database request. It never triggers a second physical step. The
-starter synchronizes through HTTP reducers and SQL reads. It does **not** yet
-provide a live WebSocket dashboard or separately scheduled robot processes.
+CLI rollout synchronizes through HTTP reducers and SQL reads. Studio additionally
+uses private SDK subscriptions for dashboard and worker notifications, with native
+scheduled reducers for advisory deadlines and maintenance. See
+[Studio coordination](coordination.md). Those notifications never dispatch or
+replay robot actions on their own.
 
 ## Inspect and recover
 

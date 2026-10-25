@@ -1,0 +1,26 @@
+/* Local live Studio: layout only. Type, color and surfaces come from
+   /projects/shared/workspace-design.css, which loads after this file. */
+
+/* Preview-only decoration that has no meaning in the live app. */
+.save-state:after{content:none!important}
+.tk-page-heading .eyebrow,.tk-page-heading .section-overline,.tk-footer,.tk-empty-decoration,.tk-panel-title>span,
+.tk-heading .eyebrow,.tk-heading .section-overline,.tk-mini-label,.tk-state-line,.tk-list-caption,.tk-sim-eyebrow,
+.tk-sim-seam,.tk-sim-boundary,.tk-detail hr,.tk-simulation hr,.tk-panel hr{display:none!important}
+
+/* Tasks layout */
+.tk-heading{margin:0 0 24px!important}
+.tk-overview{padding:0 0 24px!important}
+.tk-compose-footer{padding-top:8px!important;margin-top:12px!important}
+.tk-task-row{margin:0 0 8px!important;padding:16px!important}
+.tk-simulation{overflow:hidden!important}
+.tk-sim-illustration,.tk-sim-hero,.tk-sim-table,.tk-sim-scene{background:transparent!important;border:0!important}
+
+/* Experiments open inside the Studio shell. */
+#embedded-experiment{height:calc(100dvh - 73px);margin:0 -16px}
+#experiment-frame{width:100%;height:100%;border:0;background:#fff;display:block}
+.experiment-active .top-actions,.experiment-active .mobile-view-nav{display:none!important}
+
+@media(max-width:700px){
+  .tk-overview{grid-template-columns:1fr 1fr!important}
+  #embedded-experiment{margin:0 -10px;height:calc(100dvh - 125px)}
+}

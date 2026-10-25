@@ -13,9 +13,11 @@ import importlib
 import json
 import os
 import re
+import socket
 import stat
 import threading
 import uuid
+from http.client import HTTPException
 from pathlib import Path
 from urllib.error import HTTPError
 from urllib.parse import urlsplit
@@ -24,6 +26,7 @@ from urllib.request import HTTPRedirectHandler, Request, build_opener
 TERMINAL = {"succeeded", "failed", "cancelled"}
 # The bounded inbox can contain 100 tasks with up to 64 KiB each.
 MAX_RESPONSE_BYTES = 8 * 1024 * 1024
+MAX_EVENT_BYTES = 64 * 1024
 
 
 class AgentHTTPError(RuntimeError):
@@ -70,6 +73,22 @@ class AgentClient:
             raise ValueError("Use the workspace HTTPS origin (HTTP is allowed only on localhost)")
         self.url, self.token = url.rstrip("/"), token
 
+    def open_events(self):
+        """Authenticated invalidations only; task reads still authorize execution."""
+        request = Request(
+            self.url + "/api/agent/events",
+            headers={"Authorization": "Bearer " + self.token, "Accept": "text/event-stream"},
+        )
+        try:
+            response = build_opener(NoRedirect()).open(request, timeout=25)
+        except HTTPError as exc:
+            exc.close()
+            raise AgentHTTPError(exc.code) from None
+        if response.headers.get_content_type() != "text/event-stream":
+            response.close()
+            raise ValueError("Workspace returned an invalid event stream")
+        return response
+
     def request(self, path, value=None):
         if not re.fullmatch(r"/api/agent/[a-z0-9/-]+", path):
             raise ValueError("Agent requests must use the scoped agent API")
@@ -90,6 +109,106 @@ class AgentClient:
         if not isinstance(result, dict):
             raise TypeError("Invalid workspace response")
         return result
+
+
+def stream_events(response):
+    """Read bounded SSE frames, ignoring comments and unsupported event types."""
+    event, data, size = "message", [], 0
+    while line := response.readline(MAX_EVENT_BYTES + 1):
+        size += len(line)
+        if size > MAX_EVENT_BYTES:
+            raise ValueError("Workspace event exceeds the size limit")
+        line = line.decode("utf-8").rstrip("\r\n")
+        if not line:
+            if data and event in ("sync", "update", "status"):
+                try:
+                    payload = json.loads("\n".join(data))
+                except (ValueError, TypeError):
+                    payload = None
+                if isinstance(payload, dict):
+                    yield event, payload
+            event, data, size = "message", [], 0
+        elif line.startswith("event:"):
+            event = line[6:].lstrip(" ")
+        elif line.startswith("data:"):
+            data.append(line[5:].lstrip(" "))
+
+
+class AgentEvents:
+    """One bounded reconnect loop; events never invoke the robot handler."""
+
+    def __init__(self, client, stopped, wakeup):
+        self.client, self.stopped, self.wakeup = client, stopped, wakeup
+        self.response = None
+        self.connected = False
+        self._lock = threading.Lock()
+        self.thread = threading.Thread(target=self.run, name="relay-agent-events", daemon=True)
+
+    def start(self):
+        self.thread.start()
+
+    def run(self):
+        delay = 1
+        while not self.stopped.is_set():
+            try:
+                with self.client.open_events() as response:
+                    with self._lock:
+                        if self.stopped.is_set():
+                            return
+                        self.response = response
+                    # Always refetch on reconnect, including missed invalidations.
+                    self.wakeup.set()
+                    for event, payload in stream_events(response):
+                        if self.stopped.is_set():
+                            return
+                        if event == "sync" or (
+                            event == "update"
+                            and isinstance(payload.get("topics"), list)
+                            and "tasks" in payload["topics"]
+                        ):
+                            # Presence and maintenance updates do not change this
+                            # inbox. Reconnect/sync still reconciles missed tasks.
+                            delay = 1
+                            self.wakeup.set()
+                        elif event == "status":
+                            self.connected = payload.get("state") == "ready"
+                            if payload.get("state") in ("unauthorized", "revoked"):
+                                self.stopped.set()
+                                self.wakeup.set()
+                                return
+            except AgentHTTPError as exc:
+                if exc.status in (401, 403):
+                    self.stopped.set()
+                    self.wakeup.set()
+                    return
+                if exc.status in (404, 405, 501):
+                    # Older workspaces remain usable through bounded polling.
+                    return
+            except (OSError, HTTPException, ValueError, TypeError):
+                pass  # Reconcile through the normal authenticated task reads.
+            finally:
+                self.connected = False
+                with self._lock:
+                    self.response = None
+            if self.stopped.wait(delay):
+                return
+            delay = min(delay * 2, 30)
+
+    def close(self):
+        self.stopped.set()
+        self.wakeup.set()
+        with self._lock:
+            response = self.response
+            # Unblock a pending urllib read before joining. The owning reader
+            # closes its response; closing a buffered reader concurrently blocks.
+            sock = getattr(getattr(getattr(response, "fp", None), "raw", None), "_sock", None)
+            if sock is not None:
+                try:
+                    sock.shutdown(socket.SHUT_RDWR)
+                except OSError:
+                    pass
+        if self.thread.ident is not None:
+            self.thread.join(timeout=26)
 
 
 def report_value(value):
@@ -138,10 +257,15 @@ class AgentRuntime:
             self.lock.close()
             raise RuntimeError("This connection already has a running local agent") from None
         self.stopped = threading.Event()
+        self.wakeup = threading.Event()
+        self.events = None
         self.heartbeat_thread = None
 
     def close(self):
         self.stopped.set()
+        self.wakeup.set()
+        if self.events:
+            self.events.close()
         if self.heartbeat_thread:
             self.heartbeat_thread.join(timeout=1)
         if not self.lock.closed:
@@ -200,9 +324,20 @@ class AgentRuntime:
                     self.heartbeat()
                 except Exception:  # noqa: BLE001 - loss of fresh authorization must stop execution
                     self.stopped.set()
+                    self.wakeup.set()
 
         self.heartbeat_thread = threading.Thread(target=run, daemon=True)
         self.heartbeat_thread.start()
+
+    def start_events(self):
+        if self.events is None:
+            self.events = AgentEvents(self.client, self.stopped, self.wakeup)
+            self.events.start()
+
+    def wait_for_update(self, interval):
+        self.wakeup.wait(interval)
+        self.wakeup.clear()
+        return self.stopped.is_set()
 
     def _pending(self, task, state, operation, value):
         state.update(
@@ -361,7 +496,12 @@ def main():
     parser.add_argument("--token-file", type=Path, required=True)
     parser.add_argument("--handler", required=True, help="Locally installed module:function")
     parser.add_argument("--state-dir", type=Path, default=Path(".relay-agent"))
-    parser.add_argument("--interval", type=float, default=3)
+    parser.add_argument(
+        "--interval",
+        type=float,
+        default=30,
+        help="Fallback inbox refresh seconds (live events wake the worker sooner)",
+    )
     parser.add_argument("--once", action="store_true", help="Process one inbox pass")
     args = parser.parse_args()
     if not 1 <= args.interval <= 60:
@@ -380,6 +520,8 @@ def main():
     )
     try:
         runtime.start_heartbeat()
+        if not args.once:
+            runtime.start_events()
         while True:
             try:
                 count = runtime.run_once()
@@ -390,8 +532,10 @@ def main():
                     raise
             if args.once:
                 break
-            if runtime.stopped.wait(args.interval):
-                raise RuntimeError("Heartbeat unavailable; stopping agent polling")
+            if runtime.wait_for_update(args.interval):
+                raise RuntimeError(
+                    "Agent authorization or heartbeat unavailable; controller must hold"
+                )
     finally:
         runtime.close()
 

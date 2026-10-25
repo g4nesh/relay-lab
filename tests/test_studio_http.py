@@ -27,6 +27,8 @@ class MemorySocket:
 
 
 class Service:
+    experiments_enabled = True
+
     def __init__(self):
         self.calls = []
         self.workspace = example_workspace()

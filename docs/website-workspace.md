@@ -9,7 +9,9 @@ Install backend dependencies and start/publish SpacetimeDB using the root README
 Then run from the repository root:
 
 ```sh
-PYTHONPATH=src .venv/bin/python scripts/serve_workspace.py
+npm --prefix subscriptions ci
+npm --prefix subscriptions run build
+uv run --extra learned --extra deploy python scripts/serve_workspace.py
 ```
 
 Open http://127.0.0.1:8780/ for the website, or

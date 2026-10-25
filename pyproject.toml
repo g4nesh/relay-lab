@@ -26,6 +26,7 @@ dev = ["pytest>=8,<10", "ruff>=0.9,<1"]
 [project.scripts]
 relay-lab = "relay_lab.cli:main"
 relay-studio = "relay_lab.studio.asgi:main"
+relay-agent = "relay_lab.studio.worker:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/relay_lab"]

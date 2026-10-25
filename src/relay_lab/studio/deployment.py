@@ -2,12 +2,21 @@
 
 from __future__ import annotations
 
+import importlib.util
 import ipaddress
 import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlsplit
+
+
+def experiments_requested():
+    """Stripped distributions always use the control plane, including local preview."""
+    return (
+        os.environ.get("RELAY_STUDIO_EXPERIMENTS", "1") != "0"
+        and importlib.util.find_spec("relay_lab.llm") is not None
+    )
 
 
 @dataclass(frozen=True)
@@ -91,9 +100,9 @@ class DeploymentConfig:
     @classmethod
     def from_env(cls):
         return cls(
-            public_origin=os.environ.get("RELAY_STUDIO_PUBLIC_ORIGIN", ""),
-            bind=os.environ.get("RELAY_STUDIO_BIND", "127.0.0.1"),
-            port=int(os.environ.get("RELAY_STUDIO_PORT", "8770")),
+            public_origin=os.environ.get("RELAY_STUDIO_PUBLIC_ORIGIN", os.environ.get("RENDER_EXTERNAL_URL", "")),
+            bind=os.environ.get("RELAY_STUDIO_BIND", "0.0.0.0" if os.environ.get("RENDER") else "127.0.0.1"),
+            port=int(os.environ.get("PORT", os.environ.get("RELAY_STUDIO_PORT", "8770"))),
             root=Path(os.environ.get("RELAY_STUDIO_ROOT", ".")).resolve(),
             max_concurrent=int(os.environ.get("RELAY_STUDIO_MAX_CONCURRENT", "8")),
         )

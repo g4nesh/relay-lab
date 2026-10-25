@@ -1,13 +1,13 @@
-"""Scheduled objectives and deadlines, timed by SpacetimeDB scheduled reducers.
+"""Scheduled and repeating objectives, timed by SpacetimeDB scheduled reducers.
 
 SpacetimeDB owns the clock: a timer row fires ``fire_task_schedule`` at each due
 time, even while Studio is offline, and that reducer only enqueues a due
 dispatch. Studio then re-checks the creator's account and the current model
 releases, creates the objective through the normal ``TaskService`` path, and
-records the outcome (created or blocked) back in SpacetimeDB. Deadlines work
-the same way: ``check_task_deadline`` reads the objective journal at the
-deadline and records whether it finished in time. No reducer here writes the
-objective journal or bypasses governance.
+records the outcome (created or blocked) back in SpacetimeDB. Each created
+objective carries the schedule's attention deadline, which the coordination
+watchdog tracks like any other task. No reducer here writes the objective
+journal or bypasses governance.
 """
 
 from __future__ import annotations
@@ -28,14 +28,14 @@ from .tasks import TaskConflict, _request, _signature, _strings
 REPEAT_MINUTES = (0, 5, 15, 30, 60, 360, 1440)
 MAX_RUNS = 20
 MAX_LEAD_SECONDS = 30 * 86400
-DEADLINE_MINUTES = (5, 15, 30, 60, 240, 1440)
+DEFAULT_TIMEOUT_SECONDS = 1800
 LIST_LIMIT = 500
 PUMP_INTERVAL_SECONDS = 5.0
+TIMER = "SpacetimeDB scheduled reducer"
 UNAVAILABLE = (
     "Scheduling needs the updated SpacetimeDB module. Run `python3 scripts/spacetime.py publish`."
 )
 _KEY = re.compile(r"sched-[a-f0-9]{16}")
-_TASK = re.compile(r"goal-[a-f0-9]{16}")
 
 
 class ScheduleUnavailable(RuntimeError):
@@ -50,16 +50,6 @@ def _seconds(micros):
     return micros / 1_000_000 if micros else None
 
 
-def deadline_minutes(value):
-    """Validate an optional per-objective deadline before anything is created."""
-    minutes = value.get("deadline_minutes") if isinstance(value, dict) else None
-    if minutes is None:
-        return None
-    if type(minutes) is not int or minutes not in DEADLINE_MINUTES:
-        raise ValueError("Deadline must be 5, 15, 30 or 60 minutes, 4 hours, or 24 hours")
-    return minutes
-
-
 def _objective(value):
     """The same objective fields and limits that ``TaskService.create`` enforces."""
     objective = value.get("objective")
@@ -69,14 +59,25 @@ def _objective(value):
     target = value.get("target", "both")
     if target not in ("left", "right", "both"):
         raise ValueError("Target must be left, right, or both")
-    return {"title": title, "objective": objective, "success_criteria": criteria, "target": target}
+    timeout = value.get("timeout_seconds", DEFAULT_TIMEOUT_SECONDS)
+    if type(timeout) is not int or not 60 <= timeout <= 86400:
+        raise ValueError("Task attention deadline must be 60–86400 seconds")
+    return {
+        "title": title,
+        "objective": objective,
+        "success_criteria": criteria,
+        "target": target,
+        "timeout_seconds": timeout,
+    }
 
 
 class ScheduleService:
-    def __init__(self, tasks, access):
-        self.tasks, self.access = tasks, access
+    def __init__(self, tasks, access, *, durable=None):
+        self.tasks, self.access, self.durable = tasks, access, durable
         self.lock = threading.Lock()
         self.last_error = None
+        self.stop = threading.Event()
+        self.thread = None
 
     @property
     def worker_id(self):
@@ -100,19 +101,12 @@ class ScheduleService:
         rows = self._rows(client, f"SELECT * FROM task_dispatch WHERE dispatch_key = '{key}'")
         return rows[0] if rows else None
 
-    def _deadline_row(self, client, task_id):
-        rows = self._rows(client, f"SELECT * FROM task_deadline WHERE task_id = '{task_id}'")
-        return rows[0] if rows else None
-
-    @staticmethod
-    def _public_deadline(row):
-        return {
-            "due_at": _seconds(row["deadline_micros"]),
-            "status": row["status"],
-            "detail": row["detail"],
-            "checked_at": _seconds(row["checked_micros"]),
-            "timer": "SpacetimeDB scheduled reducer",
-        }
+    def _pending(self, client):
+        return self._rows(
+            client,
+            f"SELECT * FROM task_dispatch WHERE worker_id = '{self.worker_id}' "
+            "AND status = 'pending' LIMIT 20",
+        )
 
     @staticmethod
     def _public(row, runs):
@@ -122,7 +116,7 @@ class ScheduleService:
             "title": request["title"],
             "objective": request["objective"],
             "target": request["target"],
-            "deadline_minutes": request.get("deadline_minutes"),
+            "timeout_seconds": request.get("timeout_seconds", DEFAULT_TIMEOUT_SECONDS),
             "created_by": row["created_by"],
             "status": row["status"],
             "reason": row["reason"],
@@ -145,7 +139,7 @@ class ScheduleService:
                 }
                 for run in sorted(runs, key=lambda r: r["run_number"], reverse=True)
             ],
-            "timer": "SpacetimeDB scheduled reducer",
+            "timer": TIMER,
         }
 
     # ---- reads ----
@@ -163,12 +157,8 @@ class ScheduleService:
                 client,
                 f"SELECT * FROM task_dispatch WHERE worker_id = '{worker}' LIMIT {LIST_LIMIT}",
             )
-            deadlines = self._rows(
-                client,
-                f"SELECT * FROM task_deadline WHERE worker_id = '{worker}' LIMIT {LIST_LIMIT}",
-            )
         except ScheduleUnavailable as error:
-            return {"available": False, "reason": str(error), "schedules": [], "deadlines": {}}
+            return {"available": False, "reason": str(error), "schedules": []}
         grouped = {}
         for run in runs:
             grouped.setdefault(run["schedule_key"], []).append(run)
@@ -178,9 +168,7 @@ class ScheduleService:
             "available": True,
             "backend": "SpacetimeDB scheduled reducers",
             "schedules": public,
-            "deadlines": {row["task_id"]: self._public_deadline(row) for row in deadlines},
             "repeat_minutes": list(REPEAT_MINUTES[1:]),
-            "deadline_minutes": list(DEADLINE_MINUTES),
             "max_runs": MAX_RUNS,
             "pump_error": self.last_error,
         }
@@ -190,7 +178,6 @@ class ScheduleService:
         actor = _actor(actor)
         request_id = _request(value)
         normalized = _objective(value)
-        deadline = deadline_minutes(value)
         start_at = value.get("start_at")
         now = time.time()
         if (
@@ -215,7 +202,7 @@ class ScheduleService:
             actor, studio.validate(studio.workspace(), complete=True)
         )
         key = "sched-" + _signature([self.tasks.registry.registry_id, actor["id"], request_id])[:16]
-        request_json = canonical({**normalized, "deadline_minutes": deadline})
+        request_json = canonical(normalized)
         client = self._client()
         args = [
             key,
@@ -241,17 +228,23 @@ class ScheduleService:
             row = existing
         return self._public(row, [])
 
-    def cancel(self, actor, key, value):
-        actor = _actor(actor)
+    def _owned(self, actor, client, key, verb):
         if not isinstance(key, str) or not _KEY.fullmatch(key):
             raise ValueError("Unknown schedule")
+        row = self._schedule(client, key)
+        if row is not None and row["worker_id"] != self.worker_id:
+            raise ValueError("Unknown schedule")
+        if row is not None and actor["role"] != "manager" and row["created_by"] != actor["id"]:
+            raise PermissionError(f"Only a manager or the schedule's creator can {verb} it")
+        return row
+
+    def cancel(self, actor, key, value):
+        actor = _actor(actor)
         reason = _text((value or {}).get("reason") or "Cancelled in Studio", "Reason", 1000)
         client = self._client()
-        row = self._schedule(client, key)
-        if row is None or row["worker_id"] != self.worker_id:
+        row = self._owned(actor, client, key, "cancel")
+        if row is None:
             raise ValueError("Unknown schedule")
-        if actor["role"] != "manager" and row["created_by"] != actor["id"]:
-            raise PermissionError("Only a manager or the schedule's creator can cancel it")
         if row["status"] == "active":
             row = client._mutate(
                 "cancel_task_schedule",
@@ -267,16 +260,10 @@ class ScheduleService:
     def remove(self, actor, key):
         """Delete a finished schedule's records; objectives it created are kept."""
         actor = _actor(actor)
-        if not isinstance(key, str) or not _KEY.fullmatch(key):
-            raise ValueError("Unknown schedule")
         client = self._client()
-        row = self._schedule(client, key)
+        row = self._owned(actor, client, key, "remove")
         if row is None:
             return {"key": key, "removed": True}
-        if row["worker_id"] != self.worker_id:
-            raise ValueError("Unknown schedule")
-        if actor["role"] != "manager" and row["created_by"] != actor["id"]:
-            raise PermissionError("Only a manager or the schedule's creator can remove it")
         if row["status"] == "active":
             raise TaskConflict("Cancel this schedule before removing it")
         runs = self._rows(client, f"SELECT * FROM task_dispatch WHERE schedule_key = '{key}'")
@@ -289,35 +276,6 @@ class ScheduleService:
             {"removed": True},
         )
         return {"key": key, "removed": True}
-
-    def set_deadline(self, task, minutes):
-        """Arm the deadline watchdog for an objective; deterministic for retries."""
-        task_id = task["id"]
-        if not _TASK.fullmatch(task_id) or minutes not in DEADLINE_MINUTES:
-            raise ValueError("Invalid objective deadline")
-        client = self._client()
-        due = _micros(task["created_at"] + minutes * 60)
-        row = client._mutate(
-            "set_task_deadline",
-            [task_id, self.worker_id, due],
-            lambda: self._deadline_row(client, task_id),
-            {"task_id": task_id, "deadline_micros": due},
-        )
-        return self._public_deadline(row)
-
-    def clear_deadline(self, actor, task_id):
-        """Disarm and delete an objective's deadline watchdog (manager only)."""
-        _actor(actor, manager=True)
-        if not isinstance(task_id, str) or not _TASK.fullmatch(task_id):
-            raise ValueError("Unknown objective")
-        client = self._client()
-        client._mutate(
-            "clear_task_deadline",
-            [task_id, self.worker_id],
-            lambda: {"cleared": self._deadline_row(client, task_id) is None},
-            {"cleared": True},
-        )
-        return {"task_id": task_id, "cleared": True}
 
     # ---- dispatch ----
     def _resolve(self, client, dispatch, status, task_id, reason):
@@ -335,15 +293,13 @@ class ScheduleService:
         try:
             client = self._client()
             try:
-                due = self._rows(
-                    client,
-                    f"SELECT * FROM task_dispatch WHERE worker_id = '{self.worker_id}' "
-                    f"AND status = 'pending' LIMIT 20",
-                )
+                due = self._pending(client)
             except ScheduleUnavailable:
                 return 0
             handled = 0
             for dispatch in sorted(due, key=lambda d: (d["due_micros"], d["dispatch_key"])):
+                if self.stop.is_set():
+                    break
                 schedule = self._schedule(client, dispatch["schedule_key"])
                 if schedule is None:
                     self._resolve(client, dispatch, "blocked", "", "Schedule record is missing")
@@ -362,6 +318,9 @@ class ScheduleService:
                                 k: request[k]
                                 for k in ("title", "objective", "success_criteria", "target")
                             },
+                            "timeout_seconds": request.get(
+                                "timeout_seconds", DEFAULT_TIMEOUT_SECONDS
+                            ),
                         },
                     )
                 except (AuthenticationError, AuthorizationError):
@@ -377,11 +336,6 @@ class ScheduleService:
                     # Includes retired or unreleased models and full task history (TaskConflict).
                     self._resolve(client, dispatch, "blocked", "", (str(error) or "Blocked")[:500])
                     continue
-                if request.get("deadline_minutes"):
-                    try:
-                        self.set_deadline(task, request["deadline_minutes"])
-                    except (SpacetimeError, ValueError):
-                        pass  # The objective exists; a missed watchdog is not a failed run.
                 self._resolve(client, dispatch, "created", task["id"], "Objective created")
                 handled += 1
             self.last_error = None
@@ -393,21 +347,47 @@ class ScheduleService:
         finally:
             self.lock.release()
 
+    # ---- background pass ----
+    def run_once(self):
+        """One background pass. Durable deployments restore Studio state first."""
+        if self.durable is None or self.durable.holder:
+            return self.process_due()
+        try:
+            # SQL reads are not fenced; take the request lease only when work is due.
+            if not self._pending(self._client()):
+                return 0
+        except ScheduleUnavailable:
+            return 0
+        while not self.stop.is_set():
+            if self.durable.lock.acquire(timeout=0.2):
+                break
+        else:
+            return 0
+        try:
+            with self.durable.request():
+                return self.process_due()
+        finally:
+            self.durable.lock.release()
 
-class SchedulePump(threading.Thread):
-    """Background loop so fired runs become objectives even with no browser open."""
-
-    def __init__(self, service, interval=PUMP_INTERVAL_SECONDS):
-        super().__init__(name="relay-schedule-pump", daemon=True)
-        self.service, self.interval = service, interval
-        self.stopped = threading.Event()
-
-    def run(self):
-        while not self.stopped.wait(self.interval):
+    def _run(self):
+        while not self.stop.wait(PUMP_INTERVAL_SECONDS):
             try:
-                self.service.process_due()
+                self.run_once()
             except Exception as error:  # noqa: BLE001 - keep the loop alive; surface in the UI
-                self.service.last_error = f"{type(error).__name__}: {error}"[:300]
+                self.last_error = f"{type(error).__name__}: {error}"[:300]
 
-    def stop(self):
-        self.stopped.set()
+    def start(self):
+        if self.thread is None:
+            self.thread = threading.Thread(target=self._run, name="studio-schedules", daemon=True)
+            self.thread.start()
+
+    def request_stop(self):
+        self.stop.set()
+
+    def close(self):
+        self.request_stop()
+        if self.thread is not None:
+            # A pass is bounded by Spacetime request timeouts and stops between runs.
+            self.thread.join(timeout=12)
+            if self.thread.is_alive():
+                raise RuntimeError("Schedule dispatcher did not finish shutdown")

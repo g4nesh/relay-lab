@@ -5,7 +5,11 @@
  * one batch or commits observed results. An executing batch must never be
  * replayed after a process crash: the simulator may already have moved.
  */
-import { schema, table, t, ScheduleAt, SenderError, type ReducerCtx } from 'spacetimedb/server';
+import { schema, table, t, SenderError, type ReducerCtx } from 'spacetimedb/server';
+import { ScheduleAt } from 'spacetimedb';
+import { studioTables, studio_watchdog, studio_job_trigger } from './studio_tables';
+import { DAY_US, HOUR_US, STUDIO_LIMITS, STUDIO_METRICS, STUDIO_JOBS, STUDIO_STATUSES,
+  studioTerminal, nextStudioBoundary, studioTaskDeadline } from './studio_policy';
 
 const module_owner = table({ public: false }, {
   id: t.u8().primaryKey(), identity: t.identity(),
@@ -105,7 +109,15 @@ const cloth_packet = table({ public: false }, {
   deliver_tick: t.u32(), expires_tick: t.u32(), dropped: t.bool(), packet_json: t.string(),
 });
 
-// Durable Studio schedules. A timer row fires a reducer at a set time; the
+// Sole durable control-plane checkpoint; never exposed to browser subscriptions.
+const studio_state = table({ public: false }, {
+  id: t.u8().primaryKey(), revision: t.u32(), payload: t.string(), last_operation: t.string(),
+});
+const studio_lease = table({ public: false }, {
+  id: t.u8().primaryKey(), holder: t.string(), expires_us: t.u64(), last_operation: t.string(),
+});
+
+// Scheduled objectives. A timer row fires a reducer at a set time; the
 // reducer only enqueues a due dispatch. Studio then re-checks the account and
 // the current model releases before creating the objective, so no scheduled
 // reducer can bypass governance or write the factory_run journal.
@@ -125,7 +137,10 @@ const task_dispatch = table({ public: false }, {
   worker_id: t.string().index('btree'), run_number: t.u32(), due_micros: t.i64(), fired_micros: t.i64(),
   status: t.string(), task_id: t.string(), reason: t.string(), updated_micros: t.i64(),
 });
-// Deadline watchdog: one timer per objective checks the journal at the deadline.
+
+// Retired: objective deadlines now use studio_task_watch attention deadlines.
+// These tables stay so a database that published the earlier schedule module
+// upgrades without a client-breaking migration. No new rows are written.
 const task_deadline = table({ public: false }, {
   task_id: t.string().primaryKey(), worker_id: t.string().index('btree'),
   deadline_micros: t.i64(), status: t.string(), checked_micros: t.i64(), detail: t.string(),
@@ -135,7 +150,8 @@ const task_deadline_timer = table({ public: false }, {
   task_id: t.string().index('btree'),
 });
 
-const spacetime = schema({ module_owner, task, assignment, plan_frame, action_frame, feedback_frame, factory_run, factory_robot, factory_batch, factory_command, factory_resource, factory_event, factory_embedding_space, factory_embedding, factory_semantic_channel, factory_semantic_packet, cloth_channel, cloth_frame, cloth_packet, task_schedule, task_schedule_timer, task_dispatch, task_deadline, task_deadline_timer });
+const spacetime = schema({ studio_lease, studio_state, module_owner, task, assignment, plan_frame, action_frame, feedback_frame, factory_run, factory_robot, factory_batch, factory_command, factory_resource, factory_event, factory_embedding_space, factory_embedding, factory_semantic_channel, factory_semantic_packet, cloth_channel, cloth_frame, cloth_packet, task_schedule, task_schedule_timer, task_dispatch, task_deadline, task_deadline_timer, ...studioTables });
+
 export default spacetime;
 type Ctx = ReducerCtx<typeof spacetime.schemaType>;
 type Json = Record<string, unknown>;
@@ -581,9 +597,8 @@ function factoryMessages(ctx: Ctx, run_id: string, messages: unknown, tick: numb
   }
 }
 
-export const create_factory_run = spacetime.reducer({
-  run_id: t.string(), worker_id: t.string(), spec_json: t.string(), state_json: t.string(),
-}, (ctx, args) => {
+const create_factory_run_args = { run_id: t.string(), worker_id: t.string(), spec_json: t.string(), state_json: t.string(), };
+function create_factory_run_handler(ctx: Ctx, args: { run_id: string; worker_id: string; spec_json: string; state_json: string }) {
   owner(ctx); identifier(args.run_id, 'factory run'); identifier(args.worker_id, 'factory worker');
   const spec = parse(args.spec_json, 'factory spec'), state = parse(args.state_json, 'initial factory state');
   const prior = ctx.db.factory_run.run_id.find(args.run_id);
@@ -624,11 +639,20 @@ export const create_factory_run = spacetime.reducer({
   }
   ctx.db.factory_run.insert({ ...args, revision: 0, tick: 0, max_ticks: spec.max_ticks,
     phase: 'ready', status: 'running', created_at: ctx.timestamp, updated_at: ctx.timestamp });
+}
+export const create_factory_run = spacetime.reducer(create_factory_run_args, (ctx, args) => {
+  require(!ctx.db.studio_state.id.find(0), 'Studio storage requires a fenced request');
+  create_factory_run_handler(ctx, args);
+});
+export const studio_create_factory_run = spacetime.reducer({
+  holder: t.string(), ...create_factory_run_args,
+}, (ctx, { holder, ...args }) => {
+  studioLease(ctx, holder);
+  create_factory_run_handler(ctx, args);
 });
 
-export const prepare_factory_batch = spacetime.reducer({
-  run_id: t.string(), worker_id: t.string(), revision: t.u32(), prepare_json: t.string(),
-}, (ctx, args) => {
+const prepare_factory_batch_args = { run_id: t.string(), worker_id: t.string(), revision: t.u32(), prepare_json: t.string(), };
+function prepare_factory_batch_handler(ctx: Ctx, args: { run_id: string; worker_id: string; revision: number; prepare_json: string }) {
   const run = factoryRun(ctx, args.run_id, args.worker_id), key = `${args.run_id}:${args.revision}`;
   const prior = ctx.db.factory_batch.key.find(key);
   if (prior) {
@@ -696,11 +720,20 @@ export const prepare_factory_batch = spacetime.reducer({
   ctx.db.factory_batch.insert({ key, run_id: args.run_id, revision: args.revision,
     prepare_json: args.prepare_json, result_json: '', created_at: ctx.timestamp });
   ctx.db.factory_run.run_id.update({ ...run, phase: 'executing', updated_at: ctx.timestamp });
+}
+export const prepare_factory_batch = spacetime.reducer(prepare_factory_batch_args, (ctx, args) => {
+  require(!ctx.db.studio_state.id.find(0), 'Studio storage requires a fenced request');
+  prepare_factory_batch_handler(ctx, args);
+});
+export const studio_prepare_factory_batch = spacetime.reducer({
+  holder: t.string(), ...prepare_factory_batch_args,
+}, (ctx, { holder, ...args }) => {
+  studioLease(ctx, holder);
+  prepare_factory_batch_handler(ctx, args);
 });
 
-export const commit_factory_batch = spacetime.reducer({
-  run_id: t.string(), worker_id: t.string(), revision: t.u32(), result_json: t.string(),
-}, (ctx, args) => {
+const commit_factory_batch_args = { run_id: t.string(), worker_id: t.string(), revision: t.u32(), result_json: t.string(), };
+function commit_factory_batch_handler(ctx: Ctx, args: { run_id: string; worker_id: string; revision: number; result_json: string }) {
   const run = factoryRun(ctx, args.run_id, args.worker_id), key = `${args.run_id}:${args.revision}`;
   const batch = ctx.db.factory_batch.key.find(key); require(batch, 'Factory batch not authorized');
   if (batch.result_json) { require(batch.result_json === args.result_json, 'Conflicting duplicate factory outcome'); return; }
@@ -767,12 +800,21 @@ export const commit_factory_batch = spacetime.reducer({
   const status = success ? 'succeeded' : complete && routing ? 'rejected' : (state.tick as number) >= run.max_ticks ? 'exhausted' : 'running';
   ctx.db.factory_run.run_id.update({ ...run, state_json: JSON.stringify(state), tick: state.tick as number,
     revision: run.revision + 1, phase: status === 'running' ? 'ready' : 'terminal', status, updated_at: ctx.timestamp });
+}
+export const commit_factory_batch = spacetime.reducer(commit_factory_batch_args, (ctx, args) => {
+  require(!ctx.db.studio_state.id.find(0), 'Studio storage requires a fenced request');
+  commit_factory_batch_handler(ctx, args);
+});
+export const studio_commit_factory_batch = spacetime.reducer({
+  holder: t.string(), ...commit_factory_batch_args,
+}, (ctx, { holder, ...args }) => {
+  studioLease(ctx, holder);
+  commit_factory_batch_handler(ctx, args);
 });
 
 
-export const abort_factory_run = spacetime.reducer({
-  run_id: t.string(), worker_id: t.string(), reason: t.string(),
-}, (ctx, args) => {
+const abort_factory_run_args = { run_id: t.string(), worker_id: t.string(), reason: t.string(), };
+function abort_factory_run_handler(ctx: Ctx, args: { run_id: string; worker_id: string; reason: string }) {
   const run = factoryRun(ctx, args.run_id, args.worker_id);
   text(args.reason, 'factory abort reason', 2048);
   const state = parse(run.state_json, 'factory state');
@@ -786,6 +828,16 @@ export const abort_factory_run = spacetime.reducer({
   }
   ctx.db.factory_run.run_id.update({ ...run, status: 'failed', phase: 'terminal',
     state_json: JSON.stringify({ ...state, abort_reason: args.reason }), updated_at: ctx.timestamp });
+}
+export const abort_factory_run = spacetime.reducer(abort_factory_run_args, (ctx, args) => {
+  require(!ctx.db.studio_state.id.find(0), 'Studio storage requires a fenced request');
+  abort_factory_run_handler(ctx, args);
+});
+export const studio_abort_factory_run = spacetime.reducer({
+  holder: t.string(), ...abort_factory_run_args,
+}, (ctx, { holder, ...args }) => {
+  studioLease(ctx, holder);
+  abort_factory_run_handler(ctx, args);
 });
 
 
@@ -879,6 +931,300 @@ function semanticOrigin(packet: Json) {
   return JSON.stringify(Object.fromEntries(Object.entries(packet).filter(([key]) => !['packet_id', 'emitted_tick', 'expires_tick'].includes(key)).sort(([a], [b]) => a.localeCompare(b))));
 }
 
+// Studio operations are private advisory projections. They never dispatch,
+// retry or change the authoritative robot execution journal.
+function studioScope(ctx: Ctx, workspace_id: string): void {
+  identifier(workspace_id, 'workspace ID');
+  if (!ctx.db.studio_workspace.workspace_id.find(workspace_id)) {
+    require(ctx.db.studio_workspace.count() < BigInt(STUDIO_LIMITS.workspaces), 'Workspace capacity reached');
+    ctx.db.studio_workspace.insert({ workspace_id, created_at: ctx.timestamp });
+  }
+}
+function studioCapacity<T>(rows: Iterable<T>, maximum: number, label: string): void {
+  let count = 0;
+  for (const _row of rows) { count++; require(count < maximum, `${label} capacity reached; run retention cleanup`); }
+}
+function studioScheduler(ctx: Ctx): void {
+  require(ctx.sender.isEqual(ctx.identity), 'Only the database scheduler may execute this function');
+}
+function studioAlert(ctx: Ctx, workspace_id: string, kind: string, subject_id: string,
+  generation: bigint, message: string): void {
+  const key = `${workspace_id}:${kind}:${subject_id}`;
+  const prior = ctx.db.studio_attention.key.find(key);
+  if (prior?.status === 'open' && prior.generation === generation) return;
+  if (!prior) studioCapacity(ctx.db.studio_attention.workspace_id.filter(workspace_id), STUDIO_LIMITS.attention, 'Attention');
+  const row = { key, workspace_id, kind, subject_id, generation, message,
+    status: 'open', created_at: ctx.timestamp, updated_at: ctx.timestamp };
+  if (prior) ctx.db.studio_attention.key.update(row); else ctx.db.studio_attention.insert(row);
+}
+function studioResolve(ctx: Ctx, workspace_id: string, kind: string, subject_id: string): void {
+  const row = ctx.db.studio_attention.key.find(`${workspace_id}:${kind}:${subject_id}`);
+  if (row && row.status !== 'resolved') ctx.db.studio_attention.key.update({ ...row, status: 'resolved', updated_at: ctx.timestamp });
+}
+function studioGoal(ctx: Ctx, workspace_id: string, task_id: string): Json | undefined {
+  const run = ctx.db.factory_run.run_id.find(task_id);
+  if (!run) return;
+  const state = parse(run.state_json, 'task state');
+  require(state.task === 'studio-objective-v1' && state.registry_id === workspace_id, 'Task does not belong to this workspace');
+  return object(state.goal, 'goal');
+}
+function studioCheckPresence(ctx: Ctx, key: string, generation: bigint): void {
+  const row = ctx.db.studio_presence.key.find(key);
+  if (!row || row.generation !== generation || row.status !== 'online' || row.lease_expires_us > ctx.timestamp.microsSinceUnixEpoch) return;
+  ctx.db.studio_presence.key.update({ ...row, status: 'stale', watchdog_id: 0n, updated_at: ctx.timestamp });
+  studioAlert(ctx, row.workspace_id, 'worker_stale', row.worker_id, generation,
+    'Runtime heartbeat expired. Inspect the runtime before resuming execution.');
+}
+function studioCheckTask(ctx: Ctx, key: string, revision: bigint): void {
+  const row = ctx.db.studio_task_watch.key.find(key);
+  if (!row || BigInt(row.revision) !== revision || studioTerminal(row.status)) return;
+  const goal = studioGoal(ctx, row.workspace_id, row.task_id);
+  if (goal && studioTerminal(String(goal.status))) {
+    ctx.db.studio_watchdog.scheduledId.delete(row.watchdog_id);
+    ctx.db.studio_task_watch.key.update({ ...row, status: String(goal.status), deadline_us: 0n, watchdog_id: 0n, updated_at: ctx.timestamp });
+    studioResolve(ctx, row.workspace_id, 'task_overdue', row.task_id);
+    return;
+  }
+  if (row.deadline_us === 0n || row.deadline_us > ctx.timestamp.microsSinceUnixEpoch) return;
+  ctx.db.studio_task_watch.key.update({ ...row, watchdog_id: 0n, updated_at: ctx.timestamp });
+  studioAlert(ctx, row.workspace_id, 'task_overdue', row.task_id, revision,
+    'Task deadline passed. Review progress; no robot action was retried.');
+}
+
+function studioHandleHeartbeat(ctx: Ctx, args: { workspace_id: string, worker_id: string, agent_id: string, lease_seconds: number }) {
+  owner(ctx); studioScope(ctx, args.workspace_id);
+  identifier(args.worker_id, 'worker ID'); identifier(args.agent_id, 'agent ID');
+  require(args.lease_seconds >= 1 && args.lease_seconds <= 300, 'Lease must be 1 to 300 seconds');
+  const key = `${args.workspace_id}:${args.worker_id}`, prior = ctx.db.studio_presence.key.find(key);
+  require(!prior || prior.agent_id === args.agent_id, 'Worker agent binding is immutable');
+  require(prior?.status !== 'revoked', 'Worker credential is revoked');
+  if (!prior) studioCapacity(ctx.db.studio_presence.workspace_id.filter(args.workspace_id), STUDIO_LIMITS.presence, 'Presence');
+  if (prior) ctx.db.studio_watchdog.scheduledId.delete(prior.watchdog_id);
+  const generation = (prior?.generation ?? 0n) + 1n;
+  const lease_expires_us = ctx.timestamp.microsSinceUnixEpoch + BigInt(args.lease_seconds) * 1_000_000n;
+  const timer = ctx.db.studio_watchdog.insert({ scheduledId: 0n, scheduledAt: ScheduleAt.time(lease_expires_us),
+    workspace_id: args.workspace_id, kind: 'presence', subject_id: args.worker_id, generation });
+  const row = { key, workspace_id: args.workspace_id, worker_id: args.worker_id, agent_id: args.agent_id,
+    generation, lease_expires_us, status: 'online', watchdog_id: timer.scheduledId, updated_at: ctx.timestamp };
+  if (prior) ctx.db.studio_presence.key.update(row); else ctx.db.studio_presence.insert(row);
+  studioResolve(ctx, args.workspace_id, 'worker_stale', args.worker_id);
+}
+export const studio_heartbeat = spacetime.reducer({ workspace_id: t.string(), worker_id: t.string(),
+  agent_id: t.string(), lease_seconds: t.u32() }, (ctx, args) => {
+  owner(ctx);
+  require(!ctx.db.studio_state.id.find(0), 'Studio storage requires a fenced request');
+  studioHandleHeartbeat(ctx, args);
+});
+export const studio_fenced_heartbeat = spacetime.reducer({ holder: t.string(), ...{ workspace_id: t.string(), worker_id: t.string(),
+  agent_id: t.string(), lease_seconds: t.u32() } }, (ctx, { holder, ...args }) => {
+  studioLease(ctx, holder);
+  studioHandleHeartbeat(ctx, args);
+});
+
+function studioHandleRevokeWorker(ctx: Ctx, args: { workspace_id: string, worker_id: string }) {
+  owner(ctx); studioScope(ctx, args.workspace_id); identifier(args.worker_id, 'worker ID');
+  const row = ctx.db.studio_presence.key.find(`${args.workspace_id}:${args.worker_id}`);
+  if (!row) {
+    studioCapacity(ctx.db.studio_presence.workspace_id.filter(args.workspace_id), STUDIO_LIMITS.presence, 'Presence');
+    ctx.db.studio_presence.insert({ key: `${args.workspace_id}:${args.worker_id}`, ...args, agent_id: '',
+      generation: 1n, lease_expires_us: 0n, status: 'revoked', watchdog_id: 0n, updated_at: ctx.timestamp });
+    return;
+  }
+  if (row.status === 'revoked') return;
+  ctx.db.studio_watchdog.scheduledId.delete(row.watchdog_id);
+  ctx.db.studio_presence.key.update({ ...row, generation: row.generation + 1n, status: 'revoked', watchdog_id: 0n, updated_at: ctx.timestamp });
+  studioResolve(ctx, args.workspace_id, 'worker_stale', args.worker_id);
+}
+export const studio_revoke_worker = spacetime.reducer({ workspace_id: t.string(), worker_id: t.string() }, (ctx, args) => {
+  owner(ctx);
+  require(!ctx.db.studio_state.id.find(0), 'Studio storage requires a fenced request');
+  studioHandleRevokeWorker(ctx, args);
+});
+export const studio_fenced_revoke_worker = spacetime.reducer({ holder: t.string(), ...{ workspace_id: t.string(), worker_id: t.string() } }, (ctx, { holder, ...args }) => {
+  studioLease(ctx, holder);
+  studioHandleRevokeWorker(ctx, args);
+});
+
+function studioHandleSyncTask(ctx: Ctx, args: { workspace_id: string, task_id: string, revision: number, status: string, timeout_seconds: number }) {
+  owner(ctx); studioScope(ctx, args.workspace_id); identifier(args.task_id, 'task ID');
+  require(STUDIO_STATUSES.has(args.status), 'Unknown task status');
+  require(args.timeout_seconds <= 86400, 'Deadline must be at most 86400 seconds');
+  const key = `${args.workspace_id}:${args.task_id}`, prior = ctx.db.studio_task_watch.key.find(key);
+  if (prior && args.revision < prior.revision) return;
+  const goal = studioGoal(ctx, args.workspace_id, args.task_id);
+  const status = goal && studioTerminal(String(goal.status)) ? String(goal.status) : args.status;
+  if (prior && args.revision === prior.revision) {
+    require(prior.timeout_seconds === args.timeout_seconds && (prior.status === status || studioTerminal(status)), 'Conflicting task projection');
+    if (prior.status === status) return;
+  }
+  require(!prior || !studioTerminal(prior.status) || prior.status === status, 'Terminal task cannot reopen or change outcome');
+  if (!prior) studioCapacity(ctx.db.studio_task_watch.workspace_id.filter(args.workspace_id), STUDIO_LIMITS.tasks, 'Task');
+  if (prior) ctx.db.studio_watchdog.scheduledId.delete(prior.watchdog_id);
+  const created = typeof goal?.created_at === 'number' && Number.isFinite(goal.created_at) && goal.created_at > 0
+    ? BigInt(Math.floor(goal.created_at * 1_000_000)) : ctx.timestamp.microsSinceUnixEpoch;
+  const deadline_us = studioTerminal(status) ? 0n : studioTaskDeadline(created, args.timeout_seconds, prior ?? undefined);
+  let watchdog_id = 0n;
+  if (deadline_us > 0n) watchdog_id = ctx.db.studio_watchdog.insert({ scheduledId: 0n,
+    scheduledAt: ScheduleAt.time(deadline_us > ctx.timestamp.microsSinceUnixEpoch ? deadline_us : ctx.timestamp.microsSinceUnixEpoch + 1n),
+    workspace_id: args.workspace_id, kind: 'task', subject_id: args.task_id, generation: BigInt(args.revision) }).scheduledId;
+  const row = { key, ...args, status, deadline_us, watchdog_id, updated_at: ctx.timestamp };
+  if (prior) ctx.db.studio_task_watch.key.update(row); else ctx.db.studio_task_watch.insert(row);
+  if (studioTerminal(status) || deadline_us === 0n || deadline_us > ctx.timestamp.microsSinceUnixEpoch)
+    studioResolve(ctx, args.workspace_id, 'task_overdue', args.task_id);
+}
+export const studio_sync_task = spacetime.reducer({ workspace_id: t.string(), task_id: t.string(),
+  revision: t.u32(), status: t.string(), timeout_seconds: t.u32() }, (ctx, args) => {
+  owner(ctx);
+  require(!ctx.db.studio_state.id.find(0), 'Studio storage requires a fenced request');
+  studioHandleSyncTask(ctx, args);
+});
+export const studio_fenced_sync_task = spacetime.reducer({ holder: t.string(), ...{ workspace_id: t.string(), task_id: t.string(),
+  revision: t.u32(), status: t.string(), timeout_seconds: t.u32() } }, (ctx, { holder, ...args }) => {
+  studioLease(ctx, holder);
+  studioHandleSyncTask(ctx, args);
+});
+
+export const studio_expire_watchdog = spacetime.reducer({ onSchedule: studio_watchdog },
+  { arg: studio_watchdog.rowType }, (ctx, { arg }) => {
+    studioScheduler(ctx);
+    const key = `${arg.workspace_id}:${arg.subject_id}`;
+    if (arg.kind === 'presence') studioCheckPresence(ctx, key, arg.generation);
+    if (arg.kind === 'task') studioCheckTask(ctx, key, arg.generation);
+  });
+
+function studioHandleRecordMetric(ctx: Ctx, args: { workspace_id: string, event_id: string, metric: string, value: number }) {
+  owner(ctx); studioScope(ctx, args.workspace_id); identifier(args.event_id, 'metric event ID');
+  require(STUDIO_METRICS.has(args.metric), 'Unknown metric');
+  require(Number.isFinite(args.value) && args.value >= 0 && args.value <= 1e12, 'Metric must be finite and between 0 and 1e12');
+  const key = `${args.workspace_id}:${args.event_id}`, prior = ctx.db.studio_metric.key.find(key);
+  if (prior) { require(prior.metric === args.metric && prior.value === args.value, 'Conflicting metric event'); return; }
+  studioCapacity(ctx.db.studio_metric.workspace_id.filter(args.workspace_id), STUDIO_LIMITS.metrics, 'Metric');
+  ctx.db.studio_metric.insert({ key, ...args, occurred_us: ctx.timestamp.microsSinceUnixEpoch, aggregated: false });
+}
+export const studio_record_metric = spacetime.reducer({ workspace_id: t.string(), event_id: t.string(),
+  metric: t.string(), value: t.f64() }, (ctx, args) => {
+  owner(ctx);
+  require(!ctx.db.studio_state.id.find(0), 'Studio storage requires a fenced request');
+  studioHandleRecordMetric(ctx, args);
+});
+export const studio_fenced_record_metric = spacetime.reducer({ holder: t.string(), ...{ workspace_id: t.string(), event_id: t.string(),
+  metric: t.string(), value: t.f64() } }, (ctx, { holder, ...args }) => {
+  studioLease(ctx, holder);
+  studioHandleRecordMetric(ctx, args);
+});
+
+function studioJobWork(ctx: Ctx, workspace_id: string, job_id: string, retention_days: number) {
+  let processed = 0, pending = false, error = '';
+  const now = ctx.timestamp.microsSinceUnixEpoch;
+  if (job_id === 'health') {
+    // Workspace quotas bound this sweep; alerts are upserts, never duplicate actions.
+    for (const row of ctx.db.studio_presence.workspace_id.filter(workspace_id)) {
+      studioCheckPresence(ctx, row.key, row.generation); processed++;
+    }
+    for (const row of ctx.db.studio_task_watch.workspace_id.filter(workspace_id)) {
+      studioCheckTask(ctx, row.key, BigInt(row.revision)); processed++;
+    }
+  } else if (job_id === 'rollup') {
+    let rollupCount = [...ctx.db.studio_rollup.workspace_id.filter(workspace_id)].length;
+    for (const row of ctx.db.studio_metric.workspace_id.filter(workspace_id)) {
+      if (row.aggregated) continue;
+      if (processed >= STUDIO_LIMITS.batch) { pending = true; break; }
+      const bucket_us = row.occurred_us / HOUR_US * HOUR_US;
+      const key = `${workspace_id}:${row.metric}:${bucket_us}`;
+      const prior = ctx.db.studio_rollup.key.find(key);
+      if (!prior && rollupCount >= STUDIO_LIMITS.rollups) {
+        error = 'Rollup capacity reached; run cleanup or reduce retention'; break;
+      }
+      const aggregate = { key, workspace_id, metric: row.metric, bucket_us,
+        sample_count: (prior?.sample_count ?? 0n) + 1n, total: (prior?.total ?? 0) + row.value,
+        minimum: Math.min(prior?.minimum ?? row.value, row.value), maximum: Math.max(prior?.maximum ?? row.value, row.value), updated_at: ctx.timestamp };
+      if (prior) ctx.db.studio_rollup.key.update(aggregate);
+      else { ctx.db.studio_rollup.insert(aggregate); rollupCount++; }
+      ctx.db.studio_metric.key.update({ ...row, aggregated: true }); processed++;
+    }
+  } else if (job_id === 'cleanup') {
+    const cutoff = now - BigInt(retention_days) * DAY_US;
+    const remove = (eligible: boolean, action: () => void) => {
+      if (!eligible) return;
+      if (processed >= STUDIO_LIMITS.batch) { pending = true; return; }
+      action(); processed++;
+    };
+    // Only aggregated samples are deleted. Dedupe lasts for this retention window.
+    for (const row of ctx.db.studio_metric.workspace_id.filter(workspace_id))
+      remove(row.aggregated && row.occurred_us < cutoff, () => { ctx.db.studio_metric.key.delete(row.key); });
+    for (const row of ctx.db.studio_rollup.workspace_id.filter(workspace_id))
+      remove(row.bucket_us + HOUR_US < cutoff, () => { ctx.db.studio_rollup.key.delete(row.key); });
+    for (const row of ctx.db.studio_attention.workspace_id.filter(workspace_id))
+      remove(row.status === 'resolved' && row.updated_at.microsSinceUnixEpoch < cutoff, () => { ctx.db.studio_attention.key.delete(row.key); });
+    for (const row of ctx.db.studio_task_watch.workspace_id.filter(workspace_id))
+      remove(studioTerminal(row.status) && row.updated_at.microsSinceUnixEpoch < cutoff, () => { ctx.db.studio_watchdog.scheduledId.delete(row.watchdog_id); ctx.db.studio_task_watch.key.delete(row.key); });
+    // Revocation tombstones are retained: cleanup must never re-enable a credential.
+  }
+  return { processed, pending, error };
+}
+function studioScheduleJob(ctx: Ctx, key: string, at: bigint): bigint {
+  return ctx.db.studio_job_trigger.insert({ scheduledId: 0n, scheduledAt: ScheduleAt.time(at), job_key: key }).scheduledId;
+}
+function studioRunJob(ctx: Ctx, key: string): void {
+  const job = ctx.db.studio_job.key.find(key);
+  require(job, 'Unknown job');
+  const result = studioJobWork(ctx, job.workspace_id, job.job_id, job.retention_days);
+  ctx.db.studio_job_trigger.scheduledId.delete(job.scheduled_id);
+  const now = ctx.timestamp.microsSinceUnixEpoch;
+  // Large backlogs use bounded batches, yielding between transactions. A disabled
+  // job can be run manually once without silently enabling recurring execution.
+  const next_run_us = !job.enabled ? 0n : result.pending ? now + 1_000_000n : nextStudioBoundary(now, job.schedule);
+  const scheduled_id = next_run_us ? studioScheduleJob(ctx, key, next_run_us) : 0n;
+  ctx.db.studio_job.key.update({ ...job, next_run_us, scheduled_id, last_run_us: now,
+    run_count: job.run_count + 1n, last_processed: result.processed, last_error: result.error });
+}
+
+function studioHandleConfigureJob(ctx: Ctx, args: { workspace_id: string, job_id: string, enabled: boolean, schedule: string, retention_days: number }) {
+  owner(ctx); studioScope(ctx, args.workspace_id);
+  require(STUDIO_JOBS.has(args.job_id), 'Unknown job');
+  require(args.schedule === 'hourly' || args.schedule === 'daily', 'Schedule must be hourly or daily (UTC)');
+  require(args.retention_days >= 1 && args.retention_days <= 90, 'Retention must be 1 to 90 days');
+  const key = `${args.workspace_id}:${args.job_id}`, prior = ctx.db.studio_job.key.find(key);
+  if (prior && prior.enabled === args.enabled && prior.schedule === args.schedule && prior.retention_days === args.retention_days) return;
+  if (prior) ctx.db.studio_job_trigger.scheduledId.delete(prior.scheduled_id);
+  const next_run_us = args.enabled ? nextStudioBoundary(ctx.timestamp.microsSinceUnixEpoch, args.schedule) : 0n;
+  const scheduled_id = next_run_us ? studioScheduleJob(ctx, key, next_run_us) : 0n;
+  const row = { key, ...args, next_run_us, scheduled_id, last_run_us: prior?.last_run_us ?? 0n,
+    run_count: prior?.run_count ?? 0n, last_processed: prior?.last_processed ?? 0, last_error: prior?.last_error ?? '' };
+  if (prior) ctx.db.studio_job.key.update(row); else ctx.db.studio_job.insert(row);
+}
+export const studio_configure_job = spacetime.reducer({ workspace_id: t.string(), job_id: t.string(),
+  enabled: t.bool(), schedule: t.string(), retention_days: t.u32() }, (ctx, args) => {
+  owner(ctx);
+  require(!ctx.db.studio_state.id.find(0), 'Studio storage requires a fenced request');
+  studioHandleConfigureJob(ctx, args);
+});
+export const studio_fenced_configure_job = spacetime.reducer({ holder: t.string(), ...{ workspace_id: t.string(), job_id: t.string(),
+  enabled: t.bool(), schedule: t.string(), retention_days: t.u32() } }, (ctx, { holder, ...args }) => {
+  studioLease(ctx, holder);
+  studioHandleConfigureJob(ctx, args);
+});
+function studioHandleRunJob(ctx: Ctx, args: { workspace_id: string, job_id: string }) {
+  owner(ctx); studioScope(ctx, args.workspace_id); require(STUDIO_JOBS.has(args.job_id), 'Unknown job');
+  studioRunJob(ctx, `${args.workspace_id}:${args.job_id}`);
+}
+export const studio_run_job = spacetime.reducer({ workspace_id: t.string(), job_id: t.string() }, (ctx, args) => {
+  owner(ctx);
+  require(!ctx.db.studio_state.id.find(0), 'Studio storage requires a fenced request');
+  studioHandleRunJob(ctx, args);
+});
+export const studio_fenced_run_job = spacetime.reducer({ holder: t.string(), ...{ workspace_id: t.string(), job_id: t.string() } }, (ctx, { holder, ...args }) => {
+  studioLease(ctx, holder);
+  studioHandleRunJob(ctx, args);
+});
+export const studio_execute_job = spacetime.reducer({ onSchedule: studio_job_trigger },
+  { arg: studio_job_trigger.rowType }, (ctx, { arg }) => {
+    studioScheduler(ctx);
+    const job = ctx.db.studio_job.key.find(arg.job_key);
+    if (!job || !job.enabled || job.scheduled_id !== arg.scheduledId) return;
+    studioRunJob(ctx, arg.job_key);
+  });
+
 function storeFactorySemanticPackets(ctx: Ctx, run: ReturnType<typeof factoryRun>, values: unknown,
   state: Json, previous: Json, commands: Map<unknown, Json>) {
   const packets = array(values, 'semantic packet batch', 3);
@@ -929,35 +1275,83 @@ function storeFactorySemanticPackets(ctx: Ctx, run: ReturnType<typeof factoryRun
   }
 }
 
-// ---- Studio schedules and deadlines (scheduled reducers) ----
+
+// A small, separate lease row avoids rewriting the checkpoint on read-only requests.
+// Task mutations and checkpoint commits check this same database-side fence.
+const STUDIO_LEASE_US = 180_000_000n;
+function studioLease(ctx: Ctx, holder: string) {
+  owner(ctx); identifier(holder, 'Studio request');
+  const row = ctx.db.studio_lease.id.find(0);
+  require(row && row.holder === holder && row.expires_us > ctx.timestamp.microsSinceUnixEpoch,
+    'Studio request lease expired or superseded');
+  return row;
+}
+export const studio_acquire = spacetime.reducer({ holder: t.string() }, (ctx, args) => {
+  owner(ctx); identifier(args.holder, 'Studio request');
+  const prior = ctx.db.studio_lease.id.find(0), now = ctx.timestamp.microsSinceUnixEpoch;
+  require(!prior || !prior.holder || prior.holder === args.holder || prior.expires_us <= now,
+    'Studio workspace is busy');
+  if (!ctx.db.studio_state.id.find(0)) ctx.db.studio_state.insert({
+    id: 0, revision: 0, payload: '', last_operation: '',
+  });
+  const row = { id: 0, last_operation: prior?.last_operation ?? '',
+    holder: args.holder, expires_us: now + STUDIO_LEASE_US };
+  if (prior) ctx.db.studio_lease.id.update(row); else ctx.db.studio_lease.insert(row);
+});
+export const studio_commit_state = spacetime.reducer({
+  holder: t.string(), revision: t.u32(), payload: t.string(), operation_id: t.string(),
+}, (ctx, args) => {
+  owner(ctx); identifier(args.operation_id, 'Studio operation');
+  const prior = ctx.db.studio_state.id.find(0);
+  if (prior?.last_operation === args.operation_id) {
+    require(prior.revision === args.revision + 1 && prior.payload === args.payload,
+      'Conflicting duplicate Studio commit'); return;
+  }
+  const lease = studioLease(ctx, args.holder);
+  require(prior && prior.revision === args.revision && prior.revision < 4_294_967_295, 'Studio revision conflict');
+  require(args.payload.length > 0 && args.payload.length <= 1_048_576 &&
+    /^[A-Za-z0-9+/]+={0,2}$/.test(args.payload), 'Invalid Studio checkpoint');
+  ctx.db.studio_state.id.update({ ...prior, revision: prior.revision + 1,
+    payload: args.payload, last_operation: args.operation_id });
+  ctx.db.studio_lease.id.update({ ...lease, holder: '', expires_us: 0n });
+});
+export const studio_release = spacetime.reducer({ holder: t.string() }, (ctx, args) => {
+  owner(ctx); identifier(args.holder, 'Studio request');
+  const row = ctx.db.studio_lease.id.find(0);
+  if (row?.holder === args.holder) ctx.db.studio_lease.id.update({ ...row, holder: '', expires_us: 0n });
+});
+export const studio_finish_read = spacetime.reducer({
+  holder: t.string(), revision: t.u32(),
+}, (ctx, args) => {
+  owner(ctx);
+  const row = ctx.db.studio_state.id.find(0), lease = ctx.db.studio_lease.id.find(0);
+  require(row?.revision === args.revision, 'Studio read revision conflict');
+  if (lease?.last_operation === args.holder) return;
+  const held = studioLease(ctx, args.holder);
+  ctx.db.studio_lease.id.update({ ...held, holder: '', expires_us: 0n, last_operation: args.holder });
+});
+
+// ---- Scheduled objectives (scheduled reducers) ----
+// Attention deadlines for the objectives these runs create use the
+// studio_task_watch watchdog above; schedules only decide when to create them.
 const MICROS_PER_SECOND = 1_000_000n;
 const SCHEDULE_MIN_INTERVAL = 300n * MICROS_PER_SECOND;        // 5 minutes
 const SCHEDULE_MAX_INTERVAL = 7n * 86_400n * MICROS_PER_SECOND; // 7 days
 const SCHEDULE_MAX_LEAD = 30n * 86_400n * MICROS_PER_SECOND;    // 30 days
 const SCHEDULE_MAX_RUNS = 20;
 const SCHEDULE_MAX_ACTIVE = 20;
-const DEADLINE_MIN = 60n * MICROS_PER_SECOND;
-const DEADLINE_MAX = 7n * 86_400n * MICROS_PER_SECOND;
-const TERMINAL_GOALS = ['succeeded', 'failed', 'cancelled'];
+const UNFENCED = 'Studio storage requires a fenced request';
 
-function nowMicros(ctx: Ctx): bigint {
-  return ctx.timestamp.microsSinceUnixEpoch;
-}
-function scheduler(ctx: Ctx): void {
-  // Timer rows are fired by the database itself; clients cannot call these reducers.
-  require(ctx.sender.isEqual(ctx.databaseIdentity), 'Only the database scheduler may fire this reducer');
-}
 function scheduleKey(value: string): void {
   require(/^sched-[a-f0-9]{16}$/.test(value), 'Invalid schedule key');
 }
-function goalId(value: string): void {
-  require(/^goal-[a-f0-9]{16}$/.test(value), 'Invalid objective identifier');
-}
 
-export const create_task_schedule = spacetime.reducer({
+const create_task_schedule_args = {
   schedule_key: t.string(), worker_id: t.string(), created_by: t.string(), request_json: t.string(),
   first_due_micros: t.i64(), interval_micros: t.i64(), max_runs: t.u32(),
-}, (ctx, args) => {
+};
+function create_task_schedule_handler(ctx: Ctx, args: { schedule_key: string; worker_id: string; created_by: string;
+  request_json: string; first_due_micros: bigint; interval_micros: bigint; max_runs: number }) {
   owner(ctx); scheduleKey(args.schedule_key); identifier(args.worker_id, 'schedule worker');
   identifier(args.created_by, 'schedule creator');
   require(args.request_json.length <= 16_384, 'Scheduled objective is too large');
@@ -972,7 +1366,7 @@ export const create_task_schedule = spacetime.reducer({
     'Schedule key was reused for a different schedule');
     return;
   }
-  const now = nowMicros(ctx);
+  const now = ctx.timestamp.microsSinceUnixEpoch;
   require(args.first_due_micros >= now - 300n * MICROS_PER_SECOND && args.first_due_micros <= now + SCHEDULE_MAX_LEAD,
     'Schedule start must be within the next 30 days');
   if (args.interval_micros === 0n) require(args.max_runs === 1, 'A one-time schedule runs exactly once');
@@ -988,27 +1382,34 @@ export const create_task_schedule = spacetime.reducer({
     last_fired_micros: 0n, status: 'active', reason: '', created_micros: now, updated_micros: now });
   ctx.db.task_schedule_timer.insert({ scheduled_id: 0n, scheduled_at: ScheduleAt.time(due),
     schedule_key: args.schedule_key, due_micros: due });
+}
+export const create_task_schedule = spacetime.reducer(create_task_schedule_args, (ctx, args) => {
+  owner(ctx); require(!ctx.db.studio_state.id.find(0), UNFENCED);
+  create_task_schedule_handler(ctx, args);
 });
+export const studio_create_task_schedule = spacetime.reducer({ holder: t.string(), ...create_task_schedule_args },
+  (ctx, { holder, ...args }) => {
+    studioLease(ctx, holder);
+    create_task_schedule_handler(ctx, args);
+  });
 
-export const fire_task_schedule = spacetime.reducer(
-  { onSchedule: task_schedule_timer },
-  { timer: task_schedule_timer.rowType },
-  (ctx, { timer }) => {
-    scheduler(ctx);
-    const schedule = ctx.db.task_schedule.schedule_key.find(timer.schedule_key);
+export const fire_task_schedule = spacetime.reducer({ onSchedule: task_schedule_timer },
+  { arg: task_schedule_timer.rowType }, (ctx, { arg }) => {
+    studioScheduler(ctx);
+    const schedule = ctx.db.task_schedule.schedule_key.find(arg.schedule_key);
     // A cancelled or superseded timer is a no-op; one-time timer rows are removed by the database.
-    if (!schedule || schedule.status !== 'active' || schedule.next_due_micros !== timer.due_micros) return;
-    const now = nowMicros(ctx), run = schedule.fired_runs + 1;
+    if (!schedule || schedule.status !== 'active' || schedule.next_due_micros !== arg.due_micros) return;
+    const now = ctx.timestamp.microsSinceUnixEpoch, run = schedule.fired_runs + 1;
     const pending = [...ctx.db.task_dispatch.schedule_key.filter(schedule.schedule_key)].some(d => d.status === 'pending');
     // Coalesce: never queue a second run while Studio has not handled the previous one.
     ctx.db.task_dispatch.insert({ dispatch_key: `${schedule.schedule_key}-r${run}`, schedule_key: schedule.schedule_key,
-      worker_id: schedule.worker_id, run_number: run, due_micros: timer.due_micros, fired_micros: now,
+      worker_id: schedule.worker_id, run_number: run, due_micros: arg.due_micros, fired_micros: now,
       status: pending ? 'skipped' : 'pending', task_id: '',
       reason: pending ? 'Previous run was still waiting for Studio' : '', updated_micros: now });
     const finished = schedule.interval_micros === 0n || run >= schedule.max_runs;
     let next = 0n;
     if (!finished) {
-      next = timer.due_micros + schedule.interval_micros;
+      next = arg.due_micros + schedule.interval_micros;
       if (next <= now) next = now + schedule.interval_micros; // skip missed slots after downtime
       ctx.db.task_schedule_timer.insert({ scheduled_id: 0n, scheduled_at: ScheduleAt.time(next),
         schedule_key: schedule.schedule_key, due_micros: next });
@@ -1016,12 +1417,10 @@ export const fire_task_schedule = spacetime.reducer(
     ctx.db.task_schedule.schedule_key.update({ ...schedule, fired_runs: run,
       skipped_runs: schedule.skipped_runs + (pending ? 1 : 0), next_due_micros: next, last_fired_micros: now,
       status: finished ? 'completed' : 'active', updated_micros: now });
-  },
-);
+  });
 
-export const cancel_task_schedule = spacetime.reducer({
-  schedule_key: t.string(), worker_id: t.string(), reason: t.string(),
-}, (ctx, args) => {
+const cancel_task_schedule_args = { schedule_key: t.string(), worker_id: t.string(), reason: t.string() };
+function cancel_task_schedule_handler(ctx: Ctx, args: { schedule_key: string; worker_id: string; reason: string }) {
   owner(ctx); scheduleKey(args.schedule_key); identifier(args.worker_id, 'schedule worker');
   text(args.reason, 'cancellation reason', 1000);
   const schedule = ctx.db.task_schedule.schedule_key.find(args.schedule_key);
@@ -1032,66 +1431,47 @@ export const cancel_task_schedule = spacetime.reducer({
     ctx.db.task_schedule_timer.scheduled_id.delete(timer.scheduled_id);
   }
   ctx.db.task_schedule.schedule_key.update({ ...schedule, status: 'cancelled', reason: args.reason,
-    next_due_micros: 0n, updated_micros: nowMicros(ctx) });
+    next_due_micros: 0n, updated_micros: ctx.timestamp.microsSinceUnixEpoch });
+}
+export const cancel_task_schedule = spacetime.reducer(cancel_task_schedule_args, (ctx, args) => {
+  owner(ctx); require(!ctx.db.studio_state.id.find(0), UNFENCED);
+  cancel_task_schedule_handler(ctx, args);
 });
+export const studio_cancel_task_schedule = spacetime.reducer({ holder: t.string(), ...cancel_task_schedule_args },
+  (ctx, { holder, ...args }) => {
+    studioLease(ctx, holder);
+    cancel_task_schedule_handler(ctx, args);
+  });
 
-export const resolve_task_dispatch = spacetime.reducer({
+const resolve_task_dispatch_args = {
   dispatch_key: t.string(), worker_id: t.string(), status: t.string(), task_id: t.string(), reason: t.string(),
-}, (ctx, args) => {
+};
+function resolve_task_dispatch_handler(ctx: Ctx, args: { dispatch_key: string; worker_id: string; status: string;
+  task_id: string; reason: string }) {
   owner(ctx); identifier(args.dispatch_key, 'dispatch'); identifier(args.worker_id, 'dispatch worker');
   require(args.status === 'created' || args.status === 'blocked', 'Invalid dispatch outcome');
-  if (args.status === 'created') goalId(args.task_id); else require(args.task_id === '', 'A blocked run has no objective');
+  if (args.status === 'created') require(/^goal-[a-f0-9]{16}$/.test(args.task_id), 'Invalid objective identifier');
+  else require(args.task_id === '', 'A blocked run has no objective');
   text(args.reason, 'dispatch reason', 500, args.status === 'created');
   const dispatch = ctx.db.task_dispatch.dispatch_key.find(args.dispatch_key);
   require(dispatch && dispatch.worker_id === args.worker_id, 'Unknown dispatch');
   if (dispatch.status === args.status && dispatch.task_id === args.task_id) return;
   require(dispatch.status === 'pending', 'This run was already resolved');
   ctx.db.task_dispatch.dispatch_key.update({ ...dispatch, status: args.status, task_id: args.task_id,
-    reason: args.reason, updated_micros: nowMicros(ctx) });
+    reason: args.reason, updated_micros: ctx.timestamp.microsSinceUnixEpoch });
+}
+export const resolve_task_dispatch = spacetime.reducer(resolve_task_dispatch_args, (ctx, args) => {
+  owner(ctx); require(!ctx.db.studio_state.id.find(0), UNFENCED);
+  resolve_task_dispatch_handler(ctx, args);
 });
+export const studio_resolve_task_dispatch = spacetime.reducer({ holder: t.string(), ...resolve_task_dispatch_args },
+  (ctx, { holder, ...args }) => {
+    studioLease(ctx, holder);
+    resolve_task_dispatch_handler(ctx, args);
+  });
 
-export const set_task_deadline = spacetime.reducer({
-  task_id: t.string(), worker_id: t.string(), deadline_micros: t.i64(),
-}, (ctx, args) => {
-  owner(ctx); goalId(args.task_id); identifier(args.worker_id, 'deadline worker');
-  const run = ctx.db.factory_run.run_id.find(args.task_id);
-  require(run && run.worker_id === args.worker_id, 'Unknown objective');
-  const prior = ctx.db.task_deadline.task_id.find(args.task_id);
-  if (prior) { require(prior.deadline_micros === args.deadline_micros, 'This objective already has a different deadline'); return; }
-  const now = nowMicros(ctx);
-  require(args.deadline_micros >= now + DEADLINE_MIN && args.deadline_micros <= now + DEADLINE_MAX,
-    'Deadline must be between 1 minute and 7 days away');
-  ctx.db.task_deadline.insert({ task_id: args.task_id, worker_id: args.worker_id, deadline_micros: args.deadline_micros,
-    status: 'watching', checked_micros: 0n, detail: '' });
-  ctx.db.task_deadline_timer.insert({ scheduled_id: 0n, scheduled_at: ScheduleAt.time(args.deadline_micros),
-    task_id: args.task_id });
-});
-
-export const check_task_deadline = spacetime.reducer(
-  { onSchedule: task_deadline_timer },
-  { timer: task_deadline_timer.rowType },
-  (ctx, { timer }) => {
-    scheduler(ctx);
-    const deadline = ctx.db.task_deadline.task_id.find(timer.task_id);
-    if (!deadline || deadline.status !== 'watching') return;
-    const run = ctx.db.factory_run.run_id.find(timer.task_id);
-    let status = 'missed', detail = 'Objective record is missing';
-    if (run) {
-      let goal = '';
-      try {
-        const state = JSON.parse(run.state_json);
-        goal = typeof state?.goal?.status === 'string' ? state.goal.status : '';
-      } catch { goal = ''; }
-      if (TERMINAL_GOALS.includes(goal)) { status = 'met'; detail = `Finished as ${goal} before the deadline`; }
-      else detail = goal ? `Still ${goal} at the deadline` : 'Objective state was unreadable at the deadline';
-    }
-    ctx.db.task_deadline.task_id.update({ ...deadline, status, detail, checked_micros: nowMicros(ctx) });
-  },
-);
-
-export const remove_task_schedule = spacetime.reducer({
-  schedule_key: t.string(), worker_id: t.string(),
-}, (ctx, args) => {
+const remove_task_schedule_args = { schedule_key: t.string(), worker_id: t.string() };
+function remove_task_schedule_handler(ctx: Ctx, args: { schedule_key: string; worker_id: string }) {
   owner(ctx); scheduleKey(args.schedule_key); identifier(args.worker_id, 'schedule worker');
   const schedule = ctx.db.task_schedule.schedule_key.find(args.schedule_key);
   if (!schedule) return; // already removed
@@ -1105,17 +1485,35 @@ export const remove_task_schedule = spacetime.reducer({
     ctx.db.task_schedule_timer.scheduled_id.delete(timer.scheduled_id);
   }
   ctx.db.task_schedule.schedule_key.delete(args.schedule_key);
+}
+export const remove_task_schedule = spacetime.reducer(remove_task_schedule_args, (ctx, args) => {
+  owner(ctx); require(!ctx.db.studio_state.id.find(0), UNFENCED);
+  remove_task_schedule_handler(ctx, args);
 });
+export const studio_remove_task_schedule = spacetime.reducer({ holder: t.string(), ...remove_task_schedule_args },
+  (ctx, { holder, ...args }) => {
+    studioLease(ctx, holder);
+    remove_task_schedule_handler(ctx, args);
+  });
 
-export const clear_task_deadline = spacetime.reducer({
-  task_id: t.string(), worker_id: t.string(),
-}, (ctx, args) => {
-  owner(ctx); goalId(args.task_id); identifier(args.worker_id, 'deadline worker');
-  const deadline = ctx.db.task_deadline.task_id.find(args.task_id);
-  if (!deadline) return; // already cleared
-  require(deadline.worker_id === args.worker_id, 'Unknown objective deadline');
-  for (const timer of [...ctx.db.task_deadline_timer.task_id.filter(args.task_id)]) {
+// Retired deadline reducers keep their published signatures (see task_deadline).
+export const set_task_deadline = spacetime.reducer({
+  task_id: t.string(), worker_id: t.string(), deadline_micros: t.i64(),
+}, ctx => {
+  owner(ctx);
+  throw new SenderError('Objective deadlines use the attention deadline on each task');
+});
+export const check_task_deadline = spacetime.reducer({ onSchedule: task_deadline_timer },
+  { timer: task_deadline_timer.rowType }, (ctx, { timer }) => {
+    studioScheduler(ctx);
+    ctx.db.task_deadline.task_id.delete(timer.task_id);
+  });
+export const clear_task_deadline = spacetime.reducer({ task_id: t.string(), worker_id: t.string() }, (ctx, args) => {
+  owner(ctx); identifier(args.task_id, 'task ID');
+  const row = ctx.db.task_deadline.task_id.find(args.task_id);
+  if (!row) return;
+  require(row.worker_id === args.worker_id, 'Unknown objective deadline');
+  for (const timer of [...ctx.db.task_deadline_timer.task_id.filter(args.task_id)])
     ctx.db.task_deadline_timer.scheduled_id.delete(timer.scheduled_id);
-  }
   ctx.db.task_deadline.task_id.delete(args.task_id);
 });

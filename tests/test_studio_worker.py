@@ -54,7 +54,7 @@ class Client:
 @pytest.fixture
 def system(tmp_path):
     journal = Journal()
-    studio = StudioService(tmp_path, coordinator_factory=journal.factory)
+    studio = StudioService(tmp_path, experiments=False, coordinator_factory=journal.factory)
     studio.save(example_workspace())
     registry = ModelRegistry(studio.storage)
     for model in registry.sync_workspace(MANAGER, studio.workspace())["models"]:

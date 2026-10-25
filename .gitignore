@@ -9,6 +9,7 @@ runs/
 dist/
 *.egg-info/
 .DS_Store
+MUJOCO_LOG.TXT
 .cache/
 datasets/*
 !datasets/relay-vla/
@@ -55,7 +56,7 @@ worker-token
 .env
 .env.*
 !.env.example
-node_modules/
+node_modules
 spacetimedb/dist/
 
 # Published replay fixtures are website assets, not generated local runs.

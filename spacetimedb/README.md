@@ -59,7 +59,9 @@ byte equality is unambiguous.
 
 ## Scheduled reducers
 
-Studio schedules and deadlines use SpacetimeDB scheduled tables:
+Studio's scheduled task runs use SpacetimeDB scheduled tables, beside the
+coordination watchdogs and maintenance jobs described in
+[docs/coordination.md](../docs/coordination.md):
 
 ```text
 create_task_schedule   → task_schedule (active) + task_schedule_timer (Time = first due)
@@ -68,15 +70,15 @@ fire_task_schedule     ← timer fires: task_dispatch (pending, or skipped if on
 resolve_task_dispatch  → created (with the goal id) / blocked (with the reason)
 cancel_task_schedule   → cancelled; pending timers deleted
 remove_task_schedule   → finished schedule and its dispatch rows deleted
-set_task_deadline      → task_deadline (watching) + task_deadline_timer
-check_task_deadline    ← timer fires: met / missed from the objective's journal state
-clear_task_deadline    → deadline and any pending timer deleted
 ```
 
-`fire_task_schedule` and `check_task_deadline` reject every caller except the
-database scheduler (`ctx.sender == ctx.databaseIdentity`). The other reducers are
-owner-only and idempotent for exact retries. Scheduled reducers never write
+`fire_task_schedule` rejects every caller except the database scheduler. The other
+reducers are owner-only, idempotent for exact retries, and have `studio_*` fenced
+variants for checkpointed deployments. Scheduled reducers never write
 `factory_run`; Studio creates objectives after re-checking accounts and releases.
+`task_deadline`, `task_deadline_timer` and their three reducers are retired (task
+deadlines use `studio_task_watch`). They remain so databases that published the
+earlier schedule module upgrade without a client-breaking migration.
 
 ## Ownership and failure semantics
 

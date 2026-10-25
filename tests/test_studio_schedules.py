@@ -3,13 +3,15 @@
 import hashlib
 import json
 import re
+import threading
 import time
+from contextlib import contextmanager
 
 import pytest
 
 from relay_lab.spacetime import SpacetimeRejected, SpacetimeUnavailable
 from relay_lab.studio.access import AuthenticationError
-from relay_lab.studio.schedules import ScheduleService, deadline_minutes
+from relay_lab.studio.schedules import ScheduleService
 from relay_lab.studio.tasks import TaskConflict
 
 MANAGER = {"id": "owner", "role": "manager", "active": True}
@@ -21,7 +23,7 @@ class FakeDatabase:
     """The schedule tables and the owner reducers Studio calls (scheduler fires via ``fire``)."""
 
     def __init__(self):
-        self.schedules, self.dispatch, self.deadlines, self.calls = {}, {}, {}, []
+        self.schedules, self.dispatch, self.calls = {}, {}, []
         self.reject_sql = False
 
     def _sql(self, query):
@@ -31,7 +33,6 @@ class FakeDatabase:
         rows = {
             "task_schedule": self.schedules,
             "task_dispatch": self.dispatch,
-            "task_deadline": self.deadlines,
         }[table].values()
         for column, value in re.findall(r"(\w+) = '([^']+)'", query):
             rows = [row for row in rows if row[column] == value]
@@ -102,21 +103,6 @@ class FakeDatabase:
         self.schedules.pop(key, None)
         for dispatch_key in [k for k, d in self.dispatch.items() if d["schedule_key"] == key]:
             del self.dispatch[dispatch_key]
-
-    def set_task_deadline(self, task_id, worker, due):
-        prior = self.deadlines.get(task_id)
-        assert prior is None or prior["deadline_micros"] == due
-        self.deadlines[task_id] = {
-            "task_id": task_id,
-            "worker_id": worker,
-            "deadline_micros": due,
-            "status": "watching",
-            "checked_micros": 0,
-            "detail": "",
-        }
-
-    def clear_task_deadline(self, task_id, worker):
-        self.deadlines.pop(task_id, None)
 
 
 class FakeTasks:
@@ -205,7 +191,8 @@ def test_create_validates_timing_and_objective(env):
         {"repeat_minutes": 5, "max_runs": 1},
         {"repeat_minutes": 5, "max_runs": 21},
         {"repeat_minutes": 0, "max_runs": 2},
-        {"deadline_minutes": 3},
+        {"timeout_seconds": 30},
+        {"timeout_seconds": 1800.0},
         {"success_criteria": []},
         {"target": "middle"},
     ]
@@ -225,18 +212,18 @@ def test_create_checks_releases_before_scheduling(env):
 
 def test_create_is_idempotent_and_rejects_reused_ids(env):
     database, _, _, service = env
-    first = service.create(MANAGER, request(repeat_minutes=60, max_runs=3, deadline_minutes=15))
+    first = service.create(MANAGER, request(repeat_minutes=60, max_runs=3, timeout_seconds=900))
     assert first["status"] == "active" and first["repeat_minutes"] == 60 and first["max_runs"] == 3
-    assert first["deadline_minutes"] == 15 and first["key"].startswith("sched-")
-    again = service.create(MANAGER, request(repeat_minutes=60, max_runs=3, deadline_minutes=15))
+    assert first["timeout_seconds"] == 900 and first["key"].startswith("sched-")
+    again = service.create(MANAGER, request(repeat_minutes=60, max_runs=3, timeout_seconds=900))
     assert again["key"] == first["key"] and database.calls.count("create_task_schedule") == 1
     with pytest.raises(TaskConflict):
         service.create(MANAGER, request(objective="Something else."))
 
 
-def test_fired_run_creates_objective_and_arms_deadline(env):
+def test_fired_run_creates_objective_with_its_attention_deadline(env):
     database, tasks, _, service = env
-    schedule = service.create(EMPLOYEE, request(deadline_minutes=5))
+    schedule = service.create(EMPLOYEE, request(timeout_seconds=300))
     database.fire(schedule["key"])
     assert service.process_due() == 1
     run = database.dispatch[f"{schedule['key']}-r1"]
@@ -244,9 +231,18 @@ def test_fired_run_creates_objective_and_arms_deadline(env):
     task = tasks.created[run["task_id"]]
     # The dispatch key is the request_id, so a retried run maps to the same objective.
     assert task["request_id"] == run["dispatch_key"] and task["actor"] == "operator"
-    deadline = database.deadlines[run["task_id"]]
-    assert deadline["deadline_micros"] == round((task["created_at"] + 300) * 1_000_000)
+    # The coordination watchdog tracks this deadline like any other task's.
+    assert task["timeout_seconds"] == 300
     assert service.process_due() == 0  # nothing left to do
+
+
+def test_schedules_without_a_deadline_use_the_task_default(env):
+    database, tasks, _, service = env
+    schedule = service.create(MANAGER, request())
+    assert schedule["timeout_seconds"] == 1800
+    database.fire(schedule["key"])
+    service.process_due()
+    assert next(iter(tasks.created.values()))["timeout_seconds"] == 1800
 
 
 def test_run_is_blocked_when_releases_change_or_account_is_inactive(env):
@@ -310,33 +306,59 @@ def test_completed_schedule_cannot_be_cancelled(env):
         service.cancel(MANAGER, schedule["key"], {})
 
 
-def test_list_reports_runs_deadlines_and_degrades_without_module(env):
+def test_list_reports_runs_and_degrades_without_module(env):
     database, _, _, service = env
-    schedule = service.create(MANAGER, request(repeat_minutes=15, max_runs=2, deadline_minutes=60))
+    schedule = service.create(MANAGER, request(repeat_minutes=15, max_runs=2, timeout_seconds=3600))
     database.fire(schedule["key"])
     listed = service.list(MANAGER)  # also processes the due run
     assert listed["available"] is True and listed["backend"] == "SpacetimeDB scheduled reducers"
     item = listed["schedules"][0]
     assert item["fired_runs"] == 1 and item["runs"][0]["status"] == "created"
-    assert item["runs"][0]["task_id"] in listed["deadlines"]
-    assert json.loads(database.schedules[schedule["key"]]["request_json"])["deadline_minutes"] == 60
+    assert item["timeout_seconds"] == 3600
+    assert (
+        json.loads(database.schedules[schedule["key"]]["request_json"])["timeout_seconds"] == 3600
+    )
     database.reject_sql = True
     degraded = service.list(MANAGER)
     assert degraded["available"] is False and "publish" in degraded["reason"]
+    assert service.process_due() == 0  # an unpublished module is not an error
 
 
-def test_clear_deadline_requires_a_manager(env):
-    database, _, _, service = env
-    database.set_task_deadline("goal-" + "a" * 16, FakeTasks.worker_id, 1)
-    with pytest.raises(PermissionError):
-        service.clear_deadline(EMPLOYEE, "goal-" + "a" * 16)
-    assert service.clear_deadline(MANAGER, "goal-" + "a" * 16)["cleared"] is True
-    assert database.deadlines == {}
+class FakeDurable:
+    """Durable deployments restore Studio state inside a fenced request."""
+
+    def __init__(self):
+        self.lock, self.holder, self.requests = threading.RLock(), None, 0
+
+    @contextmanager
+    def request(self):
+        with self.lock:
+            self.holder, self.requests = "req-1", self.requests + 1
+            try:
+                yield
+            finally:
+                self.holder = None
 
 
-def test_deadline_minutes_validation():
-    assert deadline_minutes({}) is None
-    assert deadline_minutes({"deadline_minutes": 15}) == 15
-    for value in (0, 7, "15", 15.0, True, 10_000):
-        with pytest.raises(ValueError):
-            deadline_minutes({"deadline_minutes": value})
+def test_durable_background_pass_takes_a_request_only_when_runs_are_due(env):
+    database, tasks, access, _ = env
+    durable = FakeDurable()
+    service = ScheduleService(tasks, access, durable=durable)
+    assert service.run_once() == 0 and durable.requests == 0
+    schedule = service.create(MANAGER, request())
+    database.fire(schedule["key"])
+    assert service.run_once() == 1 and durable.requests == 1
+    assert database.dispatch[f"{schedule['key']}-r1"]["status"] == "created"
+
+
+def test_background_dispatcher_starts_and_stops(env, monkeypatch):
+    database, tasks, _, service = env
+    monkeypatch.setattr("relay_lab.studio.schedules.PUMP_INTERVAL_SECONDS", 0.01)
+    schedule = service.create(MANAGER, request())
+    database.fire(schedule["key"])
+    service.start()
+    deadline = time.time() + 2
+    while not tasks.created and time.time() < deadline:
+        time.sleep(0.01)
+    service.close()
+    assert tasks.created and not service.thread.is_alive()
