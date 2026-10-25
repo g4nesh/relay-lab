@@ -18,6 +18,12 @@ VLA action heads are not used.
 | `Closing` | Summary and open problems. |
 | `RelayLatentFull` | All of the above in sequence. |
 
+[`short_scene.py`](short_scene.py) has `RelayLatentShort`, a 28-second
+plain-language cut of the same data for demos: the two camera views, a
+"translator" on each side passing a 64-number note, and the held-out result
+(50% without the note, 100% with it, on decisions where the robot cannot see
+the hazard itself).
+
 Rendered 1080p60 videos are in [`renders/`](renders/).
 
 ## Data provenance
