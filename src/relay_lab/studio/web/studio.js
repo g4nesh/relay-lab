@@ -34,7 +34,10 @@ async function api(path, body) {
     const error = new Error("This request belongs to an earlier sign-in session."); error.stale = true; throw error;
   }
   if (!response.ok) {
-    if (response.status === 401 && !path.startsWith("/api/auth/")) showAuth("login", "Your session expired or access changed. Please sign in again.");
+    if (response.status === 401 && !path.startsWith("/api/auth/")) {
+      if (state.profileMode) showAccessRecovery("Your profile session changed. Retry to reopen the workspace.");
+      else showAuth("login", "Your session expired or access changed. Please sign in again.");
+    }
     const error = new Error(data.error || (response.status === 403 ? "Your account does not have permission for this action." : `Request failed (${response.status})`));
     error.status = response.status; throw error;
   }
@@ -361,11 +364,31 @@ call("/api/auth/logout", {}, boot["token"])
   $("bridge-dialog").showModal();
 }
 function bind() {
+  const localWorkspace = ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname);
+  $("workspace-environment").textContent = localWorkspace ? "Local environment" : "Private workspace";
+  $("environment-location").textContent = localWorkspace ? "LOCAL" : "PRIVATE";
+  $("auth-environment").textContent = `${localWorkspace ? "LOCAL" : "PRIVATE"} WORKSPACE · INDIVIDUAL ACCOUNTS`;
+  if (!localWorkspace) {
+    document.querySelector(".second-label").hidden = true;
+    document.querySelectorAll('a[href^="http://127.0.0.1:"]').forEach((link) => { link.hidden = true; });
+  }
   window.RelayAnalytics.mount({api, notify: toast, authenticated: () => state.authenticated});
-  const showWorkspace = () => setStudioView(false);
+  window.RelayTasks.mount({api, notify: toast, authenticated: () => state.authenticated, context: () => ({workspace: state.savedWorkspace, models: state.models, user: state.user, permissions: state.permissions}), onWorkspace: async (savedWorkspace = null) => {
+    if (savedWorkspace) {
+      state.workspace = structuredClone(savedWorkspace);
+      state.savedWorkspace = structuredClone(savedWorkspace);
+      state.dirty = false;
+      clearSession();
+      await refreshModels();
+      render();
+    }
+    setStudioView("workspace");
+  }});
+  const showWorkspace = () => setStudioView("workspace");
   for (const id of ["nav-team", "nav-stream", "nav-history", "nav-access", "nav-bridge", "mobile-workspace"]) $(id).addEventListener("click", showWorkspace);
-  for (const id of ["nav-analytics", "mobile-analytics"]) $(id).addEventListener("click", () => setStudioView(true));
-  window.addEventListener("hashchange", () => setStudioView(location.hash === "#analytics", false));
+  for (const id of ["nav-analytics", "mobile-analytics"]) $(id).addEventListener("click", () => setStudioView("analytics"));
+  for (const id of ["nav-tasks", "mobile-tasks"]) $(id).addEventListener("click", () => setStudioView("tasks"));
+  window.addEventListener("hashchange", () => setStudioView(viewFromHash(), false));
   $("canvas").addEventListener("click", (event) => { const b = event.target.closest("[data-edit]"); if (b) editModel(b.dataset.edit); });
   $("mode-options").addEventListener("click", (event) => { const b = event.target.closest("[data-mode]"); if (b && !state.busy && allowed("workspace.edit")) { state.workspace.mode = b.dataset.mode; changed(); } });
   $("robot-picker").addEventListener("click", (event) => { const b = event.target.closest("[data-robot]"); if (b) { state.robot = b.dataset.robot; robotPicker(); } });
@@ -411,6 +434,9 @@ async function checkAccess() {
   let signedIn = false;
   try {
     const auth = await api("/api/auth/status"); signedIn = auth.authenticated;
+    state.profileMode = !!auth.account_switching;
+    const profile = await window.RelayProfiles.enter(auth);
+    if (profile) { state.token = profile.token; signedIn = true; }
     if (signedIn) await loadWorkspace();
     else showAuth(auth.setup_required ? "setup" : "login");
   } catch (error) {
@@ -418,16 +444,29 @@ async function checkAccess() {
     showAccessRecovery(`${signedIn ? "You are signed in, but the workspace could not load" : "Studio could not check workspace access"}: ${error.message}`);
   } finally { $("auth-retry").disabled = false; }
 }
-async function init() { bind(); bindAccess(); await checkAccess(); }
-function setStudioView(analytics, updateHash = true) {
-  const active = analytics && state.authenticated;
-  $("workspace-view").hidden = active; $("analytics-view").hidden = !active;
-  document.body.classList.toggle("analytics-active", active);
-  $("nav-team").classList.toggle("selected", !active); $("nav-analytics").classList.toggle("selected", active);
-  $("nav-analytics").setAttribute("aria-current", active ? "page" : "false");
-  $("mobile-workspace").classList.toggle("active", !active); $("mobile-analytics").classList.toggle("active", active);
-  if (updateHash) history.replaceState(null, "", location.pathname + location.search + (active ? "#analytics" : ""));
-  if (active) { window.RelayAnalytics.show(); window.scrollTo({top: 0}); }
+async function init() {
+  window.RelayProfiles.mount({api, context: () => state, notify: toast, activate: async (credentials) => {
+    showAuth(); state.token = credentials.token;
+    await loadWorkspace();
+  }});
+  bind(); bindAccess(); await checkAccess();
+}
+function viewFromHash() {
+  return location.hash === "#analytics" ? "analytics" : location.hash === "#workspace" ? "workspace" : "tasks";
+}
+function setStudioView(view, updateHash = true) {
+  const selected = state.authenticated ? (view === true ? "analytics" : view === false ? "workspace" : view) : "workspace";
+  for (const name of ["workspace", "analytics", "tasks"]) $(`${name}-view`).hidden = name !== selected;
+  document.body.classList.toggle("analytics-active", selected === "analytics");
+  document.body.classList.toggle("tasks-active", selected === "tasks");
+  for (const [id, name] of [["nav-team", "workspace"], ["nav-analytics", "analytics"], ["nav-tasks", "tasks"]]) {
+    $(id).classList.toggle("selected", name === selected); $(id).setAttribute("aria-current", name === selected ? "page" : "false");
+  }
+  for (const name of ["workspace", "analytics", "tasks"]) $(`mobile-${name}`).classList.toggle("active", name === selected);
+  if (updateHash) history.replaceState(null, "", location.pathname + location.search + `#${selected}`);
+  if (selected === "analytics") window.RelayAnalytics.show();
+  if (selected === "tasks") window.RelayTasks.show(); else window.RelayTasks.hide();
+  window.scrollTo({top: 0});
 }
 function renderPipeline() {
   const latent = ["latent","hybrid"].includes(state.workspace.mode);
@@ -524,6 +563,7 @@ const currentWorkspaceSelected = () => stableJSON(state.workspace) === stableJSO
 function showAuth(mode = "login", message = "") {
   authEpoch++; diagnosticRevision++;
   window.RelayAnalytics.reset();
+  window.RelayTasks.reset();
   setStudioView(false, false);
   clearInterval(polling); clearTimeout(toastTimer); $("toast").hidden = true;
   if (activeUpload) activeUpload.abort();
@@ -590,10 +630,11 @@ async function loadWorkspace() {
   Object.assign(state, boot, {authenticated: true, savedWorkspace: structuredClone(boot.workspace), models: boot.models || [], permissions: boot.permissions || []});
   document.body.classList.remove("auth-pending"); $("auth-screen").classList.remove("auth-recovery"); $("auth-screen").hidden = true; $("auth-retry").hidden = true; $("auth-recovery-logout").hidden = true;
   $("notice").hidden = true; render();
-  setStudioView(location.hash === "#analytics", false);
+  setStudioView(viewFromHash(), false);
   await Promise.allSettled([refreshHealth(), refreshDiagnostics(), refreshSessions(), refreshRequests()]);
 }
 async function signOut() {
+  if (state.profileMode) { await window.RelayProfiles.show(); return; }
   const buttons = ["logout-button", "logout-top-button", "auth-recovery-logout"];
   buttons.forEach((id) => { $(id).disabled = true; });
   try { await api("/api/auth/logout", {}); showAuth("login"); }
@@ -601,6 +642,7 @@ async function signOut() {
   finally { buttons.forEach((id) => { $(id).disabled = false; }); }
 }
 function renderAccessIdentity() {
+  window.RelayProfiles.configure(state.profileMode, state.user);
   const user = state.user || {}, manager = allowed("workspace.edit");
   const name = user.name || user.username || "Workspace member";
   $("account-name").textContent = name; $("account-avatar").textContent = name.split(/\s+/).slice(0,2).map((part) => part[0]).join("").toUpperCase();
