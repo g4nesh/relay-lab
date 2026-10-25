@@ -24,6 +24,7 @@ let toastTimer, polling, historySignature = "", activeUpload, diagnosticRevision
 Object.assign(state, {authenticated: false, user: null, permissions: [], models: [], team: [], requests: [], savedWorkspace: null, release_ready: false, sessionReleaseReady: false, authMode: "login", health: null, diagnostics: null, sessions: [], history: null, selectedMessage: null, readOnly: false, failed: false});
 
 async function api(path, body) {
+  if (state.demo) return window.RelayDemo.request(path, body);
   const epoch = authEpoch;
   let response, data;
   try {
@@ -165,6 +166,7 @@ function render() {
     $("connect-button").disabled = true; $("probe-button").disabled = true;
   }
   updateProbeSource();
+  if (state.demo) renderDemoLabels();
 }
 function updateProbeSource() {
   if (!experimentsEnabled()) { $("observations-panel").hidden = true; $("probe-button").disabled = true; return; }
@@ -366,7 +368,7 @@ async function probe() {
   finally { state.busy = false; render(); $("probe-button").innerHTML = icon("play") + "Test exchange"; }
 }
 function exportWorkspace() {
-  const blob = new Blob([JSON.stringify(state.workspace, null, 2) + "\n"], {type: "application/json"});
+  const blob = new Blob([JSON.stringify(state.demo ? {...state.workspace, demo: true, provenance: window.RelayDemo.provenance} : state.workspace, null, 2) + "\n"], {type: "application/json"});
   const url = URL.createObjectURL(blob), link = document.createElement("a");
   link.href = url; link.download = "relay-team.json"; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   toast("Workspace configuration exported");
@@ -448,8 +450,8 @@ function bind() {
     document.querySelector(".second-label").hidden = true;
     document.querySelectorAll('a[href^="http://127.0.0.1:"]').forEach((link) => { link.hidden = true; });
   }
-  window.RelayAnalytics.mount({api, notify: toast, authenticated: () => state.authenticated, experimentsEnabled});
-  window.RelayTasks.mount({api, notify: toast, authenticated: () => state.authenticated, context: () => ({workspace: state.savedWorkspace, models: state.models, user: state.user, permissions: state.permissions, capabilities: state.capabilities}), onWorkspace: async (savedWorkspace = null) => {
+  window.RelayAnalytics.mount({api, notify: toast, authenticated: () => state.authenticated, experimentsEnabled, isDemo: () => !!state.demo});
+  window.RelayTasks.mount({api, notify: toast, authenticated: () => state.authenticated, isDemo: () => !!state.demo, context: () => ({workspace: state.savedWorkspace, models: state.models, user: state.user, permissions: state.permissions, capabilities: state.capabilities}), onWorkspace: async (savedWorkspace = null) => {
     if (savedWorkspace) {
       state.workspace = structuredClone(savedWorkspace);
       state.savedWorkspace = structuredClone(savedWorkspace);
@@ -526,7 +528,12 @@ async function init() {
     showAuth(); state.token = credentials.token;
     await loadWorkspace();
   }});
-  bind(); bindAccess(); await checkAccess();
+  bind(); bindAccess();
+  if (window.RelayDemo.shouldEnter(location)) {
+    state.demo = true; state.profileMode = false;
+    document.body.classList.add("demo-mode"); $("demo-banner").hidden = false;
+    await loadWorkspace();
+  } else await checkAccess();
 }
 function viewFromHash() {
   return location.hash === "#analytics" ? "analytics" : location.hash === "#workspace" ? "workspace" : "tasks";
@@ -714,6 +721,7 @@ async function loadWorkspace() {
   await Promise.allSettled([refreshHealth(), refreshDiagnostics(), refreshSessions(), refreshRequests()]);
 }
 async function signOut() {
+  if (state.demo) { location.assign("/?workspace=1#tasks"); return; }
   if (state.profileMode) { await window.RelayProfiles.show(); return; }
   const buttons = ["logout-button", "logout-top-button", "auth-recovery-logout"];
   buttons.forEach((id) => { $(id).disabled = true; });
@@ -733,6 +741,17 @@ function renderAccessIdentity() {
   $("manager-access").hidden = !allowed("team.manage"); $("access-limited").hidden = allowed("team.manage");
   $("refresh-access").disabled = state.busy;
   $("refresh-access").title = allowed("team.manage") ? "Refresh requests, team membership, and audit trail" : "Refresh your change requests";
+}
+function renderDemoLabels() {
+  const labels = {"workspace-environment":"Public demo", "environment-location":"DEMO", "account-role":"Read-only visitor", "role-badge":"DEMO", "save-state":"Sample workspace", "permission-title":"Explore the sample workspace", "permission-detail":"Inspect the example configuration and roles. Sign in to register models, release revisions or connect your robots.", "sidebar-db-label":"SAMPLE DATA", "health-db":"SpacetimeDB · architecture preview", "logout-top-button":"Sign in", "canvas-status":"Illustrative model pair · no weights loaded or robots connected", "session-badge":"DEMO", "connection-state":"Example coordination workflow", "release-summary":"SAMPLE APPROVALS", "release-help":"Illustrative release records. Real model approvals require a manager account."};
+  for (const [id, text] of Object.entries(labels)) $(id).textContent = text;
+  $("health-db").title = "The public demo does not read your private Spacetime database.";
+  $("health-db-dot").classList.remove("error");
+  for (const id of ["logout-button", "logout-top-button"]) { $(id).title = "Sign in to your workspace"; $(id).setAttribute("aria-label", "Sign in to your workspace"); }
+  document.querySelector(".page-heading .preview-tag").textContent = "PUBLIC DEMO";
+  document.querySelector(".canvas-coordinate").textContent = "SAMPLE WORKCELL";
+  document.querySelector(".release-footnote > span:last-child").textContent = "ILLUSTRATIVE · NO LIVE RELEASES";
+  for (const selector of ["#invite-form", "#request-form", "#team-list"]) document.querySelectorAll(`${selector} input, ${selector} select, ${selector} textarea, ${selector} button`).forEach((node) => { node.disabled = true; node.title = "Sign in to manage your real workspace"; });
 }
 function renderReleases() {
   if (!state.workspace) return;
@@ -790,6 +809,7 @@ async function refreshAccess() {
   else $("team-list").innerHTML = `<p class="audit-empty">Could not load team: ${esc(results[0].reason.message)}</p>`;
   if (results[1].status === "fulfilled") renderAudit(results[1].value.events || []);
   else $("audit-list").innerHTML = `<p class="audit-empty">Could not load audit trail: ${esc(results[1].reason.message)}</p>`;
+  if (state.demo) renderDemoLabels();
   $("refresh-access").disabled = false;
 }
 function renderTeam() {

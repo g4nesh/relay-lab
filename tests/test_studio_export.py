@@ -53,6 +53,9 @@ def test_export_is_complete_deterministic_and_has_no_research_or_private_inputs(
     assert (first / "tests/test_studio_local_upload.py").is_file()
     assert (first / "deploy/read-setup-code.py").is_file()
     assert (first / "render.yaml").is_file()
+    assert (first / "src/relay_lab/studio/web/demo.js").is_file()
+    assert (first / "src/relay_lab/studio/web/demo.css").is_file()
+    assert (first / "tests/web/demo.test.cjs").is_file()
     assert exporter.check_against(first) == {
         "missing": [],
         "changed": [],

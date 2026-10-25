@@ -17,6 +17,7 @@
   let simulations = null, simulationError = "", simulationRequest = null, simulationBusy = false, simulationPreparing = false, simulationSignature = "", runSignature = "", recipeReview = null;
   const simulationTerminal = (status) => ["succeeded", "failed", "cancelled", "interrupted"].includes(status);
   const simulationLabels = {starting:"Starting runtime",running:"Simulation running",verifying:"Verifying action replay",succeeded:"Simulation complete",failed:"Simulation failed",cancelled:"Simulation cancelled",interrupted:"Runtime interrupted"};
+  const isDemo = () => !!options?.isDemo?.();
   const localSimulationHost = () => ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname);
 
   function skeleton() {
@@ -42,6 +43,7 @@
     el("tk-refresh").addEventListener("click", () => void refresh());
     el("tk-configure").addEventListener("click", options.onWorkspace);
     el("tk-create-form").addEventListener("submit", createTask);
+    el("tk-create").addEventListener("click", () => { if (isDemo()) location.assign("/?workspace=1#tasks"); });
     el("tk-create-form").addEventListener("input", () => { createRequest = null; el("tk-create-error").hidden = true; });
     el("tk-target").addEventListener("change", renderReadiness);
     el("tk-filter").addEventListener("change", () => { filter = el("tk-filter").value; const visible = matchingTasks(); if (!visible.some((task) => task.id === selected)) { selected = visible[0]?.id || null; detail = null; if (selected) void selectTask(selected); else renderDetail(); } renderList(); });
@@ -104,7 +106,7 @@
   function current() { return boot || options.context(); }
   function experimentsEnabled() { return current().capabilities?.experiments_enabled !== false; }
   function manager() { return (current().permissions || []).includes("models.manage"); }
-  function canCancel(task) { const userId = current().user?.id; return manager() || (!!userId && task?.created_by === userId); }
+  function canCancel(task) { if (isDemo()) return false; const userId = current().user?.id; return manager() || (!!userId && task?.created_by === userId); }
   function agents() { return current().workspace?.agents || []; }
   function release(agent) { return (current().models || []).find((model) => stable(model.spec) === stable(agent)); }
   function live(worker) { return !worker.revoked && worker.active !== false && worker.status === "online"; }
@@ -113,6 +115,7 @@
   function errorAt(id, error) { if (!error.stale && options.authenticated()) { el(id).textContent = error.message; el(id).hidden = false; } }
   function setPushState(value) {
     pushState = value;
+    if (isDemo()) { const node = el("tk-live-status"); node.classList.remove("ready"); node.textContent = "Illustrative data · no live connection"; return; }
     const node = el("tk-live-status");
     if (node) { node.classList.toggle("ready", value === "ready"); node.innerHTML = `<i></i>${value === "ready" ? "Live updates" : value === "connecting" ? "Connecting" : "Polling fallback"} · SpacetimeDB`; }
   }
@@ -124,6 +127,7 @@
     pushTimer = setTimeout(() => void refresh(), 250);
   }
   function startEvents() {
+    if (isDemo()) { setPushState("demo"); return; }
     if (events || !active || document.hidden || !options.authenticated()) return;
     if (!("EventSource" in window)) { setPushState("polling"); return; }
     setPushState("connecting");
@@ -145,7 +149,7 @@
     source.onerror = () => { if (source === events) { setPushState("polling"); schedule(); } };
     // EventSource reconnects automatically; each sync refreshes the full snapshot.
   }
-  function schedule() { clearTimeout(timer); if (active && options.authenticated() && !document.hidden) timer = setTimeout(() => void refresh(), pushState === "ready" ? 60000 : 30000); }
+  function schedule() { clearTimeout(timer); if (!isDemo() && active && options.authenticated() && !document.hidden) timer = setTimeout(() => void refresh(), pushState === "ready" ? 60000 : 30000); }
   async function refresh() {
     if (!active || !options.authenticated() || loading) return;
     const identity = generation, revision = ++request; loading = true; el("tk-refresh").disabled = true;
@@ -171,6 +175,7 @@
       if (selected) { try { const value = await options.api(`/api/tasks/${encodeURIComponent(selected)}`); if (fresh(identity) && revision === request && value.id === selected) { const changed = stable(detail) !== stable(value); detail = value; if (changed) renderDetail(); renderList(); } } catch (error) { if (fresh(identity)) errorAt("tk-error", error); } }
       else renderDetail();
       renderSimulationRun();
+      if (isDemo()) renderDemoLabels();
     } catch (error) { if (fresh(identity)) errorAt("tk-error", error); }
     finally { if (fresh(identity) && revision === request) { loading = false; el("tk-refresh").disabled = false; schedule(); if (refreshQueued) { refreshQueued = false; queueRefresh(); } } }
   }
@@ -232,10 +237,29 @@
     const ready = ["left","right"].every((id) => { const a = agents().find((agent) => agent.id === id); return a && release(a)?.status === "released"; });
     const online = chosen.every((id) => relevantWorkers(id).some(live));
     el("tk-readiness").textContent = !ready ? "A manager must release both models in the saved workspace before tasks can be assigned." : online ? "Approved models · connected runtimes can claim this task." : "Approved models · task will wait for a connected runtime.";
-    el("tk-create").disabled = !ready || !loaded || !options.authenticated() || creating;
+    el("tk-create").type = isDemo() ? "button" : "submit";
+    el("tk-create").disabled = !isDemo() && (!ready || !loaded || !options.authenticated() || creating);
     el("tk-worker-manager").hidden = !manager(); el("tk-worker-employee").hidden = manager();
     const a = agents().find((item) => item.id === el("tk-worker-agent").value);
     el("tk-issue").disabled = !manager() || !ready || !a || release(a)?.status !== "released" || issuing;
+    if (isDemo()) renderDemoLabels();
+  }
+  function renderDemoLabels() {
+    for (const [index, text] of ["Illustrative active tasks", "Illustrative completed task", "Example model approvals", "Example runtime connections"].entries()) {
+      const card = el("tasks-view").querySelectorAll(".tk-overview > div")[index];
+      card.querySelector("small").textContent = text;
+    }
+    el("tasks-view").querySelectorAll(".tk-agent-meta span:last-child").forEach((node) => { node.textContent = "Example runtime"; });
+    el("tk-coordination").querySelectorAll(".tk-coordination-summary small").forEach((node) => { node.textContent = "Illustrative configuration"; });
+    el("tk-sync-label").textContent = "Sample workcell · explore the example tasks below";
+    el("tk-readiness").textContent = "Preview an objective here. Sign in to assign a real task.";
+    el("tk-create").textContent = "Sign in to assign a task ↗";
+    const heading = el("tasks-view").querySelector(".tk-section-heading p");
+    heading.textContent = "Illustrative reports show how agents share progress and respond to obstacles.";
+    el("tk-worker-employee").textContent = "Example runtimes only. Sign in as a manager to connect your own agent.";
+    el("tasks-view").querySelector(".tk-footer p").textContent = "All tasks, outcomes and connections on this page are illustrative. No live inference or robot execution is taking place.";
+    const badge = el("tk-coordination").querySelector(".tk-coordination-badge");
+    if (badge) { badge.classList.remove("ready"); badge.textContent = "SAMPLE CONFIGURATION"; }
   }
   function simulationRuns() {
     const all = [simulations?.active, ...(simulations?.runs || [])].filter(Boolean);
@@ -371,6 +395,7 @@
     if (previousSimulationPanel && previousSimulationPanel.dataset.task === t.id) el("tk-simulation-run").replaceWith(previousSimulationPanel);
     el("tk-simulation-run").dataset.task = t.id;
     renderSimulationRun();
+    if (isDemo()) { el("tk-detail").querySelector(".tk-detail-meta").textContent = "Illustrative task · no live Spacetime readback"; const note = el("tk-detail").querySelector(".tk-outcome-note span"); if (note) note.textContent = "Sample completed state for exploring the dashboard. This is not a recorded or live robot result."; }
     for (const node of el("tk-detail").querySelectorAll("details[data-tk-detail]")) node.open = expanded.has(node.dataset.tkDetail);
   }
   async function createTask(event) {

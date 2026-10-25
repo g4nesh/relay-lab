@@ -98,3 +98,19 @@ Tests: `PYTHONPATH=src python -m pytest -q tests`. The live integration test req
 `RELAY_DURABLE_TEST_TOKEN_FILE`. It publishes a fresh isolated database under that
 prefix and tests API/auth, empty-disk restarts, approvals, workers, task completion,
 duplicate reports, cancellation, revocation, failed commits and stale writers.
+
+### Public demo and private workspace
+
+Hosted `/` opens a read-only sample dashboard immediately, without signup or
+private API calls. All sample tasks, approvals, connections and analytics are
+illustrative fixtures bundled in `demo.js`; they are not live robot results or
+performance measurements. Demo exports retain this provenance. No demo writes,
+worker credentials, SSE subscriptions or polling reach the real backend.
+
+Use **Open your workspace** or `/?workspace=1` for the existing authenticated
+workspace, including first-manager setup. Local profiles retain their normal
+startup; `/?demo=1` previews the public experience locally. No authentication or
+Spacetime persistence rules change. The public demo does not make the first
+manager's setup code public or create an account.
+
+Run frontend regression checks with `node --test tests/web/*.test.cjs`.

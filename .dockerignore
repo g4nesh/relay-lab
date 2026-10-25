@@ -26,6 +26,8 @@
 !src/relay_lab/studio/web/analytics.css
 !src/relay_lab/studio/web/analytics.js
 !src/relay_lab/studio/web/index.html
+!src/relay_lab/studio/web/demo.css
+!src/relay_lab/studio/web/demo.js
 !src/relay_lab/studio/web/profiles.css
 !src/relay_lab/studio/web/profiles.js
 !src/relay_lab/studio/web/studio.css

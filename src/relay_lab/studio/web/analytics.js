@@ -16,6 +16,7 @@
   let options, snapshot = null, generation = 0, request = 0, estimateRequest = 0, loading = false, estimate = null;
   let filters = {cohort:"factory", mode:"all", scenario:"all"};
 
+  const isDemo = () => !!options?.isDemo?.();
   const experimentsEnabled = () => options?.experimentsEnabled?.() !== false;
 
   function skeleton() {
@@ -76,6 +77,7 @@
       el("an-snapshot-dot").classList.remove("neutral");
       const time = data.generated_at ? new Date(typeof data.generated_at === "number" ? data.generated_at * 1000 : data.generated_at).toLocaleString(undefined, {month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}) : "just now";
       el("an-snapshot-label").textContent = `Workspace snapshot · ${time}${experimentsEnabled() ? " · each section has its own population" : " · refresh to read the latest activity"}`;
+      if (isDemo()) el("an-snapshot-label").textContent = "Illustrative sample data · not measured workspace performance";
       el("an-export").disabled = false;
     } catch (error) {
       if (identity !== generation || error.stale || !options.authenticated()) return;
@@ -133,6 +135,15 @@
       ${ops.modes?.length ? `<div class="an-section-heading"><div><div class="section-overline">RECORDED COORDINATION TELEMETRY</div><h2>Retained exchange timings.</h2><p>Journal evidence is separate from task outcomes and runtime heartbeat status.</p></div>${chip("RECORDED")}</div>${renderOperations(ops)}` : ""}
       <div class="an-bottom-note"><span>${icon("db")} Shared state, observable work.</span><p>SpacetimeDB stores task assignments and agent reports. Runtime inference stays on your agent hosts. This snapshot makes no benchmark or time-savings claim.</p><button class="text-button" data-an-evidence>Inspect definitions & export →</button></div><footer><span>RELAY STUDIO / WORKSPACE ANALYTICS</span><span>Authenticated records · no sample experiment data</span></footer>`;
     applyVisualValues();
+    if (isDemo()) {
+      el("analytics-view").querySelector(".an-heading h1").textContent = "Coordination, at a glance.";
+      el("analytics-view").querySelector(".an-heading p").textContent = "Explore how tasks, model approvals and runtime connections come together.";
+      for (const [index, text] of ["Two sample tasks: one running and one waiting for an obstacle to clear.", "One illustrative completed task. No physical execution was measured.", "Two example connections. No live robot credentials or heartbeats."].entries()) el("an-content").querySelectorAll(".an-metric p")[index].textContent = text;
+      el("an-content").querySelector(".an-workspace-note").textContent = "These task states illustrate the workflow; they are not recorded robot outcomes.";
+      el("an-content").querySelectorAll(".an-chip").forEach((node) => { node.textContent = "SAMPLE"; });
+      el("an-content").querySelector(".an-section-heading p").textContent = "Illustrative task records, including an obstacle and a completed example.";
+      el("an-content").querySelector("footer > span:last-child").textContent = "Sample records · no performance claims";
+    }
   }
   function cohort() {
     const map = {factory:snapshot.factory, cloth:snapshot.cloth, "learned-static":snapshot.learned, "learned-transport":snapshot.learned};
@@ -240,13 +251,13 @@
   function showEvidence() {
     if (!snapshot) return;
     const sources = viewSources();
-    el("an-evidence-body").innerHTML = `<div class="an-evidence-scope">${chip("AUTHENTICATED SNAPSHOT")}${chip(`${sources.length} SOURCE ARTIFACTS`)}<p>Snapshot generated ${html(snapshot.generated_at ? new Date(typeof snapshot.generated_at === "number" ? snapshot.generated_at * 1000 : snapshot.generated_at).toLocaleString() : "at request time")}. ${experimentsEnabled() ? "Current comparison" : "Current view"}: ${html(experimentsEnabled() ? cohort().title : "Customer workspace operations")} · ${html(filters.mode === "all" ? "all channels" : labels[filters.mode] || filters.mode)}${filters.scenario !== "all" ? ` · ${html(filters.scenario)}` : ""}.</p></div><div class="an-definitions"><h3>Metric definitions</h3>${typeof snapshot.definitions === "object" ? Object.entries(snapshot.definitions || {}).map(([key,value]) => `<div><strong>${html(key.replaceAll("_"," "))}</strong><p>${html(typeof value === "string" ? value : JSON.stringify(value))}</p></div>`).join("") : `<p>${html(snapshot.definitions || "See the source artifacts for experiment-level definitions.")}</p>`}</div><h3 class="an-source-title">Source lineage</h3>${sources.map((source) => `<article class="an-source"><div><strong>${html(source.id)}</strong>${chip(source.status || "RECORDED")}</div><code>${html(source.path)}</code><p>${html(source.grain || "Artifact-level evidence")} · ${bytes(source.bytes)}</p>${source.sha256 ? `<details><summary>SHA-256</summary><code>${html(source.sha256)}</code></details>` : ""}</article>`).join("")}<div class="an-evidence-note">${experimentsEnabled() ? "Export includes the selected comparison rows, the displayed operations sections, source hashes, assumptions, and any calculated effort scenario." : "Export includes the displayed workspace task and runtime records, model inventory, retained telemetry, and metric definitions."}</div>`;
+    el("an-evidence-body").innerHTML = `<div class="an-evidence-scope">${chip(isDemo() ? "ILLUSTRATIVE DEMO" : "AUTHENTICATED SNAPSHOT")}${chip(`${sources.length} SOURCE ARTIFACTS`)}<p>Snapshot generated ${html(snapshot.generated_at ? new Date(typeof snapshot.generated_at === "number" ? snapshot.generated_at * 1000 : snapshot.generated_at).toLocaleString() : "at request time")}. ${experimentsEnabled() ? "Current comparison" : "Current view"}: ${html(experimentsEnabled() ? cohort().title : "Customer workspace operations")} · ${html(filters.mode === "all" ? "all channels" : labels[filters.mode] || filters.mode)}${filters.scenario !== "all" ? ` · ${html(filters.scenario)}` : ""}.</p></div><div class="an-definitions"><h3>Metric definitions</h3>${typeof snapshot.definitions === "object" ? Object.entries(snapshot.definitions || {}).map(([key,value]) => `<div><strong>${html(key.replaceAll("_"," "))}</strong><p>${html(typeof value === "string" ? value : JSON.stringify(value))}</p></div>`).join("") : `<p>${html(snapshot.definitions || "See the source artifacts for experiment-level definitions.")}</p>`}</div><h3 class="an-source-title">Source lineage</h3>${sources.map((source) => `<article class="an-source"><div><strong>${html(source.id)}</strong>${chip(source.status || "RECORDED")}</div><code>${html(source.path)}</code><p>${html(source.grain || "Artifact-level evidence")} · ${bytes(source.bytes)}</p>${source.sha256 ? `<details><summary>SHA-256</summary><code>${html(source.sha256)}</code></details>` : ""}</article>`).join("")}<div class="an-evidence-note">${experimentsEnabled() ? "Export includes the selected comparison rows, the displayed operations sections, source hashes, assumptions, and any calculated effort scenario." : "Export includes the displayed workspace task and runtime records, model inventory, retained telemetry, and metric definitions."}</div>`;
     el("an-evidence-dialog").showModal();
   }
   function exportView() {
     if (!snapshot || !options.authenticated()) return;
     if (!experimentsEnabled()) {
-      const data = {schema:"relay.analytics.workspace.v1", generated_at:snapshot.generated_at, workspace_activity:snapshot.workspace_activity, operations:snapshot.operations, governance:snapshot.governance, definitions:snapshot.definitions, scope_note:"Authenticated workspace records. Task outcomes are agent-reported; no experiment comparisons or productivity estimates are included."};
+      const data = {schema:"relay.analytics.workspace.v1", generated_at:snapshot.generated_at, workspace_activity:snapshot.workspace_activity, operations:snapshot.operations, governance:snapshot.governance, definitions:snapshot.definitions, demo:isDemo(), scope_note:isDemo() ? window.RelayDemo.provenance : "Authenticated workspace records. Task outcomes are agent-reported; no experiment comparisons or productivity estimates are included."};
       const url = URL.createObjectURL(new Blob([JSON.stringify(data,null,2)], {type:"application/json"}));
       const link = document.createElement("a"); link.href = url; link.download = "relay-workspace-analytics.json"; link.click(); setTimeout(() => URL.revokeObjectURL(url),1000); options.notify("Workspace analytics exported");
       return;

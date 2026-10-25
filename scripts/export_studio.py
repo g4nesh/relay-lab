@@ -39,6 +39,8 @@ STUDIO = (
 )
 WEB = (
     "index.html",
+    "demo.js",
+    "demo.css",
     "studio.js",
     "studio.css",
     "tasks.js",
@@ -178,6 +180,7 @@ def source_map():
         "subscriptions/src/bridge.cjs",
         "subscriptions/src/invalidations.cjs",
         "subscriptions/tests/invalidations.test.cjs",
+        "tests/web/demo.test.cjs",
         "docs/coordination.md",
         "docs/studio-sync.md",
         "spacetimedb/package.json",

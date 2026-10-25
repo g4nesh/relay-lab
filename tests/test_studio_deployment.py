@@ -384,3 +384,32 @@ def test_hosted_failure_redacts_secrets(app, runtime):
         headers=[(b"authorization", ("Bearer " + credentials["token"]).encode())],
     )
     assert status == 503 and b"secret-deployment-token" not in body
+
+
+@pytest.mark.parametrize("path", ["/demo.js", "/demo.css"])
+def test_public_demo_assets_are_available_without_auth(app, path):
+    status, _, body = request(app, path)
+    assert status == 200
+    assert len(body) > 100
+
+
+@pytest.mark.parametrize("path", [
+    "/api/bootstrap", "/api/workspace", "/api/tasks", "/api/workers",
+    "/api/team", "/api/analytics", "/api/coordination",
+])
+def test_public_demo_does_not_grant_private_api_access(app, path):
+    status, _, _ = request(app, path)
+    assert status == 401
+
+
+@pytest.mark.parametrize("path", [
+    "/api/workspace", "/api/tasks", "/api/workers", "/api/team/invitations",
+    "/api/models/demo-model-left/release", "/api/coordination/jobs",
+])
+def test_public_demo_does_not_grant_private_write_access(app, path):
+    status, _, _ = request(
+        app, path, method="POST", body=b"{}",
+        headers=[(b"origin", b"https://robots.example.com"),
+                 (b"content-type", b"application/json")],
+    )
+    assert status == 401

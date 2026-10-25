@@ -28,6 +28,8 @@ ASSETS = {
     "/": ("index.html", "text/html"),
     "/studio.css": ("studio.css", "text/css"),
     "/studio.js": ("studio.js", "text/javascript"),
+    "/demo.js": ("demo.js", "text/javascript"),
+    "/demo.css": ("demo.css", "text/css"),
     "/analytics.js": ("analytics.js", "text/javascript"),
     "/analytics.css": ("analytics.css", "text/css"),
     "/tasks.js": ("tasks.js", "text/javascript"),
