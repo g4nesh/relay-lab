@@ -33,7 +33,9 @@ This remains a simulation approximation:
 The evaluator cameras (`overview`, `top`) use a presentation-only studio look
 from `relay_lab/cloth/presentation.py`: soft-shadowed studio lights, jersey,
 concrete and laminate textures, 2× supersampling, depth-based crease occlusion
-and filmic tone mapping. These overrides are applied only while rendering those
+and filmic tone mapping. While the scheduled obstacle is present, those views
+label it "Interfering object" and name the one arm that detects it (pass
+`annotate=False` to `render` for clean frames). These overrides are applied only while rendering those
 cameras and are restored afterwards. The arm cameras that feed policies and
 cached VLA features render exactly as before, and physics is unchanged; the
 tests check that the model state and arm pixels are untouched after a
