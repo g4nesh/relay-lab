@@ -6,10 +6,10 @@ const icon = (name) => `<svg aria-hidden="true"><use href="#i-${name}"/></svg>`;
 const families = {smolvla: "SmolVLA", xvla: "X-VLA", openvla: "OpenVLA", groot: "GR00T", custom: "Custom VLA"};
 const robotNames = {arm: "Robot arm", mobile: "Drive unit", humanoid: "Humanoid", drone: "Drone", custom: "Custom"};
 const modes = {
-  mediated: {title: "LLM mediator", description: "Turns each local report into useful peer context.", route: "A’s report → Qwen → B<br>B’s report → Qwen → A", label: "PEER CONTEXT"},
-  orchestrated: {title: "LLM orchestrator", description: "Reads both reports and assigns the next instructions.", route: "A + B → <b>Qwen planner</b><br>Individual instructions → A + B", label: "SHARED PLANNING"},
-  latent: {title: "Learned latents", description: "Exchanges features through trained CoLA-inspired adapters.", route: "Native features → <b>64D message</b><br>Peer decoder → 32D context", label: "LEARNED INTERFACE"},
-  hybrid: {title: "Hybrid", description: "Delivers Qwen instructions alongside learned messages.", route: "<b>Qwen instructions</b> + <b>64D latents</b><br>Two parallel paths to each receiver", label: "TWO CHANNELS"},
+  mediated: {title: "LLM mediator", description: "Turns each local report into useful peer context.", route: "A’s report → Qwen → B<br>B’s report → Qwen → A", label: "Peer context"},
+  orchestrated: {title: "LLM orchestrator", description: "Reads both reports and assigns the next instructions.", route: "A + B → <b>Qwen planner</b><br>Individual instructions → A + B", label: "Shared planning"},
+  latent: {title: "Learned latents", description: "Exchanges features through trained CoLA-inspired adapters.", route: "Native features → <b>64D message</b><br>Peer decoder → 32D context", label: "Learned interface"},
+  hybrid: {title: "Hybrid", description: "Delivers Qwen instructions alongside learned messages.", route: "<b>Qwen instructions</b> + <b>64D latents</b><br>Two parallel paths to each receiver", label: "Two channels"},
 };
 const robotPaths = {
   arm: `<ellipse cx="65" cy="85" rx="33" ry="5" fill="currentColor" opacity=".07"/><path d="M39 81h43l-4-8H44l-5 8Z" fill="#e5ebde"/><path d="M48 73V57l14-20 16 8-15 19v9" stroke-width="10" stroke="#e5ebde"/><path d="m53 58 15-20 19-20 10 9-20 22-15 14M51 72V60m11 13V61"/><path d="m88 19 12 8 9-8-12-8-9 8Z" fill="#e6ecdf"/><path d="m108 19 8 6-4 8m-10-9 6 5-4 7M49 73h16"/><circle cx="57" cy="58" r="8" fill="#f9fbf6"/><circle cx="57" cy="58" r="3"/><circle cx="72" cy="40" r="8" fill="#f7faf2"/><circle cx="72" cy="40" r="3"/><circle cx="92" cy="22" r="6" fill="#f7faf2"/><path d="M44 81v3h34v-3M97 15l7-4 9 5-5 4"/>`,
@@ -50,7 +50,7 @@ function clearSession() {
   state.session = null; state.sessionReleaseReady = false; state.results = []; state.history = null; state.selectedMessage = null; state.readOnly = false; state.failed = false; state.diagnostics = null; clearInterval(polling);
   $("receiver-panel").hidden = true;
   void refreshDiagnostics();
-  $("stream-events").replaceChildren(); $("stream-count").textContent = "0 PACKETS";
+  $("stream-events").replaceChildren(); $("stream-count").textContent = "0 packets";
   $("stream-empty").hidden = false; $("stream-metrics").hidden = true;
 }
 function changed() { clearSession(); state.dirty = true; $("notice").hidden = true; render(); }
@@ -68,7 +68,7 @@ function renderModel(arm) {
   }
   const available = isExample() && state.capabilities.sample_available;
   const native = available ? (state.capabilities.adapter?.source_dimensions?.[arm] || (arm === "left" ? 960 : 1024)) : null;
-  $(`slot-${arm}`).innerHTML = `<article class="model-card" data-agent="${arm}"><div class="model-card-top"><span class="agent-letter">${label}</span><strong>${esc(a.name)}</strong><button class="edit-button" data-edit="${arm}" aria-label="Edit ${esc(a.name)}">···</button></div><div class="robot-illustration">${robot(a.robot)}</div><div class="model-spec"><div class="model-family">${families[a.family]}<span>${a.source.kind === "upload" ? "WEIGHTS" : "POLICY"}</span></div><div class="model-repo" title="${esc(a.source.ref)}">${esc(a.source.ref)}</div><div class="model-native"><span>FEATURE CONTRACT</span><strong>${native ? `${native}D → 64D` : "UNCONFIGURED"}</strong></div></div><div class="model-card-footer"><span><i class="status-dot ${available ? "" : "neutral"}"></i>${available ? "Pinned feature contract" : "Registered · not loaded"}</span><span>${a.rig ? "Rig registered" : "No live rig"}</span></div></article>`;
+  $(`slot-${arm}`).innerHTML = `<article class="model-card" data-agent="${arm}"><div class="model-card-top"><span class="agent-letter">${label}</span><strong>${esc(a.name)}</strong><button class="edit-button" data-edit="${arm}" aria-label="Edit ${esc(a.name)}">···</button></div><div class="robot-illustration">${robot(a.robot)}</div><div class="model-spec"><div class="model-family">${families[a.family]}<span>${a.source.kind === "upload" ? "Weights" : "Policy"}</span></div><div class="model-repo" title="${esc(a.source.ref)}">${esc(a.source.ref)}</div><div class="model-native"><span>Feature contract</span><strong>${native ? `${native}D → 64D` : "Unconfigured"}</strong></div></div><div class="model-card-footer"><span><i class="status-dot ${available ? "" : "neutral"}"></i>${available ? "Pinned feature contract" : "Registered · not loaded"}</span><span>${a.rig ? "Rig registered" : "No live rig"}</span></div></article>`;
 }
 function render() {
   if (!state.authenticated || !state.workspace) return;
@@ -93,7 +93,7 @@ function render() {
   $("contract-message").textContent = latentPath ? "64 dimensions" : "Qwen text";
   $("contract-context").textContent = latentPath ? "32 dimensions" : "Worker supplied";
   $("contract-preview").textContent = latentPath ? "Replacement head" : "Not evaluated";
-  $("session-badge").textContent = state.readOnly ? "ARCHIVED VIEW" : releaseBlocked ? "RELEASE BLOCKED" : state.failed ? "CHANNEL STOPPED" : state.session ? "CHANNEL OPEN" : "DRAFT";
+  $("session-badge").textContent = state.readOnly ? "Archived view" : releaseBlocked ? "Release blocked" : state.failed ? "Channel stopped" : state.session ? "Channel open" : "Draft";
   $("connection-state").textContent = state.readOnly ? "Read-only history" : releaseBlocked ? "Model approval changed" : state.session ? "Session confirmed" : "Not connected";
   $("canvas-status").textContent = state.readOnly ? "Read-only journal · open a new channel to exchange" : releaseBlocked ? "Model approval changed · this session cannot exchange" : state.failed ? "Channel stopped · open a new session to continue" : state.session ? "Communication session open · hardware inactive" : w.agents.length === 2 ? (["latent", "hybrid"].includes(w.mode) && !exact ? "A trained adapter is needed for this pair" : (currentPairReleased() ? "Approved pair · ready to open a channel" : "Pair configured · manager release required")) : "Add two models to create a channel";
   $("canvas-status-dot").classList.toggle("neutral", !state.session);
@@ -223,7 +223,7 @@ function renderHistory(data) {
   if (signature === historySignature) return;
   historySignature = signature;
   const messages = data.messages || [];
-  $("stream-count").textContent = `${messages.length} PACKETS`;
+  $("stream-count").textContent = `${messages.length} packets`;
   $("stream-empty").hidden = messages.length > 0;
   if (messages.length) {
     if (!messages.some((m) => m.message_id === state.selectedMessage)) state.selectedMessage = messages.at(-1).message_id;
@@ -248,7 +248,7 @@ function renderPackets() {
   const names = Object.fromEntries(state.workspace.agents.map((a) => [a.id, a.name]));
   const selected = messages.find((m) => m.message_id === state.selectedMessage);
   const recent = messages.slice(-8).reverse();
-  $("stream-events").innerHTML = `<div class="packet-toolbar"><span>COMMITTED MESSAGE LOG</span><span>${messages.length > 8 ? "LATEST 8 OF " : ""}${messages.length} RECORDS</span></div><div class="packet-list">${recent.map((m) => `<button class="packet-row ${m.message_id === state.selectedMessage ? "active" : ""}" data-packet="${esc(m.message_id)}" aria-pressed="${m.message_id === state.selectedMessage}"><span class="agent-letter ${m.sender === "right" ? "agent-b" : ""}">${m.sender === "left" ? "A" : "B"}</span><span><strong>${esc(names[m.sender] || m.sender)} <span class="muted">→</span> ${esc(names[m.recipient] || m.recipient)}</strong><small>${esc(modes[m.payload.mode]?.title || m.payload.mode)} · ${m.payload.vector ? `${m.payload.vector.length}D latent` : "Text context"}</small></span><span class="packet-status">Committed</span><span class="packet-order">EX ${esc(m.payload.exchange)}</span></button>`).join("")}</div><div id="selected-packet"></div>`;
+  $("stream-events").innerHTML = `<div class="packet-toolbar"><span>Committed message log</span><span>${messages.length > 8 ? "LATEST 8 OF " : ""}${messages.length} RECORDS</span></div><div class="packet-list">${recent.map((m) => `<button class="packet-row ${m.message_id === state.selectedMessage ? "active" : ""}" data-packet="${esc(m.message_id)}" aria-pressed="${m.message_id === state.selectedMessage}"><span class="agent-letter ${m.sender === "right" ? "agent-b" : ""}">${m.sender === "left" ? "A" : "B"}</span><span><strong>${esc(names[m.sender] || m.sender)} <span class="muted">→</span> ${esc(names[m.recipient] || m.recipient)}</strong><small>${esc(modes[m.payload.mode]?.title || m.payload.mode)} · ${m.payload.vector ? `${m.payload.vector.length}D latent` : "Text context"}</small></span><span class="packet-status">Committed</span><span class="packet-order">EX ${esc(m.payload.exchange)}</span></button>`).join("")}</div><div id="selected-packet"></div>`;
   if (!selected) return;
   const p = selected.payload;
   const adapter = p.adapter || {};
@@ -258,7 +258,7 @@ function renderPackets() {
   renderExchange(result);
   const conditionLabel = {left_obstacle: "Obstacle visible to A", right_obstacle: "Obstacle visible to B", clear: "Both views clear"}[result?.condition];
   const observed = result?.source === "captured" ? `Captured · ${conditionLabel || "Condition not retained"}` : result?.source === "manual" ? "Supplied local reports" : "Recorded session";
-  $("selected-packet").innerHTML = `<article class="packet-inspector"><div class="packet-inspector-header"><strong>Message ${esc(selected.message_id)}</strong><span>${esc(observed)}</span></div><div class="packet-body"><div class="packet-facts"><span>SEQUENCE <b>${esc(selected.sequence)}</b></span><span>ROUTE <b>${selected.sender === "left" ? "A → B" : "B → A"}</b></span>${checkpoint ? `<span>ADAPTER <b>${esc(checkpoint.slice(0,12))}…</b></span>` : ""}</div>${p.context ? `<div class="packet-context-label">DELIVERED LANGUAGE CONTEXT</div><p class="event-message">${esc(p.context)}</p>` : ""}${vector ? `<div class="packet-context-label">LEARNED MESSAGE / ${vector.length} DIMENSIONS</div><div class="vector-display" id="selected-vector" aria-label="Signed learned message components"></div><div class="vector-label"><span>64D encoded → 32D receiver context</span><span class="vector-scale">−1 <i></i> +1</span></div>` : ""}${p.safety_facts && Object.keys(p.safety_facts).length ? `<details class="event-details"><summary>Structured safety context</summary><pre>${esc(JSON.stringify(p.safety_facts, null, 2))}</pre></details>` : ""}<details class="event-details"><summary>Inspect full committed packet</summary><pre>${esc(JSON.stringify(selected, null, 2))}</pre></details></div><div class="receipt-strip">${icon("check")}<span>${result?.readback_verified ? "Exact packet independently verified after SpacetimeDB commit" : "Read from the SpacetimeDB message journal"}</span></div></article>`;
+  $("selected-packet").innerHTML = `<article class="packet-inspector"><div class="packet-inspector-header"><strong>Message ${esc(selected.message_id)}</strong><span>${esc(observed)}</span></div><div class="packet-body"><div class="packet-facts"><span>Sequence <b>${esc(selected.sequence)}</b></span><span>Route <b>${selected.sender === "left" ? "A → B" : "B → A"}</b></span>${checkpoint ? `<span>Adapter <b>${esc(checkpoint.slice(0,12))}…</b></span>` : ""}</div>${p.context ? `<div class="packet-context-label">Delivered language context</div><p class="event-message">${esc(p.context)}</p>` : ""}${vector ? `<div class="packet-context-label">LEARNED MESSAGE / ${vector.length} DIMENSIONS</div><div class="vector-display" id="selected-vector" aria-label="Signed learned message components"></div><div class="vector-label"><span>64D encoded → 32D receiver context</span><span class="vector-scale">−1 <i></i> +1</span></div>` : ""}${p.safety_facts && Object.keys(p.safety_facts).length ? `<details class="event-details"><summary>Structured safety context</summary><pre>${esc(JSON.stringify(p.safety_facts, null, 2))}</pre></details>` : ""}<details class="event-details"><summary>Inspect full committed packet</summary><pre>${esc(JSON.stringify(selected, null, 2))}</pre></details></div><div class="receipt-strip">${icon("check")}<span>${result?.readback_verified ? "Exact packet independently verified after SpacetimeDB commit" : "Read from the SpacetimeDB message journal"}</span></div></article>`;
   if (vector) for (let i = 0; i < vector.length; i++) {
     const v = vector[i], cell = document.createElement("i"); cell.className = "vector-cell";
     const magnitude = Math.min(1, Math.abs(v));
@@ -278,7 +278,7 @@ function renderReceivers(result) {
   $("receiver-cards").innerHTML = Object.entries(decisions).map(([arm,d]) => {
     const p = d.prediction || {}, held = p.learned_hold || p.missing_message_hold;
     const target = Array.isArray(d.action?.target) ? d.action.target : [];
-    return `<article class="receiver-card"><div class="receiver-card-heading"><span class="agent-letter ${arm === "right" ? "agent-b" : ""}">${arm === "left" ? "A" : "B"}</span><strong>${esc(names[arm] || arm)}</strong></div><div class="action-state ${held ? "hold" : ""}"><strong>${held ? "HOLD" : "MOVE"}</strong><span>${p.missing_message_hold ? "NO PEER MESSAGE" : "LEARNED HEAD"}</span></div><div class="action-components">${["X","Y","Z"].map((axis,i) => `<div><span>${axis} TARGET / m</span><strong>${Number.isFinite(target[i]) ? target[i].toFixed(4) : "—"}</strong></div>`).join("")}</div><p class="receiver-caption">Gripper ${d.action?.grip ? "closed" : "open"} · Peer age ${p.peer_age_ticks == null ? "unavailable" : `${p.peer_age_ticks} ticks`}</p><details class="event-details"><summary>Raw head & action</summary><pre>${esc(JSON.stringify(d,null,2))}</pre></details></article>`;
+    return `<article class="receiver-card"><div class="receiver-card-heading"><span class="agent-letter ${arm === "right" ? "agent-b" : ""}">${arm === "left" ? "A" : "B"}</span><strong>${esc(names[arm] || arm)}</strong></div><div class="action-state ${held ? "hold" : ""}"><strong>${held ? "Hold" : "Move"}</strong><span>${p.missing_message_hold ? "No peer message" : "Learned head"}</span></div><div class="action-components">${["X","Y","Z"].map((axis,i) => `<div><span>${axis} TARGET / m</span><strong>${Number.isFinite(target[i]) ? target[i].toFixed(4) : "—"}</strong></div>`).join("")}</div><p class="receiver-caption">Gripper ${d.action?.grip ? "closed" : "open"} · Peer age ${p.peer_age_ticks == null ? "unavailable" : `${p.peer_age_ticks} ticks`}</p><details class="event-details"><summary>Raw head & action</summary><pre>${esc(JSON.stringify(d,null,2))}</pre></details></article>`;
   }).join("");
 }
 async function refreshStream() {
@@ -366,8 +366,8 @@ call("/api/auth/logout", {}, boot["token"])
 function bind() {
   const localWorkspace = ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname);
   $("workspace-environment").textContent = localWorkspace ? "Local environment" : "Private workspace";
-  $("environment-location").textContent = localWorkspace ? "LOCAL" : "PRIVATE";
-  $("auth-environment").textContent = `${localWorkspace ? "LOCAL" : "PRIVATE"} WORKSPACE · INDIVIDUAL ACCOUNTS`;
+  $("environment-location").textContent = localWorkspace ? "Local" : "Private";
+  $("auth-environment").textContent = `${localWorkspace ? "Local" : "Private"} WORKSPACE · INDIVIDUAL ACCOUNTS`;
   if (!localWorkspace) {
     document.querySelector(".second-label").hidden = true;
     document.querySelectorAll('a[href^="http://127.0.0.1:"]').forEach((link) => { link.hidden = true; });
@@ -470,7 +470,7 @@ function setStudioView(view, updateHash = true) {
 }
 function renderPipeline() {
   const latent = ["latent","hybrid"].includes(state.workspace.mode);
-  const nodes = latent ? [["FROZEN BACKBONE","960 / 1024D"],["TRAINED ENCODER","64D message"],["SPACETIMEDB","Commit + verify"],["PEER DECODER","32D context"],["REPLACEMENT HEAD","Action preview"]] : [["LOCAL EVIDENCE","Text reports"],["QWEN 3",state.workspace.mode === "orchestrated" ? "Joint plan" : "Peer context"],["SPACETIMEDB","Commit + verify"],["POLICY WORKER","Receive text"]];
+  const nodes = latent ? [["Frozen backbone","960 / 1024D"],["Trained encoder","64D message"],["SPACETIMEDB","Commit + verify"],["Peer decoder","32D context"],["Replacement head","Action preview"]] : [["Local evidence","Text reports"],["Qwen 3",state.workspace.mode === "orchestrated" ? "Joint plan" : "Peer context"],["SPACETIMEDB","Commit + verify"],["Policy worker","Receive text"]];
   $("pipeline").innerHTML = nodes.map(([label,value],i) => `${i ? "<i>→</i>" : ""}<div class="pipeline-node ${i === 2 ? "emphasis" : ""}"><span>${label}</span><strong>${value}</strong></div>`).join("");
 }
 function updateObservations() {
@@ -500,14 +500,14 @@ async function refreshHealth() {
     $("health-adapter").title = health.adapter?.error || "Pinned 960D / 1024D feature contracts · learned 64D messages";
     $("health-qwen").textContent = llm ? (health.llm.loaded ? "Qwen runtime loaded" : "Qwen runtime installed") : "Qwen setup needed";
     for (const [key,ready] of [["db",db],["adapter",adapter],["qwen",llm]]) { $(`health-${key}-dot`).classList.toggle("neutral", !ready); $(`health-${key}-dot`).classList.toggle("error", !ready); }
-    $("sidebar-db-dot").classList.toggle("neutral", !db); $("sidebar-db-label").textContent = db ? "SPACETIMEDB ONLINE" : "DATABASE OFFLINE";
+    $("sidebar-db-dot").classList.toggle("neutral", !db); $("sidebar-db-label").textContent = db ? "SpacetimeDB online" : "Database offline";
     if (health.adapter) state.capabilities.adapter = health.adapter;
     render();
   } catch (error) {
     if (error.stale) return;
     $("health-db").textContent = "Readiness check failed"; $("health-db").title = error.message;
     $("health-adapter").textContent = "Readiness unavailable"; $("health-qwen").textContent = "Readiness unavailable";
-    $("sidebar-db-label").textContent = "CHECK UNAVAILABLE";
+    $("sidebar-db-label").textContent = "Check unavailable";
   } finally { $("refresh-health").disabled = false; }
 }
 async function refreshDiagnostics() {
@@ -577,7 +577,7 @@ function showAuth(mode = "login", message = "") {
   $("objective").value = ""; $("report-left").value = ""; $("report-right").value = "";
   $("breadcrumb-name").textContent = "Workspace"; $("account-name").textContent = "Account"; $("account-avatar").textContent = "?";
   $("probe-source").value = "captured";
-  for (const [id, value] of Object.entries({"nav-model-count":"0", "model-count":"0 / 2 models", "stream-count":"0 PACKETS", "request-count":"REQUESTS", "team-count":"", "save-state":"Sign in required", "role-badge":"ACCOUNT", "account-role":"Signed out", "session-badge":"DRAFT", "connection-state":"Not connected", "canvas-status":"Sign in to use this workspace", "metric-roundtrip":"—", "metric-db":"—", "metric-llm":"—", "metric-bytes":"—"})) $(id).textContent = value;
+  for (const [id, value] of Object.entries({"nav-model-count":"0", "model-count":"0 / 2 models", "stream-count":"0 packets", "request-count":"Requests", "team-count":"", "save-state":"Sign in required", "role-badge":"Account", "account-role":"Signed out", "session-badge":"Draft", "connection-state":"Not connected", "canvas-status":"Sign in to use this workspace", "metric-roundtrip":"—", "metric-db":"—", "metric-llm":"—", "metric-bytes":"—"})) $(id).textContent = value;
   for (const id of ["stream-metrics", "receiver-panel", "observations-panel", "preflight-details"]) $(id).hidden = true;
   for (const arm of ["left", "right"]) $("observation-" + arm).removeAttribute("src");
   document.querySelectorAll("dialog[open]").forEach((dialog) => dialog.close());
@@ -591,7 +591,7 @@ function setAuthMode(mode) {
   state.authMode = mode;
   const setup = mode === "setup", join = mode === "join";
   $("auth-tabs").hidden = setup;
-  $("auth-eyebrow").textContent = setup ? "FIRST-TIME WORKSPACE SETUP" : join ? "YOU’RE INVITED" : "WORKSPACE ACCESS";
+  $("auth-eyebrow").textContent = setup ? "First-time workspace setup" : join ? "YOU’RE INVITED" : "Workspace access";
   $("auth-title").textContent = setup ? "Create the first manager." : join ? "Join your team." : "Welcome back.";
   $("auth-subtitle").textContent = setup ? "The local setup code gives the workspace owner its first manager account." : join ? "Use the one-time invitation your manager shared with you. Your role is assigned by the invitation." : "Sign in with the account created for this workspace.";
   $("auth-code-field").hidden = !(setup || join); $("auth-code").required = setup || join;
@@ -657,7 +657,7 @@ function renderAccessIdentity() {
 function renderReleases() {
   if (!state.workspace) return;
   const released = currentPairReleased(), manager = allowed("models.release");
-  $("release-summary").textContent = released ? "PAIR RELEASED" : "APPROVAL REQUIRED";
+  $("release-summary").textContent = released ? "Pair released" : "Approval required";
   $("release-summary").classList.toggle("ready", released);
   $("release-help").textContent = state.dirty ? "Save your changes before reviewing the model revisions." : !currentWorkspaceSelected() ? "Viewing a saved session configuration. Select Team workspace to return to the current pair." : manager ? "Review each policy revision before approving it for Studio sessions." : "A manager must release both exact model revisions before you can connect.";
   $("release-list").innerHTML = state.workspace.agents.length ? state.workspace.agents.map((agent) => {
@@ -796,7 +796,7 @@ function openAccess() { $("access-section").scrollIntoView({behavior:"smooth", b
 function showAccessRecovery(message) {
   clearInterval(polling); document.body.classList.add("auth-pending");
   $("auth-screen").hidden = false; $("auth-screen").classList.add("auth-recovery");
-  $("auth-eyebrow").textContent = "CONNECTION NEEDS ATTENTION"; $("auth-title").textContent = "Let’s reconnect.";
+  $("auth-eyebrow").textContent = "Connection needs attention"; $("auth-title").textContent = "Let’s reconnect.";
   $("auth-subtitle").textContent = "Your account has not been changed. Retry when the local Studio backend is available.";
   $("auth-error").textContent = message; $("auth-error").hidden = false; $("auth-retry").hidden = false;
   $("auth-recovery-logout").hidden = !state.token; $("auth-submit").disabled = true;
@@ -835,10 +835,10 @@ async function hostedWorkspace(){
  $('permission-title').textContent='Backend offline';$('permission-detail').textContent='Connect Studio to save changes and run exchanges. This page shows the repository’s example configuration.';
  $('permission-access').textContent='Open local Studio ↗';$('permission-access').onclick=()=>window.open('http://127.0.0.1:8780/projects/studio/','_blank','noopener');
  for(const arm of ['left','right'])renderModel(arm);renderPipeline();
- $('nav-model-count').textContent='2';$('model-count').textContent='2 / 2 models';$('session-badge').textContent='EXAMPLE';$('canvas-status').textContent='Pinned model pair · no live session connected';$('connection-state').textContent='Backend not connected';
- $('release-summary').textContent='NOT CONNECTED';$('release-help').textContent='Live release state is available after signing in to the Python backend. No model is approved by this hosted view.';
- $('release-list').innerHTML=state.workspace.agents.map((a,i)=>`<article class="release-card"><div class="release-heading"><strong><span class="agent-letter">${i?'B':'A'}</span> ${esc(a.name)}</strong><span class="mini-tag">EXAMPLE CONFIG</span></div><p class="mono">${esc(a.source.ref)}</p><p>Revision ${esc(a.source.revision.slice(0,12))}…</p><small>Reference configuration · release status unavailable</small></article>`).join('');
- for(const [id,value] of [['health-db','Offline'],['health-adapter','SmolVLA / X-VLA'],['health-qwen','Qwen · not connected'],['qwen-state','Local backend required'],['account-name','Website visitor'],['account-role','Read-only inspection'],['account-avatar','R'],['backend-label','HOSTED INSPECTION']])if($(id))$(id).textContent=value;
+ $('nav-model-count').textContent='2';$('model-count').textContent='2 / 2 models';$('session-badge').textContent='Example';$('canvas-status').textContent='Pinned model pair · no live session connected';$('connection-state').textContent='Backend not connected';
+ $('release-summary').textContent='Not connected';$('release-help').textContent='Live release state is available after signing in to the Python backend. No model is approved by this hosted view.';
+ $('release-list').innerHTML=state.workspace.agents.map((a,i)=>`<article class="release-card"><div class="release-heading"><strong><span class="agent-letter">${i?'B':'A'}</span> ${esc(a.name)}</strong><span class="mini-tag">Example config</span></div><p class="mono">${esc(a.source.ref)}</p><p>Revision ${esc(a.source.revision.slice(0,12))}…</p><small>Reference configuration · release status unavailable</small></article>`).join('');
+ for(const [id,value] of [['health-db','Offline'],['health-adapter','SmolVLA / X-VLA'],['health-qwen','Qwen · not connected'],['qwen-state','Local backend required'],['account-name','Website visitor'],['account-role','Read-only inspection'],['account-avatar','R'],['backend-label','Hosted inspection']])if($(id))$(id).textContent=value;
  $('notice').hidden=true;
  document.querySelectorAll('button,input,textarea,select').forEach(el=>{el.disabled=true;el.title='Requires a signed-in Relay Studio backend'});
  const enable=(id,fn)=>{const b=$(id);if(b){b.disabled=false;b.title='';b.onclick=fn;}};
@@ -858,7 +858,7 @@ async function hostedWorkspace(){
  $('mode-options').innerHTML=Object.entries(modes).map(([key,m])=>`<button class="mode-option ${key===state.workspace.mode?'active':''}" data-inspect-mode="${key}" aria-pressed="${key===state.workspace.mode}"><span class="radio-mark"></span><span><strong>${m.title}</strong><small>${m.description}</small></span></button>`).join('');
  document.querySelectorAll('[data-inspect-mode]').forEach(button=>button.onclick=()=>{state.workspace.mode=button.dataset.inspectMode;renderPipeline();$('channel-label').textContent=modes[state.workspace.mode].title;document.querySelectorAll('[data-inspect-mode]').forEach(b=>{b.classList.toggle('active',b===button);b.setAttribute('aria-pressed',String(b===button))});toast('Inspecting '+modes[state.workspace.mode].title+' · no exchange executed')});
  $('channel-label').textContent=modes[state.workspace.mode].title;
- document.querySelector('.backend-status strong')?.replaceChildren(document.createTextNode('NOT CONNECTED'));
+ document.querySelector('.backend-status strong')?.replaceChildren(document.createTextNode('Not connected'));
  $('session-list').innerHTML='<p class="audit-empty">Sign in to the backend to load your private session history. No hosted sessions have been created.</p>';
  document.querySelectorAll('a[href="/cloth/"]').forEach(a=>a.href='/projects/cloth/');document.querySelectorAll('a[href="/cloth/latent.html"]').forEach(a=>a.href='/projects/cloth/latent.html');
 }

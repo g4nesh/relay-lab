@@ -28,7 +28,7 @@ class LocalWorkspace(StudioHandler):
         if not mutation and path in ('/projects/studio/', '/projects/studio'):
             page = (WEB / 'index.html').read_text()
             page = page.replace('Connect robot policies. Make every exchange inspectable.', 'Configure the models and review how they share information.')
-            page = page.replace('</head>', '<link rel="stylesheet" href="/projects/studio/hosted.css?v=local1"><link rel="stylesheet" href="/projects/studio/local.css?v=3"><link rel="stylesheet" href="/projects/shared/workspace-design.css?v=1"></head>')
+            page = page.replace('</head>', '<link rel="stylesheet" href="/projects/studio/hosted.css?v=local1"><link rel="preload" href="/assets/fonts/ibm-plex-sans-latin-400.woff2" as="font" type="font/woff2" crossorigin><link rel="preload" href="/assets/fonts/ibm-plex-sans-latin-600.woff2" as="font" type="font/woff2" crossorigin><link rel="stylesheet" href="/projects/studio/local.css?v=5"><link rel="stylesheet" href="/projects/shared/workspace-design.css?v=3"></head>')
             page = page.replace('http://127.0.0.1:8769/latent', '/projects/cloth/latent.html').replace('http://127.0.0.1:8769/', '/projects/cloth/')
             page = page.replace('</body>', '<script src="/projects/studio/local-tabs.js?v=1" defer></script></body>')
             page = page.replace('aria-label="Relay Studio home"', 'aria-label="Relay website homepage"')
@@ -46,11 +46,23 @@ class LocalWorkspace(StudioHandler):
         if target.is_dir(): target = target / 'index.html'
         if not target.is_file():return self.respond({'error':'Not found'},404)
         mime = mimetypes.guess_type(str(target))[0] or 'application/octet-stream'
+        stat = target.stat()
+        etag = f'W/"{stat.st_mtime_ns:x}-{stat.st_size:x}"'
+        # Fonts, images and video change rarely: cache them for a week. Pages,
+        # styles and scripts revalidate on every load and get a 304 when unchanged.
+        static = path.startswith('/assets/') or mime.startswith(('image/','video/','font/'))
+        cache = 'public, max-age=604800' if static else 'no-cache'
+        if self.headers.get('If-None-Match') == etag:
+            self.send_response(304)
+            self.send_header('ETag',etag)
+            self.send_header('Cache-Control',cache)
+            self.end_headers();return
         data = target.read_bytes()
         self.send_response(200)
         self.send_header('Content-Type',mime)
         self.send_header('Content-Length',str(len(data)))
-        self.send_header('Cache-Control','no-store')
+        self.send_header('ETag',etag)
+        self.send_header('Cache-Control',cache)
         self.send_header('X-Content-Type-Options','nosniff')
         self.end_headers();self.wfile.write(data)
 

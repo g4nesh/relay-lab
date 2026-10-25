@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="/projects/cloth/styles.css">
   <link rel="stylesheet" href="/projects/cloth/latent.css">
   <script src="/projects/cloth/latent.js" defer></script>
-<link rel="stylesheet" href="/projects/shared/workspace-white.css?v=3"><link rel="stylesheet" href="/projects/shared/workspace-design.css?v=1"></head>
+<link rel="stylesheet" href="/projects/shared/workspace-white.css?v=3"><link rel="stylesheet" href="/projects/shared/workspace-design.css?v=3"></head>
 <body class="latent-page">
   <header class="topbar">
     <a class="brand" href="/" aria-label="Relay website homepage">
@@ -26,7 +26,7 @@
     <div id="latent-error" class="error-banner" role="status" hidden></div>
     <section class="latent-hero" aria-labelledby="latent-title">
       <div class="latent-hero-copy">
-        <div class="eyebrow">EXPERIMENT 02 / MIXED VLA COMMUNICATION</div>
+        <div class="eyebrow">Experiment 02 / mixed VLA communication</div>
         <h1 id="latent-title">Learning to share<br>what each arm sees.</h1>
         <p>Two different robot models, separate views, and a learned channel for the information only a teammate can see.</p>
         <div class="latent-chips">
@@ -36,7 +36,7 @@
         </div>
       </div>
       <aside class="latent-scope" aria-label="What this experiment measures">
-        <div class="latent-scope-top"><span class="latent-dot"></span><span>ONE-STEP COORDINATION</span></div>
+        <div class="latent-scope-top"><span class="latent-dot"></span><span>One-step coordination</span></div>
         <h2>Would both arms<br>make the right next move?</h2>
         <p>A private obstacle changes whether the team should move or hold. We test which messages help the other arm respond.</p>
         <div class="latent-scope-foot"><strong>Hold accuracy ≠ folding success</strong><span>This report does not establish a complete learned-policy fold.</span></div>
@@ -45,12 +45,12 @@
 
     <section class="latent-architecture detail-card" aria-labelledby="architecture-title">
       <div class="section-heading">
-        <div><div class="eyebrow">THE LEARNED INTERFACE</div><h2 id="architecture-title">Two native spaces. A trained translation.</h2></div>
+        <div><div class="eyebrow">The learned interface</div><h2 id="architecture-title">Two native spaces. A trained translation.</h2></div>
         <span class="latent-section-number">01 — METHOD</span>
       </div>
       <div class="latent-flow">
         <article class="latent-model left">
-          <div class="latent-model-top"><span class="latent-arm-letter">L</span><span>LEFT ARM / LOCAL VIEW</span></div>
+          <div class="latent-model-top"><span class="latent-arm-letter">L</span><span>Left arm / local view</span></div>
           <h3>SmolVLA</h3>
           <p>Frozen vision-language features</p>
           <div class="latent-width"><strong>960</strong><span>native dimensions</span></div>
@@ -63,7 +63,7 @@
           <p>Separate learned mappings in each direction</p>
         </div>
         <article class="latent-model right">
-          <div class="latent-model-top"><span class="latent-arm-letter">R</span><span>RIGHT ARM / LOCAL VIEW</span></div>
+          <div class="latent-model-top"><span class="latent-arm-letter">R</span><span>Right arm / local view</span></div>
           <h3>X-VLA</h3>
           <p>Frozen vision-language features</p>
           <div class="latent-width"><strong>1,024</strong><span>native dimensions</span></div>
@@ -92,7 +92,7 @@
 
     <section class="latent-results detail-card" aria-labelledby="transport-title">
       <div class="section-heading">
-        <div><div class="eyebrow">CHANGING CONDITIONS / MESSAGE DELIVERY</div><h2 id="transport-title">What happens when information arrives late?</h2></div>
+        <div><div class="eyebrow">Changing conditions / message delivery</div><h2 id="transport-title">What happens when information arrives late?</h2></div>
         <div class="latent-scenario-field"><label for="transport-scenario">Delivery condition</label><select id="transport-scenario" disabled><option>No measurements yet</option></select></div>
       </div>
       <p class="latent-section-description">A changing obstacle sequence is replayed through the actual message journal. Compare missed hazards, unnecessary holds, and the bytes each method sends.</p>
@@ -107,7 +107,7 @@
     </section>
 
     <section id="findings-card" class="latent-findings" aria-labelledby="findings-title" hidden>
-      <div><div class="eyebrow">OBSERVATIONS FROM THE RUN</div><h2 id="findings-title">What the evidence says</h2></div>
+      <div><div class="eyebrow">Observations from the run</div><h2 id="findings-title">What the evidence says</h2></div>
       <div id="findings-content" class="latent-findings-content"></div>
     </section>
 
@@ -121,7 +121,7 @@
         <div class="latent-video-caption"><span id="live-status">Trial status unreported</span><strong>Execution check, not a complete-task demonstration</strong></div>
       </div>
       <aside class="detail-card latent-trial-info">
-        <div class="eyebrow">REAL FEATURES / PHYSICAL ACTIONS</div>
+        <div class="eyebrow">Real features / physical actions</div>
         <h2 id="trial-title">A small execution check.</h2>
         <p>The bounded trial checks that current images become model features, messages reach the other arm, and learned outputs move the simulated robots.</p>
         <dl class="latent-trial-metrics"><div><dt>Model calls per arm</dt><dd id="live-calls">Not reported</dd></div><div><dt>Physics ticks</dt><dd id="live-ticks">Not reported</dd></div><div><dt>Grasps observed</dt><dd id="live-grasps">Not reported</dd></div><div><dt>Complete fold</dt><dd id="live-fold">Not established</dd></div></dl>
@@ -130,12 +130,12 @@
     </section>
 
     <section class="latent-evidence detail-card" aria-labelledby="evidence-title">
-      <div><div class="eyebrow">METHODS & EVIDENCE</div><h2 id="evidence-title">Keep the experiments separate.</h2><p>The earlier PCA experiment compresses measured state. This experiment learns a channel from actual model features.</p></div>
+      <div><div class="eyebrow">Methods & evidence</div><h2 id="evidence-title">Keep the experiments separate.</h2><p>The earlier PCA experiment compresses measured state. This experiment learns a channel from actual model features.</p></div>
       <div class="latent-evidence-links"><a href="/projects/cloth/runs/learned-latent/results.json">Raw measurements <span aria-hidden="true">↗</span></a><a href="/projects/cloth/#comparison">Earlier PCA benchmark <span aria-hidden="true">↗</span></a><a href="https://arxiv.org/html/2610.15337v1" target="_blank" rel="noopener noreferrer">CoLA method <span aria-hidden="true">↗</span></a></div>
       <div id="source-links" class="latent-source-links" hidden></div>
     </section>
   </main>
 
-  <footer><span>RELAY LAB <span class="footer-divider">/</span> LEARNED COMMUNICATION</span><span>Original simulation · Recorded measurements · Explicit limits</span></footer>
+  <footer><span>Relay Lab <span class="footer-divider">/</span> LEARNED COMMUNICATION</span><span>Original simulation · Recorded measurements · Explicit limits</span></footer>
 <a href="/#projects" style="position:fixed;bottom:15px;right:15px;z-index:999;background:#fff;color:#123746;border:1px solid #ccdce2;padding:12px 17px;border-radius:12px;text-decoration:none;font:12px sans-serif">← Back to Relay</a><script src="/logo-home.js" defer></script></body>
 </html>

@@ -77,6 +77,33 @@ def test_environment_token_overrides_file_without_creating_or_printing_it(tmp_pa
     assert not (tmp_path / "missing").exists()
 
 
+def test_worktree_uses_main_checkout_token_and_keeps_its_checks(tmp_path, monkeypatch):
+    monkeypatch.delenv("RELAY_SPACETIME_TOKEN", raising=False)
+    monkeypatch.delenv("RELAY_SPACETIME_TOKEN_FILE", raising=False)
+    main = tmp_path / "repo"
+    (main / ".git" / "worktrees" / "feature").mkdir(parents=True)
+    (main / ".relay-lab").mkdir()
+    token = main / ".relay-lab" / "spacetime-token"
+    token.write_text("shared-token")
+    token.chmod(0o600)
+    worktree = tmp_path / "feature"
+    worktree.mkdir()
+    (worktree / ".git").write_text(f"gitdir: {main / '.git' / 'worktrees' / 'feature'}\n")
+    monkeypatch.chdir(worktree)
+    assert SpacetimeConfig.from_env().token == "shared-token"
+    token.chmod(0o644)
+    with pytest.raises(ValueError, match="0600"):
+        SpacetimeConfig.from_env()
+    # A worktree's own token still wins, and a plain checkout without one fails clearly.
+    (worktree / ".relay-lab").mkdir()
+    (worktree / ".relay-lab" / "spacetime-token").write_text("local-token")
+    (worktree / ".relay-lab" / "spacetime-token").chmod(0o600)
+    assert SpacetimeConfig.from_env().token == "local-token"
+    monkeypatch.chdir(tmp_path)
+    with pytest.raises(ValueError, match="RELAY_SPACETIME_TOKEN_FILE"):
+        SpacetimeConfig.from_env()
+
+
 def test_sql_reads_named_sats_columns_and_rejects_injection(monkeypatch):
     backend = client()
     requests = []

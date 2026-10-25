@@ -77,7 +77,7 @@ function compileEvents(trace) {
 }
 function renderEvents(tick) {
   const current = state.events.filter((event) => event.tick <= tick);
-  text("event-count", `${current.length} EVENTS`);
+  text("event-count", `${current.length} events`);
   const list = $("event-list"); list.replaceChildren();
   if (!current.length) { list.append(node("li", "event-placeholder", "No recorded events before this point. Move through the timeline to inspect changes.")); return; }
   current.slice(-7).reverse().forEach((event) => {
@@ -116,7 +116,7 @@ function renderFrame(index, force = false) {
   for (const arm of ["left", "right"]) {
     const robot = frame.robots?.[arm] || {};
     const decision = frame.decisions?.[arm] || {};
-    text(`${arm}-state`, decision.hold === true ? "HOLDING POSITION" : "LOCAL CONTROL");
+    text(`${arm}-state`, decision.hold === true ? "Holding position" : "Local control");
     text(`${arm}-phase`, human(phases?.[arm] || decision.phase));
     text(`${arm}-grasp`, robot.holding != null && robot.holding !== false ? "Attached" : robot.holding === null || robot.holding === false ? "Open" : "—");
     text(`${arm}-clearance`, metres(firstNumber(decision.clearance, decision.clearance_m)));

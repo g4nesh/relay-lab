@@ -1,16 +1,65 @@
-/* Shared operational palette: white canvas, solid surfaces. */
-:root,body,body.latent-page{--bg:#fff;--surface:#fff;--ink:#171717;--muted:#666;--line:transparent;--accent:#183e4a;background:#fff!important;color:#171717!important;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important}
-body *{border-color:transparent!important;box-shadow:none!important;background-image:none!important}h1,h2,h3,h4{color:#171717!important;letter-spacing:-.035em}h1{font-size:clamp(30px,3vw,46px)!important}h2{font-size:27px!important}p,td,button,select{font-size:14px}p{line-height:1.65}main,.latent-main{max-width:1500px!important;margin:auto}
-.detail-card,.video-card,.latent-model,.latent-scope,.metric-strip,.arm-card,.analytic-card,.bento-tile,.latent-findings,.latent-evidence,.latent-trial-card,.latent-results,.latent-pending,.latent-method-note,.evidence-note,.provenance,.event-list,.event-list li,.comparison-limit,.empty-comparison{background:#fff!important;color:#171717!important;border:0!important;border-radius:18px!important}
-.page-heading p,.body-note,.latent-hero-copy>p,.latent-scope p,.latent-scope-foot span,.metric-label,.quiet-label,.metric-strip small,.decision-note{color:#59635f!important}
-.run-toolbar,.filter-panel,.timeline,.stage-topline,.channel-diagram,.channel-stats,.latent-controls,.latent-database,.latent-findings-content,.latent-communication,.latent-trial-limit{background:#fff!important;color:#171717!important;border:0!important}
-button,.nav-button,.icon-button,.tag,.verdict,.small-status,.agent-node,.latent-nav{background:#adccba!important;color:#183e4a!important;border:0!important;border-radius:10px!important;padding:10px 14px!important;font-family:inherit!important;font-size:13px!important}
-button:hover,.nav-button:hover,.latent-nav.active{background:#c8e68b!important}select,input{color:#171717!important;background:#f4f4f4!important;border:0!important;border-radius:10px!important;padding:12px!important;font:14px inherit!important}
-.metric-strip{gap:16px!important;background:#fff!important;padding:20px 0!important}.metric-strip>div,.analytic-kpis article,.pair-metrics article{padding:24px!important;border-radius:16px!important;border:0!important;background:#adccba!important;color:#183e4a!important}.metric-strip>div:nth-child(2),.analytic-kpis article:nth-child(2){background:#c8e68b!important}.metric-strip>div:nth-child(3),.analytic-kpis article:nth-child(3){background:#efb5c8!important}.metric-strip>div:nth-child(4),.analytic-kpis article:nth-child(4){background:#f3d96b!important}.metric-strip strong,.analytic-kpis strong{color:#183e4a!important;font-size:32px!important}.metric-strip small,.analytic-kpis small,.analytic-kpis span{color:#374b48!important}
-.arm-grid{gap:24px!important}.arm-card:first-child,.latent-model.left{background:#adccba!important}.arm-card:last-child,.latent-model.right{background:#c8e68b!important}.arm-card,.latent-model{padding:24px!important}.arm-card *,.latent-model *{color:#183e4a!important}.arm-phase{font-size:20px!important}.channel-stats{gap:14px!important}.channel-stats>div{background:#f3d96b!important;border-radius:12px;padding:16px!important;color:#183e4a!important}.channel-line,.dashed-line,.footer-divider,.brand-divider{display:none!important}
-.video-surface,.latent-video-surface{background:#fff!important;border-radius:16px;overflow:hidden}.evidence-note{padding:20px 0!important}.evidence-icon{background:#c8e68b!important;color:#183e4a!important}.latent-table,.latent-table td,.latent-table th,table,td,th{background:transparent!important;color:#333!important;border:0!important}table{border-collapse:separate!important;border-spacing:0 8px!important}tbody tr:nth-child(even){background:#f7f7f7!important}.latent-section-number,.latent-small-arrow{color:#183e4a!important}.latent-findings strong,.latent-findings h3,.latent-database strong,.latent-database h3{color:#183e4a!important}.latent-flow,.latent-flow>div{background:#fff!important;color:#183e4a!important}
-.metric-bar{border:0!important;padding:20px 0!important}.metric-bar i{background:#183e4a!important}.metric-bar[data-mode=embeddings] i{background:#adccba!important}.metric-bar[data-mode=hybrid] i{background:#efb5c8!important}.metric-bar[data-mode=none] i{background:#f3d96b!important}.pair-state{background:#fff!important}.pair-metrics article:nth-child(2){background:#c8e68b!important}.pair-metrics article:nth-child(3){background:#efb5c8!important}.pair-metrics article:nth-child(4){background:#f3d96b!important}
-.outcome-chart{display:flex;align-items:center;gap:35px;padding:24px;background:#c8e68b;border-radius:18px;margin:25px 0}.outcome-chart svg{width:170px;flex-shrink:0}.outcome-chart h3{margin:0 0 10px;font-size:23px!important}.outcome-chart p{margin:0}.outcome-chart text{font-family:inherit;fill:#183e4a}.outcome-chart span{display:inline-block;margin-right:18px}.outcome-chart i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:7px}
-@media(max-width:650px){.outcome-chart{flex-direction:column;align-items:start}.metric-strip{grid-template-columns:1fr 1fr!important}}
+/* Cloth workcell and learned-adapter pages: neutral surfaces and controls.
+   Tokens, type and font faces come from workspace-design.css, loaded after this. */
+:root,body,body.latent-page{--bg:#fff;--accent:#183e4a;background:#fff!important;color:#394148!important}
 
-html body .replay-tools button,html body .replay-tools a,html body .verdict.success,html body .small-status{background:#adccba!important;color:#183e4a!important;border:0!important;border-radius:10px!important}html body .subtle-link,html body .latent-source-links a{color:#183e4a!important}.topbar,body>header{background:#fff!important}.latent-trial-metrics>div,.latent-video-caption,.latent-video-empty,.latent-mode{background:#fff!important;color:#183e4a!important;border:0!important}.latent-model p,.latent-model small{color:#183e4a!important}.latent-db-mark{background:#c8e68b!important;color:#183e4a!important}.latent-channel{background:#fff!important;color:#183e4a!important}
+body *{box-shadow:none!important;background-image:none!important}
+main,.latent-main{max-width:1440px!important;margin:auto}
+p{line-height:1.55}
+
+/* Cards and panels: white, hairline border. */
+.detail-card,.video-card,.latent-model,.latent-scope,.arm-card,.analytic-card,.bento-tile,.latent-findings,.latent-evidence,.latent-trial-card,.latent-results,.latent-pending,.latent-method-note,.provenance,.event-list,.comparison-limit,.empty-comparison,.controller-card{background:#fff!important;color:#394148!important;border:1px solid #e3e6e9!important;border-radius:12px!important}
+.event-list li{background:none!important;border:0!important;border-bottom:1px solid #e3e6e9!important;border-radius:0!important}
+.run-toolbar,.filter-panel,.timeline,.stage-topline,.channel-diagram,.latent-controls,.latent-database,.latent-findings-content,.latent-communication,.latent-trial-limit,.latent-flow,.latent-flow>div,.latent-channel,.pair-state,.latent-trial-metrics>div,.latent-video-caption,.latent-video-empty,.latent-mode,.topbar,body>header{background:#fff!important;color:#394148!important;border-color:#e3e6e9!important}
+.channel-line,.dashed-line,.footer-divider,.brand-divider{display:none!important}
+
+/* Controls: one secondary style; the active tab gets the brand tint. */
+button,.nav-button,.icon-button,.latent-nav,.replay-tools button,.replay-tools a{background:#fff!important;color:#15191c!important;border:1px solid #cfd4d8!important;border-radius:6px!important;padding:6px 12px!important;font-family:inherit!important;font-size:13px!important;font-weight:500!important}
+button:hover,.nav-button:hover,.latent-nav:hover,.replay-tools a:hover{background:#f0f2f4!important}
+.nav-button.active,.latent-nav.active{background:#eaf1f2!important;border-color:#183e4a!important;color:#183e4a!important}
+select,input{color:#15191c!important;background:#fff!important;border:1px solid #cfd4d8!important;border-radius:6px!important;padding:8px 10px!important;font:14px inherit!important}
+
+/* Tags and status: neutral unless the state means something. */
+.tag,.small-status,.agent-node{background:#f7f8f9!important;color:#646d74!important;border:1px solid #e3e6e9!important;border-radius:999px!important;padding:1px 8px!important;font-size:12px!important;font-weight:500!important}
+.verdict{background:#f7f8f9!important;color:#646d74!important;border:1px solid #e3e6e9!important;border-radius:999px!important;padding:2px 10px!important;font-size:12px!important}
+.verdict.success{background:#e8f4ee!important;color:#1e7a4c!important;border-color:transparent!important}
+.verdict.failure,.verdict.failed{background:#fdeeec!important;color:#b42318!important;border-color:transparent!important}
+.evidence-icon,.latent-db-mark{background:#eaf1f2!important;color:#183e4a!important}
+
+/* Stat cards: white; the numbers carry the emphasis. */
+.metric-strip{gap:12px!important;background:#fff!important;padding:16px 0!important}
+.metric-strip>div,.analytic-kpis article,.pair-metrics article{padding:16px 18px!important;border-radius:12px!important;border:1px solid #e3e6e9!important;background:#fff!important;color:#394148!important}
+.metric-strip strong,.analytic-kpis strong{color:#15191c!important;font-size:28px!important;font-weight:600!important}
+.metric-strip small,.analytic-kpis small,.analytic-kpis span,.metric-label,.quiet-label,.decision-note,.page-heading p,.body-note,.latent-hero-copy>p,.latent-scope p,.latent-scope-foot span{color:#646d74!important}
+.channel-stats{gap:12px!important}
+.channel-stats>div{background:#f7f8f9!important;border:1px solid #e3e6e9!important;border-radius:8px;padding:12px 14px!important;color:#394148!important}
+
+.arm-grid{gap:16px!important}
+.arm-card,.latent-model{padding:20px!important}
+.arm-card *,.latent-model *{color:inherit}
+.arm-phase{font-size:16px!important;color:#15191c!important;font-weight:600!important}
+
+/* Bars: brand teal for the learned channel, slate for the others, grey for the control. */
+.metric-bar{border:0!important;padding:16px 0!important}
+.metric-bar i{background:#5b97a6!important}
+.metric-bar[data-mode=embeddings] i{background:#183e4a!important}
+.metric-bar[data-mode=hybrid] i{background:#8d99ae!important}
+.metric-bar[data-mode=none] i{background:#c3c9ce!important}
+
+.video-surface,.latent-video-surface{background:#fff!important;border-radius:12px;overflow:hidden}
+.evidence-note{padding:16px 0!important}
+.latent-table,.latent-table td,.latent-table th,table,td,th{background:transparent!important;color:#394148!important}
+.latent-section-number,.latent-small-arrow,.subtle-link,.latent-source-links a{color:#183e4a!important}
+.latent-findings strong,.latent-findings h3,.latent-database strong,.latent-database h3{color:#15191c!important}
+
+.outcome-chart{display:flex;align-items:center;gap:32px;padding:20px;background:#fff;border:1px solid #e3e6e9;border-radius:12px;margin:24px 0}
+.outcome-chart svg{width:170px;flex-shrink:0}
+.outcome-chart h3{margin:0 0 8px}
+.outcome-chart p{margin:0}
+.outcome-chart text{font-family:inherit;fill:#394148}
+.outcome-chart span{display:inline-block;margin-right:18px}
+.outcome-chart i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:7px}
+
+@media(max-width:650px){
+  .outcome-chart{flex-direction:column;align-items:start}
+  .metric-strip{grid-template-columns:1fr 1fr!important}
+}
