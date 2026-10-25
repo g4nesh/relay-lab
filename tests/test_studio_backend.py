@@ -354,3 +354,15 @@ def test_missing_bundle_prevents_latent_registration_before_database(services):
     with pytest.raises(FileNotFoundError):
         connect(make(), "latent")
     assert journal.runs == {}
+
+
+def test_open_session_does_not_silently_switch_trained_adapter(services, monkeypatch):
+    journal, make = services
+    service = make()
+    policy = SimpleNamespace(model_info={"checkpoint_sha256": "first"})
+    monkeypatch.setattr(service.artifacts, "policy", lambda mode: policy)
+    sid = connect(service, "latent")
+    policy.model_info = {"checkpoint_sha256": "second"}
+    with pytest.raises(ValueError, match="pinned adapter changed"):
+        service.exchange(sid, request())
+    assert journal.commits == 0 and journal.batches == {}

@@ -341,8 +341,9 @@ class StudioService:
             raise ValueError(
                 "Latent mode needs trained sender/receiver adapters. This build supports the pinned SmolVLA + X-VLA example pair only."
             )
+        policy = None
         if workspace["mode"] in ("latent", "hybrid"):
-            self.artifacts.policy(workspace["mode"])
+            policy = self.artifacts.policy(workspace["mode"])
         run_id = "studio-" + uuid.uuid4().hex[:16]
         coordinator = self.factory()
         state = {
@@ -354,6 +355,7 @@ class StudioService:
             "hardware_execution": False,
             "studio_protocol": 2,
             "created_at": time.time(),
+            "adapter": policy.model_info if policy else None,
         }
         coordinator.create(
             run_id,
@@ -383,6 +385,8 @@ class StudioService:
             "status": "channel_open",
             "hardware_execution": False,
             "models_loaded": False,
+            "adapter_loaded": policy is not None,
+            "adapter": policy.model_info if policy else None,
         }
 
     def session(self, session_id):
@@ -712,6 +716,9 @@ class StudioService:
             import torch
 
             policy = self.artifacts.policy(mode)
+            pinned_adapter = session["state"].get("adapter")
+            if pinned_adapter is not None and policy.model_info != pinned_adapter:
+                raise ValueError("The session's pinned adapter changed; register a new channel")
             for sender in allowed:
                 if not isinstance(features, dict) or not isinstance(features.get(sender), dict):
                     raise TypeError(
@@ -759,8 +766,14 @@ class StudioService:
                         "objective": workspace["objective"],
                         "context_scope": "both local reports"
                         if mode in ("orchestrated", "hybrid")
+                        else "sender RGB and instruction"
+                        if mode == "latent"
                         else "sender report only",
-                        "generated_by": "Qwen" if generated else "learned adapter",
+                        "generated_by": "Qwen + learned adapter"
+                        if mode == "hybrid"
+                        else "Qwen"
+                        if generated
+                        else "learned adapter",
                     },
                 }
             )

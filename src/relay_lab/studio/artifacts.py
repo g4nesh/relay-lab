@@ -141,10 +141,11 @@ class ArtifactRegistry:
 
     def describe(self):
         try:
-            metadata = self.verify()
-            for mode, policy in self._policies.items():
-                metadata["checkpoints"][mode].update(policy.model_info, loaded=True)
-            return metadata
+            with self.lock:
+                metadata = self.verify()
+                for mode, policy in self._policies.items():
+                    metadata["checkpoints"][mode].update(policy.model_info, loaded=True)
+                return metadata
         except (OSError, ValueError, KeyError, TypeError) as error:
             return {
                 "available": False,

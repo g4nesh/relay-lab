@@ -203,8 +203,9 @@ the transaction and are not invented or recomputed during recovery.
 Recovery requires protocol 2, database phase `ready`, and status `running`.
 Legacy sessions without a durable journal, prepared-but-uncommitted sessions,
 terminal sessions, or inconsistent journals cannot resume; create a new channel.
-They may appear in the session catalog even when their history cannot be opened
-through the resume path. An uncertain commit stops the current in-memory session
+Their committed history can still be opened read-only through `GET /api/sessions/{id}`;
+only the explicit resume request attempts to restore an active channel.
+An uncertain commit stops the current in-memory session
 rather than advancing its local revision. An optional preview failure is reported
 separately from a successfully committed message exchange.
 
@@ -228,3 +229,28 @@ node --check src/relay_lab/studio/web/studio.js
 Tests substitute explicit service doubles where appropriate. Live exchanges still
 need the actual Spacetime and Qwen services. Health checks alone do not establish
 successful Qwen generation, native VLA execution, or task completion.
+
+## Recorded integration check
+
+The [recorded verification](../examples/studio/verification.json) contains six
+actual HTTP exchanges: all four modes with bidirectional delivery, plus learned
+latents in each one-way direction. Each response passed independent database
+readback. A fresh service recovered each bidirectional session and returned its
+original packets on retry without adding an exchange. Both one-way probes
+delivered only to the configured recipient; the arm without a peer message used
+the explicit hold guard.
+
+The browser was checked with obstacle and clear observations: the learned
+receiver previews switched from HOLD to MOVE, and selecting an older packet
+restored that exchange's own timings and predictions. Historical inspection,
+resume, model editing, the API guide, camera images and readiness controls were
+also checked. The combined Studio, adapter and evidence-packaging suite passed
+85 tests; JavaScript syntax and Ruff checks passed.
+
+These measurements use captured frozen features and fresh small-adapter/Qwen
+inference. They exclude current camera-to-backbone inference, execute no robot
+motion, and establish no new folding result.
+
+![Verified Studio topology](../examples/studio/topology.png)
+
+![Committed latent and receiver previews](../examples/studio/receiver-preview.png)
