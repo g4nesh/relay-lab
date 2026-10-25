@@ -28,7 +28,7 @@ class LocalWorkspace(StudioHandler):
         if not mutation and path in ('/projects/studio/', '/projects/studio'):
             page = (WEB / 'index.html').read_text()
             page = page.replace('Connect robot policies. Make every exchange inspectable.', 'Configure the models and review how they share information.')
-            page = page.replace('</head>', '<link rel="stylesheet" href="/projects/studio/hosted.css?v=local1"><link rel="stylesheet" href="/projects/studio/local.css?v=2"></head>')
+            page = page.replace('</head>', '<link rel="stylesheet" href="/projects/studio/hosted.css?v=local1"><link rel="stylesheet" href="/projects/studio/local.css?v=3"><link rel="stylesheet" href="/projects/shared/workspace-design.css?v=1"></head>')
             page = page.replace('http://127.0.0.1:8769/latent', '/projects/cloth/latent.html').replace('http://127.0.0.1:8769/', '/projects/cloth/')
             page = page.replace('</body>', '<script src="/projects/studio/local-tabs.js?v=1" defer></script></body>')
             page = page.replace('aria-label="Relay Studio home"', 'aria-label="Relay website homepage"')
