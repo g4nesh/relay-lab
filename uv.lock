@@ -598,6 +598,9 @@ smolvla = [
     { name = "num2words" },
     { name = "transformers" },
 ]
+xvla = [
+    { name = "transformers" },
+]
 
 [[package]]
 name = "markdown-it-py"
@@ -1344,7 +1347,7 @@ learned = [
     { name = "torch" },
 ]
 vla = [
-    { name = "lerobot", extra = ["smolvla"] },
+    { name = "lerobot", extra = ["smolvla", "xvla"] },
 ]
 
 [package.dev-dependencies]
@@ -1357,8 +1360,8 @@ dev = [
 requires-dist = [
     { name = "imageio", specifier = ">=2.35,<3" },
     { name = "imageio-ffmpeg", specifier = ">=0.5,<1" },
-    { name = "lerobot", extras = ["smolvla"], marker = "extra == 'vla'", specifier = "==0.6.1" },
-    { name = "mujoco", specifier = ">=3.2,<4" },
+    { name = "lerobot", extras = ["smolvla", "xvla"], marker = "extra == 'vla'", specifier = "==0.6.1" },
+    { name = "mujoco", specifier = ">=3.17,<4" },
     { name = "numpy", specifier = ">=1.26,<3" },
     { name = "pillow", specifier = ">=10,<13" },
     { name = "torch", marker = "extra == 'learned'", specifier = "==2.11.0" },

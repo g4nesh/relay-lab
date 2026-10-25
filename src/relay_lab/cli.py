@@ -92,6 +92,39 @@ def parser() -> argparse.ArgumentParser:
     factory_run.add_argument(
         "--communication", choices=("embeddings", "text", "none"), default="embeddings"
     )
+    cloth = commands.add_parser("cloth", help="Open a measured two-arm cloth replay")
+    cloth.add_argument("--directory", type=Path, default=Path("examples/cloth-coordination"))
+    cloth.add_argument("--port", type=int, default=8769)
+    cloth_run = commands.add_parser("cloth-run", help="Run the two-arm deformable T-shirt task")
+    cloth_run.add_argument("--seed", type=int, default=101)
+    cloth_run.add_argument(
+        "--communication",
+        choices=("embeddings", "structured_text", "hybrid", "none"),
+        default="structured_text",
+    )
+    cloth_run.add_argument(
+        "--scenario", choices=("clear", "obstacles", "delayed", "blackout"), default="delayed"
+    )
+    cloth_run.add_argument("--coordination", choices=("memory", "spacetime"), default="spacetime")
+    cloth_run.add_argument("--planner", choices=("rules", "llm"), default="llm")
+    cloth_run.add_argument("--max-ticks", type=int, default=1800)
+    cloth_run.add_argument("--no-video", action="store_true")
+    cloth_run.add_argument("--output", type=Path)
+    cloth_compare = commands.add_parser(
+        "cloth-compare", help="Matched cloth communication experiments"
+    )
+    cloth_compare.add_argument("--seeds", nargs="+", type=int, default=[101, 102, 103, 104])
+    cloth_compare.add_argument(
+        "--scenarios",
+        nargs="+",
+        choices=("clear", "obstacles", "delayed", "blackout"),
+        default=["clear", "obstacles", "delayed"],
+    )
+    cloth_compare.add_argument("--coordination", choices=("memory", "spacetime"), default="memory")
+    cloth_compare.add_argument("--planner", choices=("rules", "llm"), default="rules")
+    cloth_compare.add_argument("--max-ticks", type=int, default=1800)
+    cloth_compare.add_argument("--no-video", action="store_true")
+    cloth_compare.add_argument("--output", type=Path)
     return result
 
 
@@ -103,6 +136,43 @@ def main() -> None:
     argument_parser = parser()
     args = argument_parser.parse_args()
     try:
+        if args.command == "cloth":
+            from .cloth.server import serve_cloth
+
+            serve_cloth(args.directory, args.port)
+            return
+        if args.command == "cloth-run":
+            from .cloth.runtime import ClothConfig, run_cloth
+
+            summary = run_cloth(
+                ClothConfig(
+                    seed=args.seed,
+                    mode=args.communication,
+                    scenario=args.scenario,
+                    coordination=args.coordination,
+                    planner=args.planner,
+                    max_ticks=args.max_ticks,
+                    video=not args.no_video,
+                ),
+                args.output or default_output("cloth"),
+            )
+            print(f"{summary['status'].upper()} · {summary['ticks']} ticks · {summary['metrics']}")
+            if summary["error"]:
+                print(summary["error"])
+            return
+        if args.command == "cloth-compare":
+            from .cloth.benchmark import benchmark
+
+            benchmark(
+                output=args.output or default_output("cloth-comparison"),
+                seeds=args.seeds,
+                scenarios=args.scenarios,
+                coordination=args.coordination,
+                planner=args.planner,
+                max_ticks=args.max_ticks,
+                video=not args.no_video,
+            )
+            return
         if args.command == "factory":
             from .factory.server import serve_factory
 

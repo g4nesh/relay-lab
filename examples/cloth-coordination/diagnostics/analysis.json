@@ -1,0 +1,61 @@
+{
+  "protocol": {
+    "seeds": [
+      101,
+      102
+    ],
+    "scenario": "delayed",
+    "mode": "none",
+    "max_ticks": 1800,
+    "purpose": "Separate no-private-communication diagnostic; not pooled with the three-mode comparison",
+    "policy_weights": "same frozen models and timing as primary comparison"
+  },
+  "completed": 0,
+  "attempted": 2,
+  "episodes": [
+    {
+      "id": "delayed-101-none",
+      "seed": 101,
+      "status": "rejected",
+      "success": false,
+      "ticks": 980,
+      "hem_alignment_m": {
+        "left": 0.0642637794028383,
+        "right": 0.1007245252224413
+      },
+      "worst_hem_error_m": 0.1007245252224413,
+      "communication_bytes": 0,
+      "fixture_active": false,
+      "physics_valid": true,
+      "paired_checks": {
+        "same_initial_physics": true,
+        "same_initial_rgb": true,
+        "same_models": true,
+        "same_codec": true
+      }
+    },
+    {
+      "id": "delayed-102-none",
+      "seed": 102,
+      "status": "rejected",
+      "success": false,
+      "ticks": 980,
+      "hem_alignment_m": {
+        "left": 0.11672009495846446,
+        "right": 0.03543259861730483
+      },
+      "worst_hem_error_m": 0.11672009495846446,
+      "communication_bytes": 0,
+      "fixture_active": false,
+      "physics_valid": true,
+      "paired_checks": {
+        "same_initial_physics": true,
+        "same_initial_rgb": true,
+        "same_models": true,
+        "same_codec": true
+      }
+    }
+  ],
+  "threshold_m": 0.095,
+  "interpretation": "Both attempts missed the predefined 9.5 cm alignment threshold. Seed 101 missed by only 5.72 mm; tiny sample and a shared fixture-release interlock remain. This is evidence for these two conditions, not proof communication is universally necessary."
+}

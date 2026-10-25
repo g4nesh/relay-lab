@@ -36,6 +36,17 @@ checkpoints/factory-routing/*
 !checkpoints/factory-routing/evaluation.json
 !checkpoints/factory-routing/verification_rgb.npz
 !checkpoints/factory-routing/README.md
+!checkpoints/cloth-policies/
+checkpoints/cloth-policies/*
+!checkpoints/cloth-policies/*.md
+!checkpoints/cloth-policies/left.pt
+!checkpoints/cloth-policies/right.pt
+!checkpoints/cloth-policies/collection.json
+!checkpoints/cloth-policies/data-manifest.json
+!checkpoints/cloth-policies/evaluation.json
+!checkpoints/cloth-policies/communication*.json
+!checkpoints/cloth-policies/communication*.npy
+!checkpoints/cloth-policies/training/
 .relay-lab/
 .env
 .env.*

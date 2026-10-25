@@ -89,7 +89,23 @@ const factory_semantic_packet = table({ public: false }, {
   vector: t.array(t.f32()), text_payload: t.string(), packet_json: t.string(),
 });
 
-const spacetime = schema({ module_owner, task, assignment, plan_frame, action_frame, feedback_frame, factory_run, factory_robot, factory_batch, factory_command, factory_resource, factory_event, factory_embedding_space, factory_embedding, factory_semantic_channel, factory_semantic_packet });
+// Private two-arm cloth channels. Stored arrival ticks are a simulated network
+// schedule; reducer wall-clock latency does not advance the MuJoCo world.
+const cloth_channel = table({ public: false }, {
+  run_id: t.string().primaryKey(), worker_id: t.string(), config_json: t.string(),
+  last_tick: t.i64(), created_at: t.timestamp(), updated_at: t.timestamp(),
+});
+const cloth_frame = table({ public: false }, {
+  key: t.string().primaryKey(), run_id: t.string().index('btree'),
+  tick: t.u32(), payload_json: t.string(), created_at: t.timestamp(),
+});
+const cloth_packet = table({ public: false }, {
+  key: t.string().primaryKey(), run_id: t.string().index('btree'),
+  recipient_scope: t.string().index('btree'), sender: t.string(), observation_tick: t.u32(),
+  deliver_tick: t.u32(), expires_tick: t.u32(), dropped: t.bool(), packet_json: t.string(),
+});
+
+const spacetime = schema({ module_owner, task, assignment, plan_frame, action_frame, feedback_frame, factory_run, factory_robot, factory_batch, factory_command, factory_resource, factory_event, factory_embedding_space, factory_embedding, factory_semantic_channel, factory_semantic_packet, cloth_channel, cloth_frame, cloth_packet });
 export default spacetime;
 type Ctx = ReducerCtx<typeof spacetime.schemaType>;
 type Json = Record<string, unknown>;
@@ -130,6 +146,120 @@ function owner(ctx: Ctx): void {
   const config = ctx.db.module_owner.id.find(0);
   require(config && config.identity.isEqual(ctx.sender), 'Only the module owner may coordinate robots');
 }
+
+const CLOTH_FEATURES = ['ee_x', 'ee_y', 'ee_z', 'hem_x', 'hem_y', 'hem_z',
+  'sleeve_x', 'sleeve_y', 'sleeve_z', 'shoulder_x', 'shoulder_y', 'shoulder_z',
+  'grasped', 'obstacle_x', 'obstacle_y', 'obstacle_z', 'obstacle_radius', 'obstacle_active',
+  'hem_visible', 'sleeve_visible', 'shoulder_visible', 'grasp_sleeve', 'grasp_hem'];
+const CLOTH_SAFETY = ['grasped', 'obstacle_x', 'obstacle_y', 'obstacle_z', 'obstacle_radius', 'obstacle_active',
+  'hem_visible', 'sleeve_visible', 'shoulder_visible', 'grasp_sleeve', 'grasp_hem'];
+function clothKeys(value: Json, keys: string[], label: string) {
+  require(Object.keys(value).length === keys.length && keys.every(key => key in value), `${label} fields mismatch`);
+}
+function clothFacts(value: unknown, keys: string[]) {
+  const facts = object(value, 'cloth features');
+  clothKeys(facts, keys, 'Cloth feature');
+  for (const key of keys) {
+    number(facts[key], 'cloth feature');
+    require(Math.abs(facts[key] as number) <= 100, 'Cloth feature exceeds bounds');
+  }
+}
+function clothConfiguration(config_json: string) {
+  const config = parse(config_json, 'cloth channel configuration');
+  clothKeys(config, ['schema', 'mode', 'model', 'network', 'features', 'hybrid_fields'], 'Cloth configuration');
+  require(config.schema === 'relay.cloth.communication.v2', 'Unknown cloth channel schema');
+  require(['embeddings', 'structured_text', 'hybrid', 'none'].includes(config.mode as string), 'Unknown cloth channel mode');
+  require(JSON.stringify(config.features) === JSON.stringify(CLOTH_FEATURES), 'Cloth observation schema mismatch');
+  require(JSON.stringify(config.hybrid_fields) === JSON.stringify(CLOTH_SAFETY), 'Cloth safety schema mismatch');
+  const model = object(config.model, 'cloth feature codec');
+  text(model.space_id, 'cloth codec space', 128);
+  require(typeof model.checkpoint_sha256 === 'string' && /^[a-f0-9]{64}$/.test(model.checkpoint_sha256), 'Invalid cloth codec hash');
+  require(model.kind === 'standardized-pca-v1' && model.source_dimension === CLOTH_FEATURES.length &&
+    Number.isInteger(model.dimension) && (model.dimension as number) >= 1 && (model.dimension as number) < CLOTH_FEATURES.length,
+  'Invalid cloth codec dimensions');
+  const network = object(config.network, 'cloth network');
+  clothKeys(network, ['seed', 'min_delay_ticks', 'max_delay_ticks', 'drop_probability', 'ttl_ticks'], 'Cloth network');
+  require(Number.isInteger(network.seed) && (network.seed as number) >= 0 && (network.seed as number) < 4294967296, 'Invalid network seed');
+  require(Number.isInteger(network.min_delay_ticks) && Number.isInteger(network.max_delay_ticks) &&
+    (network.min_delay_ticks as number) >= 1 && (network.min_delay_ticks as number) <= (network.max_delay_ticks as number) &&
+    (network.max_delay_ticks as number) <= 10000, 'Invalid cloth delay limits');
+  require(Number.isInteger(network.ttl_ticks) && (network.ttl_ticks as number) >= 1 && (network.ttl_ticks as number) <= 10000, 'Invalid cloth observation TTL');
+  number(network.drop_probability, 'cloth packet drop probability');
+  require(network.drop_probability >= 0 && network.drop_probability <= 1, 'Invalid cloth packet drop probability');
+  return { config, model, network };
+}
+
+export const create_cloth_channel = spacetime.reducer({
+  run_id: t.string(), worker_id: t.string(), config_json: t.string(),
+}, (ctx, { run_id, worker_id, config_json }) => {
+  owner(ctx);
+  identifier(run_id, 'cloth run'); identifier(worker_id, 'cloth worker');
+  clothConfiguration(config_json);
+  const old = ctx.db.cloth_channel.run_id.find(run_id);
+  if (old) {
+    require(old.worker_id === worker_id && old.config_json === config_json, 'Cloth channel creation conflict');
+    return;
+  }
+  ctx.db.cloth_channel.insert({ run_id, worker_id, config_json, last_tick: -1n,
+    created_at: ctx.timestamp, updated_at: ctx.timestamp });
+});
+
+export const commit_cloth_frame = spacetime.reducer({
+  run_id: t.string(), worker_id: t.string(), tick: t.u32(), payload_json: t.string(),
+}, (ctx, { run_id, worker_id, tick, payload_json }) => {
+  owner(ctx);
+  identifier(run_id, 'cloth run'); identifier(worker_id, 'cloth worker');
+  const channel = ctx.db.cloth_channel.run_id.find(run_id);
+  require(channel && channel.worker_id === worker_id, 'Cloth channel belongs to another worker');
+  require(tick <= 100000, 'Cloth run exceeds supported simulation horizon');
+  const payload = parse(payload_json, 'cloth frame');
+  clothKeys(payload, ['packets', 'state'], 'Cloth frame');
+  const state = object(payload.state, 'cloth recorded state');
+  require(!('tick' in state) || state.tick === tick, 'Cloth recorded state tick mismatch');
+  const key = `${run_id}:${tick}`, old = ctx.db.cloth_frame.key.find(key);
+  if (old) {
+    require(old.payload_json === payload_json, 'Cloth frame retry changes committed content');
+    return;
+  }
+  require(BigInt(tick) > channel.last_tick, 'Cloth frame cannot move backwards');
+  require(Array.isArray(payload.packets) && payload.packets.length <= 2, 'Too many cloth packets');
+  const { config, model, network } = clothConfiguration(channel.config_json);
+  const senders = new Set<string>();
+  for (const raw of payload.packets) {
+    const packet = object(raw, 'cloth packet');
+    clothKeys(packet, ['schema', 'run_id', 'mode', 'packet_id', 'sender', 'recipient', 'observation_tick',
+      'emitted_tick', 'deliver_tick', 'expires_tick', 'dropped', 'source_sha256', 'checkpoint_sha256', 'space_id', 'content'], 'Cloth packet');
+    require(config.mode !== 'none' && packet.schema === config.schema && packet.mode === config.mode && packet.run_id === run_id,
+      'Cloth packet run/schema/mode mismatch');
+    require(packet.sender === 'left' || packet.sender === 'right', 'Invalid cloth sender');
+    const sender = packet.sender as string;
+    require(!senders.has(sender), 'Duplicate cloth sender in batch'); senders.add(sender);
+    require(packet.recipient === (sender === 'left' ? 'right' : 'left'), 'Cloth packet must go to the peer');
+    require(packet.observation_tick === tick && packet.emitted_tick === tick && packet.packet_id === `${sender}-${tick}`,
+      'Cloth observation timestamp or identity mismatch');
+    require(Number.isInteger(packet.deliver_tick) && (packet.deliver_tick as number) >= tick + (network.min_delay_ticks as number) &&
+      (packet.deliver_tick as number) <= tick + (network.max_delay_ticks as number), 'Cloth arrival outside configured delay range');
+    require(packet.expires_tick === tick + (network.ttl_ticks as number) && typeof packet.dropped === 'boolean', 'Invalid cloth expiration or drop flag');
+    require(typeof packet.source_sha256 === 'string' && /^[a-f0-9]{64}$/.test(packet.source_sha256), 'Invalid cloth source provenance');
+    require(packet.checkpoint_sha256 === model.checkpoint_sha256 && packet.space_id === model.space_id, 'Cloth codec identity mismatch');
+    const content = object(packet.content, 'cloth message content');
+    clothKeys(content, config.mode === 'embeddings' ? ['vector'] : config.mode === 'structured_text' ? ['text'] : ['vector', 'text'], 'Cloth content');
+    if ('vector' in content) {
+      require(Array.isArray(content.vector) && content.vector.length === model.dimension, 'Invalid cloth latent dimension');
+      for (const value of content.vector) { number(value, 'cloth latent'); require(Math.abs(value) <= 1000, 'Cloth latent exceeds bounds'); }
+    }
+    if ('text' in content) {
+      text(content.text, 'cloth structured text', 6000);
+      clothFacts(parse(content.text, 'cloth structured facts'), config.mode === 'structured_text' ? CLOTH_FEATURES : CLOTH_SAFETY);
+    }
+    ctx.db.cloth_packet.insert({ key: `${run_id}:${packet.packet_id}`, run_id,
+      recipient_scope: `${run_id}:${packet.recipient}`, sender, observation_tick: tick,
+      deliver_tick: packet.deliver_tick as number, expires_tick: packet.expires_tick as number,
+      dropped: packet.dropped as boolean, packet_json: JSON.stringify(packet) });
+  }
+  ctx.db.cloth_frame.insert({ key, run_id, tick, payload_json, created_at: ctx.timestamp });
+  ctx.db.cloth_channel.run_id.update({ ...channel, last_tick: BigInt(tick), updated_at: ctx.timestamp });
+});
 function ownedTask(ctx: Ctx, task_id: string) {
   owner(ctx);
   identifier(task_id, 'task ID');

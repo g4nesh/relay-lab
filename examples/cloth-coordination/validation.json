@@ -1,0 +1,102 @@
+{
+  "recorded_date": "2026-10-24 America/Los_Angeles",
+  "primary_planned_runs": 12,
+  "primary_recorded_runs": 12,
+  "primary_successes": 12,
+  "qwen_successes": 3,
+  "qwen_calls": 96,
+  "no_private_communication_successes": 0,
+  "no_private_communication_attempts": 2,
+  "all_task_episode_audits": true,
+  "all_task_spacetime_audits": true,
+  "hybrid_vs_embedding_action_checks": [
+    {
+      "seed": 101,
+      "scenario": "clear",
+      "same_applied_actions_every_tick": true,
+      "same_final_vertices": true
+    },
+    {
+      "seed": 101,
+      "scenario": "delayed",
+      "same_applied_actions_every_tick": true,
+      "same_final_vertices": true
+    },
+    {
+      "seed": 102,
+      "scenario": "clear",
+      "same_applied_actions_every_tick": true,
+      "same_final_vertices": true
+    },
+    {
+      "seed": 102,
+      "scenario": "delayed",
+      "same_applied_actions_every_tick": true,
+      "same_final_vertices": true
+    }
+  ],
+  "physics_reexecution": {
+    "kind": "independent_mujoco_action_reexecution",
+    "source_run_id": "cloth-5ed7e3ce45fd4e1d",
+    "source_artifact_sha256": {
+      "summary.json": "26a65cef6adec643f1ed1ce963428cea5e745cbfa0c4eedf0b0082cf82c59fa0",
+      "final.json": "4a01e673cb0e8e480d0e11260c277146e40e6310a3d6ad48e0a246e5dbc4bce4",
+      "events.jsonl.gz": "60e32e045d58488a4572d52d97011554a2637241f78758fda9fff62b2b8ad778"
+    },
+    "reexecutes_neural_models": false,
+    "reexecutes_communication": false,
+    "verified": true,
+    "steps": 1126,
+    "maximum_robot_state_error": 0.0,
+    "video_fps": 25,
+    "final_vertices_bitwise_equal": true,
+    "same_final_metrics": true,
+    "same_fixture_state": true,
+    "same_tick_count": true
+  },
+  "released_model_trial": {
+    "kind": "measured_joint_pretrained_trial_audit",
+    "run_id": "cloth-pretrained-7707b7eeb252",
+    "spacetime_frames": 13,
+    "spacetime_packets": 24,
+    "database_packets_match_recorded_publications": true,
+    "actual_model_calls": 24,
+    "complete_token_roundtrips": 24,
+    "maximum_applied_delta_m": 0.018000011967599726,
+    "delta_audit_tolerance_m": 1e-07,
+    "delta_tolerance_reason": "The X-VLA proprioception input uses float32; action bounds computed from that input differ from saved float64 MuJoCo positions by numerical rounding.",
+    "physical_grasp_observations": 0,
+    "physical_fold_success": false,
+    "qwen_generations": 11,
+    "artifact_sha256": {
+      "report.json": "ae3a96eda1e6f503045316ed74b680b32f74214608e517ab47464fa8da5aa9ac",
+      "communication.json": "47dfe2cd7b3d7640b103574786a4b72c8fd96820b8a0c44899c5d39481840512",
+      "overview.mp4": "e9835bf7db061cb609c35b22d6e20084e1a5ea0dcd0a2009e445c81c57c9c215",
+      "initial.png": "1b777663ca03acf1dc10d02fddeb972541fda6e27286724b1d2592e9a40fbc6c",
+      "final.png": "732f5aefb1228703287e931820c2e3cad60f69a5194100cdb390e2d43fe3ef53"
+    }
+  },
+  "tests": {
+    "full_regression_before_final_adapter_and_report_refinements": {
+      "passed": 619,
+      "skipped": 8,
+      "real_spacetime_integration": true
+    },
+    "ruff": "passed",
+    "javascript_syntax": "passed",
+    "spacetime_typescript": "passed",
+    "latest_focused_checks": {
+      "passed": 54,
+      "scope": "policies, pretrained adapters, pretrained team, reporting, HTTP replay and independent physics reexecution"
+    }
+  },
+  "scope": "Small paired simulation pilot; task controllers and numeric PCA. The released foundation-model pair has no demonstrated grasp or fold.",
+  "task_episode_audits_count": 17,
+  "browser_verification": [
+    "17 recorded episodes present",
+    "12 matched conditions displayed as 4/4 per mode",
+    "three suites independently selectable",
+    "failed diagnostics retained",
+    "verified 25 Hz complete fold and local camera videos load"
+  ]
+}

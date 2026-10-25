@@ -1,0 +1,14 @@
+{
+  "seed": 102,
+  "mode": "structured_text",
+  "scenario": "clear",
+  "coordination": "spacetime",
+  "planner": "rules",
+  "max_ticks": 1800,
+  "publish_every": 4,
+  "video_every": 4,
+  "video": true,
+  "fixture": true,
+  "codec": "checkpoints/cloth-policies/communication.json",
+  "run_id": "cloth-785e00eb67644753"
+}

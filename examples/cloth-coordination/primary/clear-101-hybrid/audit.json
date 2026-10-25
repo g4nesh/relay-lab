@@ -1,0 +1,22 @@
+{
+  "schema": "relay.cloth.audit.v1",
+  "run_id": "cloth-0c39fb9fe6184415",
+  "mode": "hybrid",
+  "reported_status": "succeeded",
+  "evidence_valid": true,
+  "success_verified": true,
+  "physical_success": true,
+  "ticks": 974,
+  "neural_actions": 1948,
+  "packets": 488,
+  "durable_frames": 244,
+  "issues": [],
+  "warnings": [],
+  "codec_sha256": "fd6cc849059e65b1a64fedc668abb1e79fb8c2d05a2cad467e01d1d736022661",
+  "actor_sha256": {
+    "left": "33d38794b1aea9f89bf622262d5482c405609a537350cc982b2c7c230737d709",
+    "right": "1dfee3e300a46e9007bed395b4b2bac0102a1d37ec230cc0bd28d41bfc58555d"
+  },
+  "spacetime_checked": true,
+  "scope": "Recorded causal and geometric consistency; not independent execution attestation. RGB bytes and full per-tick physics states are unavailable; neural outputs and speed are recorded measurements."
+}

@@ -1,8 +1,58 @@
 # Relay Lab
 
-An original multi-robot simulation project with a five-robot pilot factory and
-a learned-VLA tabletop workcell. Both use local language-model coordination and
-SpacetimeDB synchronization.
+An original robot-coordination research project. The current workcell brings
+the experiment back to **two articulated arms folding a deformable T-shirt**,
+with different local observations, moving obstacles, delayed messages, Qwen
+phase review and SpacetimeDB storage. Earlier factory and parcel workcells remain
+available as separate experiments.
+
+## Two-arm cloth workcell
+
+The MuJoCo environment has physical flex cloth, self-contact, table/obstacle
+contact, original articulated arms and recorded sensor cameras. It compares
+**learned feature embeddings, full-precision structured text, and hybrid
+communication** with the same policies, scenes, delay schedules and budgets.
+
+The working controller pair uses two distinct, original task-trained neural
+architectures assisted by local landmark measurements. It is not a pair of
+general-purpose pretrained foundation VLAs. A separate released-model transfer
+probe records what an actual pretrained checkpoint does in the new embodiment.
+The physical baseline uses marked grasp tabs and an explicit vacuum-table
+fixture, released before scoring; it is not a calibrated real-garment simulator.
+
+```bash
+uv sync --extra learned
+python3 scripts/spacetime.py publish
+uv run --extra learned relay-lab cloth-run --communication structured_text \
+  --scenario delayed --coordination spacetime --planner llm \
+  --output runs/cloth-task
+uv run --extra learned relay-lab cloth-compare --seeds 101 102 \
+  --scenarios clear delayed --coordination spacetime --output runs/cloth-comparison
+uv run --extra learned relay-lab cloth --directory runs/cloth-comparison
+```
+
+The [recorded cloth comparison](examples/cloth-coordination/README.md) completed
+**4/4 tasks with each communication format**. Structured text was fastest
+(40.36 simulated seconds mean); embeddings used 42.2% smaller JSON packets.
+Hybrid matched embeddings’ actions exactly while sending more data. A separate
+Qwen/Spacetime suite completed 3/3; both no-private-communication diagnostics
+missed the alignment threshold. These are small paired pilots, not general
+performance guarantees.
+
+The actual **SmolVLA + X-VLA** integration performed 24 neural calls with Qwen
+and audited Spacetime messages, but **made no grasps or fold** in its short,
+uncalibrated trial. [Evidence and remaining adaptation work](examples/cloth-coordination/pretrained/README.md).
+
+Replay all 17 task-controller episodes without running models or a database:
+
+```bash
+uv run relay-lab cloth
+```
+
+Open <http://127.0.0.1:8769>. See [cloth environment and experimental protocol](docs/cloth-coordination.md)
+for model provenance, physical assumptions, information boundaries and results interpretation.
+
+![Verified two-arm MuJoCo fold](examples/cloth-coordination/workcell.png)
 
 ## Factory dashboard
 
@@ -52,8 +102,7 @@ The controlled comparison completed **12/12 tasks with either embeddings or
 text, versus 2/12 without private communication**. Text matched the result with
 smaller payloads. A separate real Qwen/Spacetime suite preserves one interrupted
 database run in its results; it is not pooled with the controlled comparison.
-The current project has 480 passing tests across the full regression and final
-server checks.
+That factory revision passed 480 tests across its regression and final server checks.
 
 ```bash
 uv run --extra learned relay-lab factory-run \

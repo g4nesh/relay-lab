@@ -1,0 +1,40 @@
+{
+  "source": "original MuJoCo RGB and local observations",
+  "files": [
+    {
+      "path": "datasets/cloth-policies/left-rgb.npz",
+      "sha256": "9d52d94e2fbb34b62b768a88d3247688d47ec50c9915ce7e4eaf5e035808f4d0",
+      "bytes": 493790
+    },
+    {
+      "path": "datasets/cloth-policies/right-rgb.npz",
+      "sha256": "0de4bc5478b8b6a056e55f3f30e96cb046417b12912ea6ac63c18505d192cbff",
+      "bytes": 521955
+    },
+    {
+      "path": "datasets/cloth-policies/left-observations.json",
+      "sha256": "fbbafd543fb3ac1a658dd6ad793796d542efe283e96c67d5357c86f6e58c028c",
+      "bytes": 32732
+    },
+    {
+      "path": "datasets/cloth-policies/right-observations.json",
+      "sha256": "4ba7f234d4284d2e5017cce85e4325a39426be57930d7d27dfa8c39ff07f8a81",
+      "bytes": 32896
+    },
+    {
+      "path": "datasets/cloth-policies/communication-training.json",
+      "sha256": "a155bce4429415fadf5b339746f983321f3deb2c38fe932f68bef6ec4b29634e",
+      "bytes": 107191
+    },
+    {
+      "path": "datasets/cloth-policies/communication-training.npy",
+      "sha256": "e220ba8b23380a9f6af05025e82652f2e15aa1fed2c8bf64a044464ad6c43009",
+      "bytes": 13568
+    },
+    {
+      "path": "datasets/cloth-policies/collection.json",
+      "sha256": "33df65c2487abf1e81186e57279e98aba2b08436bd87b520f9cc3ae93e86880e",
+      "bytes": 285
+    }
+  ]
+}

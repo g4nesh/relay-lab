@@ -1,0 +1,11 @@
+{
+  "seeds": [
+    101,
+    102
+  ],
+  "scenario": "delayed",
+  "mode": "none",
+  "max_ticks": 1800,
+  "purpose": "Separate no-private-communication diagnostic; not pooled with the three-mode comparison",
+  "policy_weights": "same frozen models and timing as primary comparison"
+}
