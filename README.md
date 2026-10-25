@@ -47,6 +47,23 @@ uses one customer workspace per installation, persistent state, and a private
 Spacetime database; it is not an already hosted service. The existing learned and
 language communication probes remain available separately.
 
+The shared dashboard and coordination backend are also published as the private
+[Relay Studio repository](https://github.com/g4nesh/relay-studio). Relay Lab is
+the shared source; Studio exports an explicit allowlist with no simulator,
+training code, checkpoints or research recordings. Follow the
+[repository synchronization guide](docs/studio-sync.md) and run
+`python3 scripts/export_studio.py --check-against /path/to/relay-studio` before
+shipping paired changes.
+
+Both local launchers use the same ASGI backend for live subscriptions and native
+Spacetime scheduling. Build the subscription bridge with
+`npm --prefix subscriptions ci && npm --prefix subscriptions run build`, and
+publish the updated Spacetime module before starting the app. See
+[live coordination and scheduled maintenance](docs/coordination.md).
+For the standalone hosted workspace, the shared backend also supports
+[Render with durable Spacetime storage](docs/render-free.md); use the matching
+SpacetimeDB 2.13 module and SDK.
+
 ## Two-model developer workspace
 
 [Relay Studio](docs/studio.md) is a coordination console for two VLA models,
@@ -62,7 +79,7 @@ checks report the actual database connection, adapter provenance and local Qwen
 runtime. Historical sessions remain inspectable.
 
 ```bash
-uv run --extra learned relay-lab studio --port 8770
+uv run --extra learned --extra deploy relay-lab studio --port 8770
 ```
 
 Open <http://127.0.0.1:8770/>. Registration does not automatically load arbitrary
@@ -419,5 +436,5 @@ installed package and active test suite.
 ## Complete website + Studio
 
 The complete website is in [`website/`](website/). Run it with the working Studio
-using `PYTHONPATH=src .venv/bin/python scripts/serve_workspace.py` after backend and
+using `uv run --extra learned --extra deploy python scripts/serve_workspace.py` after backend and
 SpacetimeDB setup. See [local workspace instructions](docs/website-workspace.md).

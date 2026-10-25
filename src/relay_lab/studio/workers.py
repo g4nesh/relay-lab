@@ -21,6 +21,7 @@ class WorkerStore:
     def __init__(self, storage, access, registry, service):
         self.path = Path(storage) / "workers.sqlite3"
         self.access, self.registry, self.service = access, registry, service
+        self.coordination = None
         with self._db() as db:
             db.execute("""CREATE TABLE IF NOT EXISTS runtime_worker (
                 id TEXT PRIMARY KEY, name TEXT NOT NULL, agent_id TEXT NOT NULL,
@@ -192,7 +193,23 @@ class WorkerStore:
                 raise ValueError("Agent connection not found")
             db.execute("UPDATE runtime_worker SET active=0 WHERE id=?", (worker_id,))
             self.access.audit(actor, "worker.revoked", worker_id)
+        if self.coordination is not None:
+            self.coordination.revoke(worker_id)
         return {"worker": self._public({**dict(row), "active": 0})}
+
+    def revoked_ids(self, *, after="", limit=100):
+        """Private, bounded reconciliation view containing no credential fields."""
+        if not isinstance(after, str) or len(after) > 128:
+            raise ValueError("Invalid worker reconciliation cursor")
+        if type(limit) is not int or not 1 <= limit <= 100:
+            raise ValueError("Worker reconciliation pages must contain 1–100 IDs")
+        with self._db() as db:
+            rows = db.execute(
+                "SELECT id FROM runtime_worker WHERE active=0 AND registry_id=? AND id>? "
+                "ORDER BY id LIMIT ?",
+                (self.registry.registry_id, after, limit),
+            ).fetchall()
+        return [row["id"] for row in rows]
 
     def authenticate(self, token):
         if not isinstance(token, str) or not token.startswith("relay_worker_") or len(token) > 128:
@@ -227,6 +244,8 @@ class WorkerStore:
             if row is None or not row["active"] or row["expires_at"] <= time.time():
                 raise AuthenticationError("Agent connection expired or was revoked")
             self._approved(dict(row), self._issuer(dict(row)))
+            if self.coordination is not None:
+                self.coordination.heartbeat(worker, LEASE_SECONDS)
             now = time.time()
             db.execute(
                 "UPDATE runtime_worker SET last_seen=?,controller_label=? WHERE id=?",

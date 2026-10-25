@@ -6,6 +6,10 @@
  * replayed after a process crash: the simulator may already have moved.
  */
 import { schema, table, t, SenderError, type ReducerCtx } from 'spacetimedb/server';
+import { ScheduleAt } from 'spacetimedb';
+import { studioTables, studio_watchdog, studio_job_trigger } from './studio_tables';
+import { DAY_US, HOUR_US, STUDIO_LIMITS, STUDIO_METRICS, STUDIO_JOBS, STUDIO_STATUSES,
+  studioTerminal, nextStudioBoundary, studioTaskDeadline } from './studio_policy';
 
 const module_owner = table({ public: false }, {
   id: t.u8().primaryKey(), identity: t.identity(),
@@ -105,7 +109,16 @@ const cloth_packet = table({ public: false }, {
   deliver_tick: t.u32(), expires_tick: t.u32(), dropped: t.bool(), packet_json: t.string(),
 });
 
-const spacetime = schema({ module_owner, task, assignment, plan_frame, action_frame, feedback_frame, factory_run, factory_robot, factory_batch, factory_command, factory_resource, factory_event, factory_embedding_space, factory_embedding, factory_semantic_channel, factory_semantic_packet, cloth_channel, cloth_frame, cloth_packet });
+// Sole durable control-plane checkpoint; never exposed to browser subscriptions.
+const studio_state = table({ public: false }, {
+  id: t.u8().primaryKey(), revision: t.u32(), payload: t.string(), last_operation: t.string(),
+});
+const studio_lease = table({ public: false }, {
+  id: t.u8().primaryKey(), holder: t.string(), expires_us: t.u64(), last_operation: t.string(),
+});
+
+const spacetime = schema({ studio_lease, studio_state, module_owner, task, assignment, plan_frame, action_frame, feedback_frame, factory_run, factory_robot, factory_batch, factory_command, factory_resource, factory_event, factory_embedding_space, factory_embedding, factory_semantic_channel, factory_semantic_packet, cloth_channel, cloth_frame, cloth_packet, ...studioTables });
+
 export default spacetime;
 type Ctx = ReducerCtx<typeof spacetime.schemaType>;
 type Json = Record<string, unknown>;
@@ -551,9 +564,8 @@ function factoryMessages(ctx: Ctx, run_id: string, messages: unknown, tick: numb
   }
 }
 
-export const create_factory_run = spacetime.reducer({
-  run_id: t.string(), worker_id: t.string(), spec_json: t.string(), state_json: t.string(),
-}, (ctx, args) => {
+const create_factory_run_args = { run_id: t.string(), worker_id: t.string(), spec_json: t.string(), state_json: t.string(), };
+function create_factory_run_handler(ctx: Ctx, args: { run_id: string; worker_id: string; spec_json: string; state_json: string }) {
   owner(ctx); identifier(args.run_id, 'factory run'); identifier(args.worker_id, 'factory worker');
   const spec = parse(args.spec_json, 'factory spec'), state = parse(args.state_json, 'initial factory state');
   const prior = ctx.db.factory_run.run_id.find(args.run_id);
@@ -594,11 +606,20 @@ export const create_factory_run = spacetime.reducer({
   }
   ctx.db.factory_run.insert({ ...args, revision: 0, tick: 0, max_ticks: spec.max_ticks,
     phase: 'ready', status: 'running', created_at: ctx.timestamp, updated_at: ctx.timestamp });
+}
+export const create_factory_run = spacetime.reducer(create_factory_run_args, (ctx, args) => {
+  require(!ctx.db.studio_state.id.find(0), 'Studio storage requires a fenced request');
+  create_factory_run_handler(ctx, args);
+});
+export const studio_create_factory_run = spacetime.reducer({
+  holder: t.string(), ...create_factory_run_args,
+}, (ctx, { holder, ...args }) => {
+  studioLease(ctx, holder);
+  create_factory_run_handler(ctx, args);
 });
 
-export const prepare_factory_batch = spacetime.reducer({
-  run_id: t.string(), worker_id: t.string(), revision: t.u32(), prepare_json: t.string(),
-}, (ctx, args) => {
+const prepare_factory_batch_args = { run_id: t.string(), worker_id: t.string(), revision: t.u32(), prepare_json: t.string(), };
+function prepare_factory_batch_handler(ctx: Ctx, args: { run_id: string; worker_id: string; revision: number; prepare_json: string }) {
   const run = factoryRun(ctx, args.run_id, args.worker_id), key = `${args.run_id}:${args.revision}`;
   const prior = ctx.db.factory_batch.key.find(key);
   if (prior) {
@@ -666,11 +687,20 @@ export const prepare_factory_batch = spacetime.reducer({
   ctx.db.factory_batch.insert({ key, run_id: args.run_id, revision: args.revision,
     prepare_json: args.prepare_json, result_json: '', created_at: ctx.timestamp });
   ctx.db.factory_run.run_id.update({ ...run, phase: 'executing', updated_at: ctx.timestamp });
+}
+export const prepare_factory_batch = spacetime.reducer(prepare_factory_batch_args, (ctx, args) => {
+  require(!ctx.db.studio_state.id.find(0), 'Studio storage requires a fenced request');
+  prepare_factory_batch_handler(ctx, args);
+});
+export const studio_prepare_factory_batch = spacetime.reducer({
+  holder: t.string(), ...prepare_factory_batch_args,
+}, (ctx, { holder, ...args }) => {
+  studioLease(ctx, holder);
+  prepare_factory_batch_handler(ctx, args);
 });
 
-export const commit_factory_batch = spacetime.reducer({
-  run_id: t.string(), worker_id: t.string(), revision: t.u32(), result_json: t.string(),
-}, (ctx, args) => {
+const commit_factory_batch_args = { run_id: t.string(), worker_id: t.string(), revision: t.u32(), result_json: t.string(), };
+function commit_factory_batch_handler(ctx: Ctx, args: { run_id: string; worker_id: string; revision: number; result_json: string }) {
   const run = factoryRun(ctx, args.run_id, args.worker_id), key = `${args.run_id}:${args.revision}`;
   const batch = ctx.db.factory_batch.key.find(key); require(batch, 'Factory batch not authorized');
   if (batch.result_json) { require(batch.result_json === args.result_json, 'Conflicting duplicate factory outcome'); return; }
@@ -737,12 +767,21 @@ export const commit_factory_batch = spacetime.reducer({
   const status = success ? 'succeeded' : complete && routing ? 'rejected' : (state.tick as number) >= run.max_ticks ? 'exhausted' : 'running';
   ctx.db.factory_run.run_id.update({ ...run, state_json: JSON.stringify(state), tick: state.tick as number,
     revision: run.revision + 1, phase: status === 'running' ? 'ready' : 'terminal', status, updated_at: ctx.timestamp });
+}
+export const commit_factory_batch = spacetime.reducer(commit_factory_batch_args, (ctx, args) => {
+  require(!ctx.db.studio_state.id.find(0), 'Studio storage requires a fenced request');
+  commit_factory_batch_handler(ctx, args);
+});
+export const studio_commit_factory_batch = spacetime.reducer({
+  holder: t.string(), ...commit_factory_batch_args,
+}, (ctx, { holder, ...args }) => {
+  studioLease(ctx, holder);
+  commit_factory_batch_handler(ctx, args);
 });
 
 
-export const abort_factory_run = spacetime.reducer({
-  run_id: t.string(), worker_id: t.string(), reason: t.string(),
-}, (ctx, args) => {
+const abort_factory_run_args = { run_id: t.string(), worker_id: t.string(), reason: t.string(), };
+function abort_factory_run_handler(ctx: Ctx, args: { run_id: string; worker_id: string; reason: string }) {
   const run = factoryRun(ctx, args.run_id, args.worker_id);
   text(args.reason, 'factory abort reason', 2048);
   const state = parse(run.state_json, 'factory state');
@@ -756,6 +795,16 @@ export const abort_factory_run = spacetime.reducer({
   }
   ctx.db.factory_run.run_id.update({ ...run, status: 'failed', phase: 'terminal',
     state_json: JSON.stringify({ ...state, abort_reason: args.reason }), updated_at: ctx.timestamp });
+}
+export const abort_factory_run = spacetime.reducer(abort_factory_run_args, (ctx, args) => {
+  require(!ctx.db.studio_state.id.find(0), 'Studio storage requires a fenced request');
+  abort_factory_run_handler(ctx, args);
+});
+export const studio_abort_factory_run = spacetime.reducer({
+  holder: t.string(), ...abort_factory_run_args,
+}, (ctx, { holder, ...args }) => {
+  studioLease(ctx, holder);
+  abort_factory_run_handler(ctx, args);
 });
 
 
@@ -849,6 +898,300 @@ function semanticOrigin(packet: Json) {
   return JSON.stringify(Object.fromEntries(Object.entries(packet).filter(([key]) => !['packet_id', 'emitted_tick', 'expires_tick'].includes(key)).sort(([a], [b]) => a.localeCompare(b))));
 }
 
+// Studio operations are private advisory projections. They never dispatch,
+// retry or change the authoritative robot execution journal.
+function studioScope(ctx: Ctx, workspace_id: string): void {
+  identifier(workspace_id, 'workspace ID');
+  if (!ctx.db.studio_workspace.workspace_id.find(workspace_id)) {
+    require(ctx.db.studio_workspace.count() < BigInt(STUDIO_LIMITS.workspaces), 'Workspace capacity reached');
+    ctx.db.studio_workspace.insert({ workspace_id, created_at: ctx.timestamp });
+  }
+}
+function studioCapacity<T>(rows: Iterable<T>, maximum: number, label: string): void {
+  let count = 0;
+  for (const _row of rows) { count++; require(count < maximum, `${label} capacity reached; run retention cleanup`); }
+}
+function studioScheduler(ctx: Ctx): void {
+  require(ctx.sender.isEqual(ctx.identity), 'Only the database scheduler may execute this function');
+}
+function studioAlert(ctx: Ctx, workspace_id: string, kind: string, subject_id: string,
+  generation: bigint, message: string): void {
+  const key = `${workspace_id}:${kind}:${subject_id}`;
+  const prior = ctx.db.studio_attention.key.find(key);
+  if (prior?.status === 'open' && prior.generation === generation) return;
+  if (!prior) studioCapacity(ctx.db.studio_attention.workspace_id.filter(workspace_id), STUDIO_LIMITS.attention, 'Attention');
+  const row = { key, workspace_id, kind, subject_id, generation, message,
+    status: 'open', created_at: ctx.timestamp, updated_at: ctx.timestamp };
+  if (prior) ctx.db.studio_attention.key.update(row); else ctx.db.studio_attention.insert(row);
+}
+function studioResolve(ctx: Ctx, workspace_id: string, kind: string, subject_id: string): void {
+  const row = ctx.db.studio_attention.key.find(`${workspace_id}:${kind}:${subject_id}`);
+  if (row && row.status !== 'resolved') ctx.db.studio_attention.key.update({ ...row, status: 'resolved', updated_at: ctx.timestamp });
+}
+function studioGoal(ctx: Ctx, workspace_id: string, task_id: string): Json | undefined {
+  const run = ctx.db.factory_run.run_id.find(task_id);
+  if (!run) return;
+  const state = parse(run.state_json, 'task state');
+  require(state.task === 'studio-objective-v1' && state.registry_id === workspace_id, 'Task does not belong to this workspace');
+  return object(state.goal, 'goal');
+}
+function studioCheckPresence(ctx: Ctx, key: string, generation: bigint): void {
+  const row = ctx.db.studio_presence.key.find(key);
+  if (!row || row.generation !== generation || row.status !== 'online' || row.lease_expires_us > ctx.timestamp.microsSinceUnixEpoch) return;
+  ctx.db.studio_presence.key.update({ ...row, status: 'stale', watchdog_id: 0n, updated_at: ctx.timestamp });
+  studioAlert(ctx, row.workspace_id, 'worker_stale', row.worker_id, generation,
+    'Runtime heartbeat expired. Inspect the runtime before resuming execution.');
+}
+function studioCheckTask(ctx: Ctx, key: string, revision: bigint): void {
+  const row = ctx.db.studio_task_watch.key.find(key);
+  if (!row || BigInt(row.revision) !== revision || studioTerminal(row.status)) return;
+  const goal = studioGoal(ctx, row.workspace_id, row.task_id);
+  if (goal && studioTerminal(String(goal.status))) {
+    ctx.db.studio_watchdog.scheduledId.delete(row.watchdog_id);
+    ctx.db.studio_task_watch.key.update({ ...row, status: String(goal.status), deadline_us: 0n, watchdog_id: 0n, updated_at: ctx.timestamp });
+    studioResolve(ctx, row.workspace_id, 'task_overdue', row.task_id);
+    return;
+  }
+  if (row.deadline_us === 0n || row.deadline_us > ctx.timestamp.microsSinceUnixEpoch) return;
+  ctx.db.studio_task_watch.key.update({ ...row, watchdog_id: 0n, updated_at: ctx.timestamp });
+  studioAlert(ctx, row.workspace_id, 'task_overdue', row.task_id, revision,
+    'Task deadline passed. Review progress; no robot action was retried.');
+}
+
+function studioHandleHeartbeat(ctx: Ctx, args: { workspace_id: string, worker_id: string, agent_id: string, lease_seconds: number }) {
+  owner(ctx); studioScope(ctx, args.workspace_id);
+  identifier(args.worker_id, 'worker ID'); identifier(args.agent_id, 'agent ID');
+  require(args.lease_seconds >= 1 && args.lease_seconds <= 300, 'Lease must be 1 to 300 seconds');
+  const key = `${args.workspace_id}:${args.worker_id}`, prior = ctx.db.studio_presence.key.find(key);
+  require(!prior || prior.agent_id === args.agent_id, 'Worker agent binding is immutable');
+  require(prior?.status !== 'revoked', 'Worker credential is revoked');
+  if (!prior) studioCapacity(ctx.db.studio_presence.workspace_id.filter(args.workspace_id), STUDIO_LIMITS.presence, 'Presence');
+  if (prior) ctx.db.studio_watchdog.scheduledId.delete(prior.watchdog_id);
+  const generation = (prior?.generation ?? 0n) + 1n;
+  const lease_expires_us = ctx.timestamp.microsSinceUnixEpoch + BigInt(args.lease_seconds) * 1_000_000n;
+  const timer = ctx.db.studio_watchdog.insert({ scheduledId: 0n, scheduledAt: ScheduleAt.time(lease_expires_us),
+    workspace_id: args.workspace_id, kind: 'presence', subject_id: args.worker_id, generation });
+  const row = { key, workspace_id: args.workspace_id, worker_id: args.worker_id, agent_id: args.agent_id,
+    generation, lease_expires_us, status: 'online', watchdog_id: timer.scheduledId, updated_at: ctx.timestamp };
+  if (prior) ctx.db.studio_presence.key.update(row); else ctx.db.studio_presence.insert(row);
+  studioResolve(ctx, args.workspace_id, 'worker_stale', args.worker_id);
+}
+export const studio_heartbeat = spacetime.reducer({ workspace_id: t.string(), worker_id: t.string(),
+  agent_id: t.string(), lease_seconds: t.u32() }, (ctx, args) => {
+  owner(ctx);
+  require(!ctx.db.studio_state.id.find(0), 'Studio storage requires a fenced request');
+  studioHandleHeartbeat(ctx, args);
+});
+export const studio_fenced_heartbeat = spacetime.reducer({ holder: t.string(), ...{ workspace_id: t.string(), worker_id: t.string(),
+  agent_id: t.string(), lease_seconds: t.u32() } }, (ctx, { holder, ...args }) => {
+  studioLease(ctx, holder);
+  studioHandleHeartbeat(ctx, args);
+});
+
+function studioHandleRevokeWorker(ctx: Ctx, args: { workspace_id: string, worker_id: string }) {
+  owner(ctx); studioScope(ctx, args.workspace_id); identifier(args.worker_id, 'worker ID');
+  const row = ctx.db.studio_presence.key.find(`${args.workspace_id}:${args.worker_id}`);
+  if (!row) {
+    studioCapacity(ctx.db.studio_presence.workspace_id.filter(args.workspace_id), STUDIO_LIMITS.presence, 'Presence');
+    ctx.db.studio_presence.insert({ key: `${args.workspace_id}:${args.worker_id}`, ...args, agent_id: '',
+      generation: 1n, lease_expires_us: 0n, status: 'revoked', watchdog_id: 0n, updated_at: ctx.timestamp });
+    return;
+  }
+  if (row.status === 'revoked') return;
+  ctx.db.studio_watchdog.scheduledId.delete(row.watchdog_id);
+  ctx.db.studio_presence.key.update({ ...row, generation: row.generation + 1n, status: 'revoked', watchdog_id: 0n, updated_at: ctx.timestamp });
+  studioResolve(ctx, args.workspace_id, 'worker_stale', args.worker_id);
+}
+export const studio_revoke_worker = spacetime.reducer({ workspace_id: t.string(), worker_id: t.string() }, (ctx, args) => {
+  owner(ctx);
+  require(!ctx.db.studio_state.id.find(0), 'Studio storage requires a fenced request');
+  studioHandleRevokeWorker(ctx, args);
+});
+export const studio_fenced_revoke_worker = spacetime.reducer({ holder: t.string(), ...{ workspace_id: t.string(), worker_id: t.string() } }, (ctx, { holder, ...args }) => {
+  studioLease(ctx, holder);
+  studioHandleRevokeWorker(ctx, args);
+});
+
+function studioHandleSyncTask(ctx: Ctx, args: { workspace_id: string, task_id: string, revision: number, status: string, timeout_seconds: number }) {
+  owner(ctx); studioScope(ctx, args.workspace_id); identifier(args.task_id, 'task ID');
+  require(STUDIO_STATUSES.has(args.status), 'Unknown task status');
+  require(args.timeout_seconds <= 86400, 'Deadline must be at most 86400 seconds');
+  const key = `${args.workspace_id}:${args.task_id}`, prior = ctx.db.studio_task_watch.key.find(key);
+  if (prior && args.revision < prior.revision) return;
+  const goal = studioGoal(ctx, args.workspace_id, args.task_id);
+  const status = goal && studioTerminal(String(goal.status)) ? String(goal.status) : args.status;
+  if (prior && args.revision === prior.revision) {
+    require(prior.timeout_seconds === args.timeout_seconds && (prior.status === status || studioTerminal(status)), 'Conflicting task projection');
+    if (prior.status === status) return;
+  }
+  require(!prior || !studioTerminal(prior.status) || prior.status === status, 'Terminal task cannot reopen or change outcome');
+  if (!prior) studioCapacity(ctx.db.studio_task_watch.workspace_id.filter(args.workspace_id), STUDIO_LIMITS.tasks, 'Task');
+  if (prior) ctx.db.studio_watchdog.scheduledId.delete(prior.watchdog_id);
+  const created = typeof goal?.created_at === 'number' && Number.isFinite(goal.created_at) && goal.created_at > 0
+    ? BigInt(Math.floor(goal.created_at * 1_000_000)) : ctx.timestamp.microsSinceUnixEpoch;
+  const deadline_us = studioTerminal(status) ? 0n : studioTaskDeadline(created, args.timeout_seconds, prior ?? undefined);
+  let watchdog_id = 0n;
+  if (deadline_us > 0n) watchdog_id = ctx.db.studio_watchdog.insert({ scheduledId: 0n,
+    scheduledAt: ScheduleAt.time(deadline_us > ctx.timestamp.microsSinceUnixEpoch ? deadline_us : ctx.timestamp.microsSinceUnixEpoch + 1n),
+    workspace_id: args.workspace_id, kind: 'task', subject_id: args.task_id, generation: BigInt(args.revision) }).scheduledId;
+  const row = { key, ...args, status, deadline_us, watchdog_id, updated_at: ctx.timestamp };
+  if (prior) ctx.db.studio_task_watch.key.update(row); else ctx.db.studio_task_watch.insert(row);
+  if (studioTerminal(status) || deadline_us === 0n || deadline_us > ctx.timestamp.microsSinceUnixEpoch)
+    studioResolve(ctx, args.workspace_id, 'task_overdue', args.task_id);
+}
+export const studio_sync_task = spacetime.reducer({ workspace_id: t.string(), task_id: t.string(),
+  revision: t.u32(), status: t.string(), timeout_seconds: t.u32() }, (ctx, args) => {
+  owner(ctx);
+  require(!ctx.db.studio_state.id.find(0), 'Studio storage requires a fenced request');
+  studioHandleSyncTask(ctx, args);
+});
+export const studio_fenced_sync_task = spacetime.reducer({ holder: t.string(), ...{ workspace_id: t.string(), task_id: t.string(),
+  revision: t.u32(), status: t.string(), timeout_seconds: t.u32() } }, (ctx, { holder, ...args }) => {
+  studioLease(ctx, holder);
+  studioHandleSyncTask(ctx, args);
+});
+
+export const studio_expire_watchdog = spacetime.reducer({ onSchedule: studio_watchdog },
+  { arg: studio_watchdog.rowType }, (ctx, { arg }) => {
+    studioScheduler(ctx);
+    const key = `${arg.workspace_id}:${arg.subject_id}`;
+    if (arg.kind === 'presence') studioCheckPresence(ctx, key, arg.generation);
+    if (arg.kind === 'task') studioCheckTask(ctx, key, arg.generation);
+  });
+
+function studioHandleRecordMetric(ctx: Ctx, args: { workspace_id: string, event_id: string, metric: string, value: number }) {
+  owner(ctx); studioScope(ctx, args.workspace_id); identifier(args.event_id, 'metric event ID');
+  require(STUDIO_METRICS.has(args.metric), 'Unknown metric');
+  require(Number.isFinite(args.value) && args.value >= 0 && args.value <= 1e12, 'Metric must be finite and between 0 and 1e12');
+  const key = `${args.workspace_id}:${args.event_id}`, prior = ctx.db.studio_metric.key.find(key);
+  if (prior) { require(prior.metric === args.metric && prior.value === args.value, 'Conflicting metric event'); return; }
+  studioCapacity(ctx.db.studio_metric.workspace_id.filter(args.workspace_id), STUDIO_LIMITS.metrics, 'Metric');
+  ctx.db.studio_metric.insert({ key, ...args, occurred_us: ctx.timestamp.microsSinceUnixEpoch, aggregated: false });
+}
+export const studio_record_metric = spacetime.reducer({ workspace_id: t.string(), event_id: t.string(),
+  metric: t.string(), value: t.f64() }, (ctx, args) => {
+  owner(ctx);
+  require(!ctx.db.studio_state.id.find(0), 'Studio storage requires a fenced request');
+  studioHandleRecordMetric(ctx, args);
+});
+export const studio_fenced_record_metric = spacetime.reducer({ holder: t.string(), ...{ workspace_id: t.string(), event_id: t.string(),
+  metric: t.string(), value: t.f64() } }, (ctx, { holder, ...args }) => {
+  studioLease(ctx, holder);
+  studioHandleRecordMetric(ctx, args);
+});
+
+function studioJobWork(ctx: Ctx, workspace_id: string, job_id: string, retention_days: number) {
+  let processed = 0, pending = false, error = '';
+  const now = ctx.timestamp.microsSinceUnixEpoch;
+  if (job_id === 'health') {
+    // Workspace quotas bound this sweep; alerts are upserts, never duplicate actions.
+    for (const row of ctx.db.studio_presence.workspace_id.filter(workspace_id)) {
+      studioCheckPresence(ctx, row.key, row.generation); processed++;
+    }
+    for (const row of ctx.db.studio_task_watch.workspace_id.filter(workspace_id)) {
+      studioCheckTask(ctx, row.key, BigInt(row.revision)); processed++;
+    }
+  } else if (job_id === 'rollup') {
+    let rollupCount = [...ctx.db.studio_rollup.workspace_id.filter(workspace_id)].length;
+    for (const row of ctx.db.studio_metric.workspace_id.filter(workspace_id)) {
+      if (row.aggregated) continue;
+      if (processed >= STUDIO_LIMITS.batch) { pending = true; break; }
+      const bucket_us = row.occurred_us / HOUR_US * HOUR_US;
+      const key = `${workspace_id}:${row.metric}:${bucket_us}`;
+      const prior = ctx.db.studio_rollup.key.find(key);
+      if (!prior && rollupCount >= STUDIO_LIMITS.rollups) {
+        error = 'Rollup capacity reached; run cleanup or reduce retention'; break;
+      }
+      const aggregate = { key, workspace_id, metric: row.metric, bucket_us,
+        sample_count: (prior?.sample_count ?? 0n) + 1n, total: (prior?.total ?? 0) + row.value,
+        minimum: Math.min(prior?.minimum ?? row.value, row.value), maximum: Math.max(prior?.maximum ?? row.value, row.value), updated_at: ctx.timestamp };
+      if (prior) ctx.db.studio_rollup.key.update(aggregate);
+      else { ctx.db.studio_rollup.insert(aggregate); rollupCount++; }
+      ctx.db.studio_metric.key.update({ ...row, aggregated: true }); processed++;
+    }
+  } else if (job_id === 'cleanup') {
+    const cutoff = now - BigInt(retention_days) * DAY_US;
+    const remove = (eligible: boolean, action: () => void) => {
+      if (!eligible) return;
+      if (processed >= STUDIO_LIMITS.batch) { pending = true; return; }
+      action(); processed++;
+    };
+    // Only aggregated samples are deleted. Dedupe lasts for this retention window.
+    for (const row of ctx.db.studio_metric.workspace_id.filter(workspace_id))
+      remove(row.aggregated && row.occurred_us < cutoff, () => { ctx.db.studio_metric.key.delete(row.key); });
+    for (const row of ctx.db.studio_rollup.workspace_id.filter(workspace_id))
+      remove(row.bucket_us + HOUR_US < cutoff, () => { ctx.db.studio_rollup.key.delete(row.key); });
+    for (const row of ctx.db.studio_attention.workspace_id.filter(workspace_id))
+      remove(row.status === 'resolved' && row.updated_at.microsSinceUnixEpoch < cutoff, () => { ctx.db.studio_attention.key.delete(row.key); });
+    for (const row of ctx.db.studio_task_watch.workspace_id.filter(workspace_id))
+      remove(studioTerminal(row.status) && row.updated_at.microsSinceUnixEpoch < cutoff, () => { ctx.db.studio_watchdog.scheduledId.delete(row.watchdog_id); ctx.db.studio_task_watch.key.delete(row.key); });
+    // Revocation tombstones are retained: cleanup must never re-enable a credential.
+  }
+  return { processed, pending, error };
+}
+function studioScheduleJob(ctx: Ctx, key: string, at: bigint): bigint {
+  return ctx.db.studio_job_trigger.insert({ scheduledId: 0n, scheduledAt: ScheduleAt.time(at), job_key: key }).scheduledId;
+}
+function studioRunJob(ctx: Ctx, key: string): void {
+  const job = ctx.db.studio_job.key.find(key);
+  require(job, 'Unknown job');
+  const result = studioJobWork(ctx, job.workspace_id, job.job_id, job.retention_days);
+  ctx.db.studio_job_trigger.scheduledId.delete(job.scheduled_id);
+  const now = ctx.timestamp.microsSinceUnixEpoch;
+  // Large backlogs use bounded batches, yielding between transactions. A disabled
+  // job can be run manually once without silently enabling recurring execution.
+  const next_run_us = !job.enabled ? 0n : result.pending ? now + 1_000_000n : nextStudioBoundary(now, job.schedule);
+  const scheduled_id = next_run_us ? studioScheduleJob(ctx, key, next_run_us) : 0n;
+  ctx.db.studio_job.key.update({ ...job, next_run_us, scheduled_id, last_run_us: now,
+    run_count: job.run_count + 1n, last_processed: result.processed, last_error: result.error });
+}
+
+function studioHandleConfigureJob(ctx: Ctx, args: { workspace_id: string, job_id: string, enabled: boolean, schedule: string, retention_days: number }) {
+  owner(ctx); studioScope(ctx, args.workspace_id);
+  require(STUDIO_JOBS.has(args.job_id), 'Unknown job');
+  require(args.schedule === 'hourly' || args.schedule === 'daily', 'Schedule must be hourly or daily (UTC)');
+  require(args.retention_days >= 1 && args.retention_days <= 90, 'Retention must be 1 to 90 days');
+  const key = `${args.workspace_id}:${args.job_id}`, prior = ctx.db.studio_job.key.find(key);
+  if (prior && prior.enabled === args.enabled && prior.schedule === args.schedule && prior.retention_days === args.retention_days) return;
+  if (prior) ctx.db.studio_job_trigger.scheduledId.delete(prior.scheduled_id);
+  const next_run_us = args.enabled ? nextStudioBoundary(ctx.timestamp.microsSinceUnixEpoch, args.schedule) : 0n;
+  const scheduled_id = next_run_us ? studioScheduleJob(ctx, key, next_run_us) : 0n;
+  const row = { key, ...args, next_run_us, scheduled_id, last_run_us: prior?.last_run_us ?? 0n,
+    run_count: prior?.run_count ?? 0n, last_processed: prior?.last_processed ?? 0, last_error: prior?.last_error ?? '' };
+  if (prior) ctx.db.studio_job.key.update(row); else ctx.db.studio_job.insert(row);
+}
+export const studio_configure_job = spacetime.reducer({ workspace_id: t.string(), job_id: t.string(),
+  enabled: t.bool(), schedule: t.string(), retention_days: t.u32() }, (ctx, args) => {
+  owner(ctx);
+  require(!ctx.db.studio_state.id.find(0), 'Studio storage requires a fenced request');
+  studioHandleConfigureJob(ctx, args);
+});
+export const studio_fenced_configure_job = spacetime.reducer({ holder: t.string(), ...{ workspace_id: t.string(), job_id: t.string(),
+  enabled: t.bool(), schedule: t.string(), retention_days: t.u32() } }, (ctx, { holder, ...args }) => {
+  studioLease(ctx, holder);
+  studioHandleConfigureJob(ctx, args);
+});
+function studioHandleRunJob(ctx: Ctx, args: { workspace_id: string, job_id: string }) {
+  owner(ctx); studioScope(ctx, args.workspace_id); require(STUDIO_JOBS.has(args.job_id), 'Unknown job');
+  studioRunJob(ctx, `${args.workspace_id}:${args.job_id}`);
+}
+export const studio_run_job = spacetime.reducer({ workspace_id: t.string(), job_id: t.string() }, (ctx, args) => {
+  owner(ctx);
+  require(!ctx.db.studio_state.id.find(0), 'Studio storage requires a fenced request');
+  studioHandleRunJob(ctx, args);
+});
+export const studio_fenced_run_job = spacetime.reducer({ holder: t.string(), ...{ workspace_id: t.string(), job_id: t.string() } }, (ctx, { holder, ...args }) => {
+  studioLease(ctx, holder);
+  studioHandleRunJob(ctx, args);
+});
+export const studio_execute_job = spacetime.reducer({ onSchedule: studio_job_trigger },
+  { arg: studio_job_trigger.rowType }, (ctx, { arg }) => {
+    studioScheduler(ctx);
+    const job = ctx.db.studio_job.key.find(arg.job_key);
+    if (!job || !job.enabled || job.scheduled_id !== arg.scheduledId) return;
+    studioRunJob(ctx, arg.job_key);
+  });
+
 function storeFactorySemanticPackets(ctx: Ctx, run: ReturnType<typeof factoryRun>, values: unknown,
   state: Json, previous: Json, commands: Map<unknown, Json>) {
   const packets = array(values, 'semantic packet batch', 3);
@@ -898,3 +1241,59 @@ function storeFactorySemanticPackets(ctx: Ctx, run: ReturnType<typeof factoryRun
     if (object(jobs[row.job_id], 'semantic job').stage === 'completed') ctx.db.factory_semantic_packet.key.delete(row.key);
   }
 }
+
+
+// A small, separate lease row avoids rewriting the checkpoint on read-only requests.
+// Task mutations and checkpoint commits check this same database-side fence.
+const STUDIO_LEASE_US = 180_000_000n;
+function studioLease(ctx: Ctx, holder: string) {
+  owner(ctx); identifier(holder, 'Studio request');
+  const row = ctx.db.studio_lease.id.find(0);
+  require(row && row.holder === holder && row.expires_us > ctx.timestamp.microsSinceUnixEpoch,
+    'Studio request lease expired or superseded');
+  return row;
+}
+export const studio_acquire = spacetime.reducer({ holder: t.string() }, (ctx, args) => {
+  owner(ctx); identifier(args.holder, 'Studio request');
+  const prior = ctx.db.studio_lease.id.find(0), now = ctx.timestamp.microsSinceUnixEpoch;
+  require(!prior || !prior.holder || prior.holder === args.holder || prior.expires_us <= now,
+    'Studio workspace is busy');
+  if (!ctx.db.studio_state.id.find(0)) ctx.db.studio_state.insert({
+    id: 0, revision: 0, payload: '', last_operation: '',
+  });
+  const row = { id: 0, last_operation: prior?.last_operation ?? '',
+    holder: args.holder, expires_us: now + STUDIO_LEASE_US };
+  if (prior) ctx.db.studio_lease.id.update(row); else ctx.db.studio_lease.insert(row);
+});
+export const studio_commit_state = spacetime.reducer({
+  holder: t.string(), revision: t.u32(), payload: t.string(), operation_id: t.string(),
+}, (ctx, args) => {
+  owner(ctx); identifier(args.operation_id, 'Studio operation');
+  const prior = ctx.db.studio_state.id.find(0);
+  if (prior?.last_operation === args.operation_id) {
+    require(prior.revision === args.revision + 1 && prior.payload === args.payload,
+      'Conflicting duplicate Studio commit'); return;
+  }
+  const lease = studioLease(ctx, args.holder);
+  require(prior && prior.revision === args.revision && prior.revision < 4_294_967_295, 'Studio revision conflict');
+  require(args.payload.length > 0 && args.payload.length <= 1_048_576 &&
+    /^[A-Za-z0-9+/]+={0,2}$/.test(args.payload), 'Invalid Studio checkpoint');
+  ctx.db.studio_state.id.update({ ...prior, revision: prior.revision + 1,
+    payload: args.payload, last_operation: args.operation_id });
+  ctx.db.studio_lease.id.update({ ...lease, holder: '', expires_us: 0n });
+});
+export const studio_release = spacetime.reducer({ holder: t.string() }, (ctx, args) => {
+  owner(ctx); identifier(args.holder, 'Studio request');
+  const row = ctx.db.studio_lease.id.find(0);
+  if (row?.holder === args.holder) ctx.db.studio_lease.id.update({ ...row, holder: '', expires_us: 0n });
+});
+export const studio_finish_read = spacetime.reducer({
+  holder: t.string(), revision: t.u32(),
+}, (ctx, args) => {
+  owner(ctx);
+  const row = ctx.db.studio_state.id.find(0), lease = ctx.db.studio_lease.id.find(0);
+  require(row?.revision === args.revision, 'Studio read revision conflict');
+  if (lease?.last_operation === args.holder) return;
+  const held = studioLease(ctx, args.holder);
+  ctx.db.studio_lease.id.update({ ...held, holder: '', expires_us: 0n, last_operation: args.holder });
+});

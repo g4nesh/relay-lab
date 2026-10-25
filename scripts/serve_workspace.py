@@ -1,84 +1,149 @@
-#!/usr/bin/env python3
-"""Serve the Relay website and real Studio together on loopback only."""
+"""Serve the research website and authenticated Studio together on loopback."""
+
+from __future__ import annotations
+
 import argparse
+import asyncio
 import mimetypes
-import os
 import sys
-from functools import partial
-from http.server import ThreadingHTTPServer
+from email.message import Message
 from pathlib import Path
-from urllib.parse import urlsplit, unquote
+from urllib.parse import unquote
 
 BACKEND = Path(__file__).resolve().parents[1]
-SITE = BACKEND / 'website'
-sys.path.insert(0, str(BACKEND / 'src'))
-from relay_lab.studio.server import StudioHandler, WEB, ASSETS
-from relay_lab.studio.service import StudioService
-from relay_lab.studio.profiles import ProfileStore
-from relay_lab.studio.access import AccessStore
-from relay_lab.studio.governance import ModelRegistry
-from relay_lab.studio.analytics import AnalyticsService
-from relay_lab.studio.tasks import TaskService
-from relay_lab.studio.workers import WorkerStore
+sys.path.insert(0, str(BACKEND / "src"))
 
-class LocalWorkspace(StudioHandler):
-    def dispatch_authorized(self, mutation=False):
-        path = urlsplit(self.path).path
-        self.guard()
-        if not mutation and path in ('/projects/studio/', '/projects/studio'):
-            page = (WEB / 'index.html').read_text()
-            page = page.replace('Connect robot policies. Make every exchange inspectable.', 'Configure the models and review how they share information.')
-            page = page.replace('</head>', '<link rel="stylesheet" href="/projects/studio/hosted.css?v=local1"><link rel="preload" href="/assets/fonts/ibm-plex-sans-latin-400.woff2" as="font" type="font/woff2" crossorigin><link rel="preload" href="/assets/fonts/ibm-plex-sans-latin-600.woff2" as="font" type="font/woff2" crossorigin><link rel="stylesheet" href="/projects/studio/local.css?v=5"><link rel="stylesheet" href="/projects/shared/workspace-design.css?v=14"></head>')
-            page = page.replace('http://127.0.0.1:8769/latent', '/projects/cloth/latent.html').replace('http://127.0.0.1:8769/', '/projects/cloth/')
-            page = page.replace('</body>', '<script src="/projects/studio/local-tabs.js?v=1" defer></script></body>')
-            page = page.replace('aria-label="Relay Studio home"', 'aria-label="Relay website homepage"')
-            for before, after in [('Two minds.<span>One workcell.</span>', 'Workspace'), ('Approved to work together.', 'Models'), ('Team topology', 'Models and communication'), ('Channel configuration','Communication settings')]:
-                page = page.replace(before, after)
-            return self.respond(page.encode(), mime='text/html')
-        if path.startswith('/api/') or path in ASSETS and path != '/':
-            return super().dispatch_authorized(mutation)
-        if mutation:
-            return self.respond({'error':'Not found'}, 404)
-        target = (SITE / unquote(path).lstrip('/')).resolve()
-        base = (SITE).resolve()
-        if not target.is_relative_to(base):
-            return self.respond({'error':'Not found'},404)
-        if target.is_dir(): target = target / 'index.html'
-        if not target.is_file():return self.respond({'error':'Not found'},404)
-        mime = mimetypes.guess_type(str(target))[0] or 'application/octet-stream'
-        stat = target.stat()
-        etag = f'W/"{stat.st_mtime_ns:x}-{stat.st_size:x}"'
-        # Fonts, images and video change rarely: cache them for a week. Pages,
-        # styles and scripts revalidate on every load and get a 304 when unchanged.
-        static = path.startswith('/assets/') or mime.startswith(('image/','video/','font/'))
-        cache = 'public, max-age=604800' if static else 'no-cache'
-        if self.headers.get('If-None-Match') == etag:
-            self.send_response(304)
-            self.send_header('ETag',etag)
-            self.send_header('Cache-Control',cache)
-            self.end_headers();return
-        data = target.read_bytes()
-        self.send_response(200)
-        self.send_header('Content-Type',mime)
-        self.send_header('Content-Length',str(len(data)))
-        self.send_header('ETag',etag)
-        self.send_header('Cache-Control',cache)
-        self.send_header('X-Content-Type-Options','nosniff')
-        self.end_headers();self.wfile.write(data)
+from relay_lab.studio.asgi import StudioApplication, create_app, serve_app
+from relay_lab.studio.deployment import DeploymentConfig
+from relay_lab.studio.server import ASSETS, WEB
 
-if __name__ == '__main__':
-    parser=argparse.ArgumentParser();parser.add_argument('--port',type=int,default=8780);args=parser.parse_args()
-    os.chdir(BACKEND)
-    service=StudioService(BACKEND)
-    access=(AccessStore if os.environ.get('RELAY_STUDIO_PASSWORD_LOGIN')=='1' else ProfileStore)(service.storage)
-    registry=ModelRegistry(service.storage)
-    if isinstance(access,ProfileStore):
-        manager=next((p for p in access.profiles()['profiles'] if p['role']=='manager'),None)
-        if manager:registry.sync_workspace(manager,service.workspace())
-    handler=partial(LocalWorkspace,service=service,access=access,registry=registry,analytics=AnalyticsService(BACKEND,service,registry,access),tasks=TaskService(service,registry),workers=WorkerStore(service.storage,access,registry,service))
-    try:
-        with ThreadingHTTPServer(('127.0.0.1',args.port),handler) as server:
-            print(f'Relay website: http://127.0.0.1:{args.port}/',flush=True)
-            print(f'Working Studio: http://127.0.0.1:{args.port}/projects/studio/',flush=True)
-            server.serve_forever()
-    finally:service.close()
+
+class WebsiteApplication:
+    """Public website files around the unmodified Studio ASGI application.
+
+    All API authorization, subscriptions and lifecycle work stays with Studio.
+    Static routes are read-only and enforce the same loopback Host/Origin policy.
+    """
+
+    def __init__(self, studio, *, site=BACKEND / "website", web=WEB):
+        if studio.config.hosted or studio.config.bind not in ("127.0.0.1", "::1"):
+            raise ValueError("The research website launcher is loopback-only")
+        self.studio = studio
+        self.config = studio.config
+        self.site = Path(site).resolve()
+        self.web = Path(web).resolve()
+        self.static_inflight = 0
+
+    def _target(self, path):
+        target = (self.site / unquote(path).lstrip("/")).resolve()
+        if target.is_dir():
+            target = (target / "index.html").resolve()
+        if not target.is_relative_to(self.site) or not target.is_file():
+            return None
+        return target
+
+    def _studio_page(self):
+        page = (self.web / "index.html").read_text()
+        page = page.replace("http://127.0.0.1:8769/latent", "/projects/cloth/latent.html")
+        page = page.replace("http://127.0.0.1:8769/", "/projects/cloth/")
+        page = page.replace(
+            "</body>", '<script src="/projects/studio/local-tabs.js?v=1" defer></script></body>'
+        )
+        return page.replace(
+            'aria-label="Relay Studio home"', 'aria-label="Relay website homepage"'
+        ).encode()
+
+    @staticmethod
+    async def _start(send, status, headers, body=b"", *, more=False):
+        await send({"type": "http.response.start", "status": status, "headers": headers})
+        await send({"type": "http.response.body", "body": body, "more_body": more})
+
+    async def __call__(self, scope, receive, send):
+        path = scope.get("path", "")
+        if (
+            scope["type"] != "http"
+            or path.startswith("/api/")
+            or path in ("/livez", "/readyz")
+            or path in ASSETS and path != "/"
+        ):
+            return await self.studio(scope, receive, send)
+        if scope["method"] not in ("GET", "HEAD"):
+            return await StudioApplication._respond(send, 405, "Method not allowed")
+        headers = Message()
+        counts = {}
+        for key, value in scope.get("headers", []):
+            key = key.lower()
+            counts[key] = counts.get(key, 0) + 1
+            headers[key.decode("ascii")] = value.decode("latin1")
+        if (
+            counts.get(b"host", 0) != 1
+            or counts.get(b"origin", 0) > 1
+            or sum(len(k) + len(v) for k, v in scope.get("headers", [])) > 32768
+        ):
+            return await StudioApplication._respond(send, 400, "Invalid request headers")
+        try:
+            self.studio.config.guard(headers)
+        except PermissionError as error:
+            return await StudioApplication._respond(send, 403, str(error))
+        if self.studio.closed or self.static_inflight >= self.studio.config.max_concurrent:
+            return await StudioApplication._respond(send, 503, "Website is busy; try again shortly")
+        self.static_inflight += 1
+        try:
+            if path in ("/projects/studio", "/projects/studio/"):
+                page = await asyncio.to_thread(self._studio_page)
+                return await self._start(send, 200, [
+                    (b"content-type", b"text/html; charset=utf-8"),
+                    (b"content-length", str(len(page)).encode()),
+                    (b"cache-control", b"no-store"),
+                    (b"x-content-type-options", b"nosniff"),
+                ], b"" if scope["method"] == "HEAD" else page)
+            try:
+                target = await asyncio.to_thread(self._target, path)
+            except (ValueError, OSError):
+                target = None
+            if target is None:
+                return await StudioApplication._respond(send, 404, "Not found")
+            stat = await asyncio.to_thread(target.stat)
+            mime = mimetypes.guess_type(str(target))[0] or "application/octet-stream"
+            etag = f'W/"{stat.st_mtime_ns:x}-{stat.st_size:x}"'.encode()
+            binary = path.startswith("/assets/") or mime.startswith(("image/", "video/", "font/"))
+            response_headers = [
+                (b"content-type", mime.encode()),
+                (b"etag", etag),
+                (b"cache-control", b"public, max-age=604800" if binary else b"no-cache"),
+                (b"x-content-type-options", b"nosniff"),
+            ]
+            if headers.get("If-None-Match", "").encode() == etag:
+                return await self._start(send, 304, response_headers)
+            response_headers.append((b"content-length", str(stat.st_size).encode()))
+            if scope["method"] == "HEAD":
+                return await self._start(send, 200, response_headers)
+            # Stream recordings in bounded chunks; do not load videos into memory.
+            with target.open("rb") as source:
+                await send({"type": "http.response.start", "status": 200, "headers": response_headers})
+                while chunk := await asyncio.to_thread(source.read, 256 * 1024):
+                    await send({"type": "http.response.body", "body": chunk, "more_body": True})
+                await send({"type": "http.response.body", "body": b"", "more_body": False})
+        finally:
+            self.static_inflight -= 1
+
+
+def create_workspace_app(*, port=8780, root=BACKEND):
+    # create_app honors RELAY_STUDIO_EXPERIMENTS=0. The full research package
+    # supplies experiment support by default; the isolated export does not.
+    config = DeploymentConfig(root=Path(root).resolve(), port=port)
+    return WebsiteApplication(create_app(config=config))
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--port", type=int, default=8780)
+    args = parser.parse_args()
+    app = create_workspace_app(port=args.port)
+    print(f"Relay website: http://127.0.0.1:{args.port}/", flush=True)
+    print(f"Working Studio: http://127.0.0.1:{args.port}/projects/studio/", flush=True)
+    serve_app(app, config=app.config)
+
+
+if __name__ == "__main__":
+    main()

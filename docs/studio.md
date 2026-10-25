@@ -19,7 +19,7 @@ For a customer installation, use the [private HTTPS deployment package](studio-d
 From the repository root, with the existing Spacetime service running:
 
 ```bash
-uv run --extra learned relay-lab studio --port 8770
+uv run --extra learned --extra deploy relay-lab studio --port 8770
 ```
 
 Open <http://127.0.0.1:8770/>. The README describes Spacetime setup and the isolated

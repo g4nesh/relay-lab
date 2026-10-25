@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: relay-studio
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /readyz
+    autoDeployTrigger: off
+    envVars:
+      - key: RELAY_STUDIO_STORAGE
+        value: spacetime
+      - key: RELAY_STUDIO_EXPERIMENTS
+        value: "0"
+      - key: RELAY_SPACETIME_SERVER
+        value: https://maincloud.spacetimedb.com
+      - key: RELAY_SPACETIME_DATABASE
+        sync: false
+      - key: RELAY_SPACETIME_TOKEN
+        sync: false

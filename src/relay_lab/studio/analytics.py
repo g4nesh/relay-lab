@@ -503,6 +503,8 @@ class AnalyticsService:
         self._lock = threading.Lock()
 
     def _sources(self):
+        if not getattr(self.studio, "experiments_enabled", True):
+            return {}, []
         values, manifest = {}, []
         for identifier, (relative, grain) in SOURCES.items():
             item = {
@@ -553,9 +555,12 @@ class AnalyticsService:
         inventory_available = False
         session_health = {}
         try:
-            listed = self.studio.list_sessions()
+            # A control-plane workspace has no research sessions. In particular,
+            # never backfill its telemetry from a database-wide research journal.
+            research = getattr(self.studio, "experiments_enabled", True)
+            listed = self.studio.list_sessions() if research else {"sessions": []}
             session_rows = listed.get("sessions", [])[:200]
-            inventory_available = True
+            inventory_available = research
             session_health = {
                 s["session_id"]: True if s.get("status") == "failed" else None for s in session_rows
             }
@@ -679,6 +684,7 @@ class AnalyticsService:
             }
             result = {
                 "schema": "relay.studio.analytics.v1",
+                "experiments_enabled": getattr(self.studio, "experiments_enabled", True),
                 "generated_at": time.time(),
                 "scope": "Original simulation evidence, bounded operational telemetry, and explicitly modeled engineering scenarios. No real-factory productivity claim.",
                 "headline": headline,
@@ -717,6 +723,20 @@ class AnalyticsService:
                     "spacetime": "Shared ordered state, ownership-checked commits and exact indexed readback.",
                 },
             }
+            if not result["experiments_enabled"]:
+                result["scope"] = (
+                    "Current workspace operations and model governance. "
+                    "Archived research fixtures are disabled in this deployment."
+                )
+                result["headline"] = {
+                    "label": "Workspace operations",
+                    "value": result["operations"]["exchanges"],
+                    "unit": "recorded exchanges",
+                    "evidence_id": None,
+                    "detail": "Bounded current-workspace telemetry; no archived benchmark data.",
+                    "time_saved": None,
+                    "physical_factory_efficiency_measured": False,
+                }
             self._cache = copy.deepcopy(result)
             self._cached_at = time.monotonic()
             return result

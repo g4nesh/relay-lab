@@ -1,0 +1,14 @@
+.demo-banner {display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px 22px;margin:0 0 26px;border:1px solid #d4ded5;border-radius:10px;background:#f3f7f2;color:#27372c}
+.demo-banner[hidden] {display:none}
+.demo-banner-copy {display:flex;align-items:center;gap:14px}
+.demo-banner-mark {display:grid;place-items:center;width:36px;height:36px;border-radius:9px;background:#e4ece2;flex-shrink:0}
+.demo-banner-mark svg {width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.5}
+.demo-banner strong {display:block;font-size:13px;font-weight:600}
+.demo-banner p {margin:3px 0 0;font-size:12px;line-height:1.5;color:#5b685e}
+.demo-banner .button {white-space:nowrap}
+html:not(#_) body.demo-mode #save-button,html:not(#_) body.demo-mode #refresh-health {display:none!important}
+.demo-mode .topbar .save-state {color:#6b756e}
+.demo-mode #tk-live-status {color:#6c756e}
+.demo-mode #tk-live-status i {background:#a9b2a9;box-shadow:none}
+.auth-back-demo {margin-top:18px;width:100%;justify-content:center}
+@media(max-width:700px) {.demo-banner {align-items:stretch;flex-direction:column;gap:12px;padding:16px}.demo-banner .button {align-self:flex-start}.demo-mode .topbar .save-state {display:none}}
