@@ -69,6 +69,11 @@ their next/last execution, execution count, processed count and controlled error
 Native reducer exceptions roll back and remain in Spacetime logs; this is not a
 general-purpose retry engine for arbitrary failed code.
 
+Scheduled task runs (one-time or repeating objectives) are separate from these
+maintenance jobs. They use their own scheduled table and re-check governance in
+Studio before each task is created; see
+[Scheduled runs](studio-agents.md#scheduled-runs).
+
 Rollup and cleanup mutate at most 256 records per transaction. A backlog schedules
 a continuation one second later. A delayed calendar execution schedules the next
 future boundary instead of replaying missed hours in a burst. Disabled jobs can

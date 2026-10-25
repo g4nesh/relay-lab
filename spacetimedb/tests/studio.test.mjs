@@ -33,10 +33,11 @@ function harness() {
   const table = name => {
     if (tables.has(name)) return tables.get(name);
     const rows = new Map(); let next = 1n;
-    const primary = name === 'module_owner' ? 'id' : name === 'factory_run' ? 'run_id'
-      : name === 'studio_workspace' ? 'workspace_id' : name.includes('watchdog') || name.includes('trigger') ? 'scheduledId' : 'key';
+    const primary = { module_owner: 'id', factory_run: 'run_id', studio_workspace: 'workspace_id', studio_state: 'id',
+      studio_lease: 'id', task_schedule: 'schedule_key', task_dispatch: 'dispatch_key', task_schedule_timer: 'scheduled_id' }[name]
+      ?? (name.includes('watchdog') || name.includes('trigger') ? 'scheduledId' : 'key');
     const value = new Proxy({ rows, count: () => BigInt(rows.size),
-      insert(row) { row = structuredClone(row); if (primary === 'scheduledId' && !row.scheduledId) row.scheduledId = next++;
+      insert(row) { row = structuredClone(row); if (['scheduledId', 'scheduled_id'].includes(primary) && !row[primary]) row[primary] = next++;
         assert(!rows.has(row[primary]), `duplicate ${name}`); rows.set(row[primary], row); return structuredClone(row); } }, {
       get(target, field) {
         if (field in target) return target[field];
@@ -60,7 +61,9 @@ function harness() {
       try {
         mod[fn](ctx, { arg });
         // Native one-shot reducer schedules are removed after callback execution.
-        table(fn === 'studio_execute_job' ? 'studio_job_trigger' : 'studio_watchdog').rows.delete(arg.scheduledId);
+        const [timers, key] = { studio_execute_job: ['studio_job_trigger', 'scheduledId'],
+          fire_task_schedule: ['task_schedule_timer', 'scheduled_id'] }[fn] ?? ['studio_watchdog', 'scheduledId'];
+        table(timers).rows.delete(arg[key]);
       } finally { ctx.sender = owner; }
     },
   };
@@ -194,4 +197,83 @@ test('large rollup batches continue durably without recounting samples', () => {
   assert.equal(h.rows('studio_job')[0].last_processed, 1);
   assert.equal(h.rows('studio_job_trigger').length, 1);
   assert.equal(h.rows('studio_job')[0].next_run_us, policy.nextStudioBoundary(h.ctx.timestamp.microsSinceUnixEpoch, 'hourly'));
+});
+
+const MINUTE = 60_000_000n;
+const schedule = (h, overrides = {}) => ({ schedule_key: 'sched-0123456789abcdef', worker_id: 'studio-goals-acme',
+  created_by: 'user-1', request_json: JSON.stringify({ objective: 'Restock the assembly tray' }),
+  first_due_micros: h.ctx.timestamp.microsSinceUnixEpoch + 10n * MINUTE, interval_micros: 5n * MINUTE, max_runs: 3, ...overrides });
+const resolveRun = (h, dispatch_key, task_id = 'goal-0123456789abcdef') => mod.resolve_task_dispatch(h.ctx,
+  { dispatch_key, worker_id: 'studio-goals-acme', status: 'created', task_id, reason: '' });
+
+test('a one-time schedule fires once, enqueues one dispatch and leaves no timer', () => {
+  const h = harness(); mod.create_task_schedule(h.ctx, schedule(h, { interval_micros: 0n, max_runs: 1 }));
+  assert.throws(() => mod.create_task_schedule(h.ctx, schedule(h, { interval_micros: 0n, max_runs: 2 })), /reused/);
+  assert.throws(() => mod.create_task_schedule(h.ctx, schedule(h, { schedule_key: 'sched-1111111111111111', interval_micros: 0n, max_runs: 2 })), /exactly once/);
+  const timer = h.rows('task_schedule_timer')[0];
+  assert.equal(timer.due_micros, h.ctx.timestamp.microsSinceUnixEpoch + 10n * MINUTE);
+  h.advance(600); h.scheduled('fire_task_schedule', timer);
+  assert.deepEqual(h.rows('task_dispatch').map(row => [row.dispatch_key, row.status]), [['sched-0123456789abcdef-r1', 'pending']]);
+  assert.equal(h.rows('task_schedule')[0].status, 'completed');
+  assert.equal(h.rows('task_schedule_timer').length, 0);
+});
+
+test('repeating schedules chain timers, coalesce unhandled runs and skip missed slots', () => {
+  const h = harness(); const args = schedule(h); mod.create_task_schedule(h.ctx, args);
+  mod.create_task_schedule(h.ctx, args); // exact retry
+  assert.equal(h.rows('task_schedule').length, 1);
+  h.advance(600); h.scheduled('fire_task_schedule', h.rows('task_schedule_timer')[0]);
+  const second = h.rows('task_schedule_timer')[0];
+  assert.equal(second.due_micros, args.first_due_micros + args.interval_micros);
+  h.advance(300); h.scheduled('fire_task_schedule', second);
+  assert.equal(h.rows('task_dispatch')[1].status, 'skipped');
+  assert.equal(h.rows('task_schedule')[0].skipped_runs, 1);
+  resolveRun(h, 'sched-0123456789abcdef-r1'); resolveRun(h, 'sched-0123456789abcdef-r1');
+  assert.throws(() => resolveRun(h, 'sched-0123456789abcdef-r1', 'goal-ffffffffffffffff'), /already resolved/);
+  const third = h.rows('task_schedule_timer')[0];
+  h.advance(3600); h.scheduled('fire_task_schedule', third);
+  assert.equal(h.rows('task_dispatch')[2].status, 'pending');
+  assert.equal(h.rows('task_schedule')[0].status, 'completed');
+  assert.equal(h.rows('task_schedule_timer').length, 0);
+});
+
+test('late delivery after downtime schedules the next run from now, not a burst', () => {
+  const h = harness(); mod.create_task_schedule(h.ctx, schedule(h));
+  h.advance(3600); h.scheduled('fire_task_schedule', h.rows('task_schedule_timer')[0]);
+  assert.equal(h.rows('task_schedule_timer')[0].due_micros, h.ctx.timestamp.microsSinceUnixEpoch + 5n * MINUTE);
+});
+
+test('cancelled schedules ignore old timers; only the database scheduler may fire them', () => {
+  const h = harness(); mod.create_task_schedule(h.ctx, schedule(h));
+  const timer = h.rows('task_schedule_timer')[0];
+  assert.throws(() => mod.fire_task_schedule(h.ctx, { arg: timer }), /database scheduler/);
+  assert.throws(() => mod.remove_task_schedule(h.ctx, { schedule_key: timer.schedule_key, worker_id: 'studio-goals-acme' }), /Cancel/);
+  mod.cancel_task_schedule(h.ctx, { schedule_key: timer.schedule_key, worker_id: 'studio-goals-acme', reason: 'Line paused' });
+  assert.equal(h.rows('task_schedule_timer').length, 0);
+  h.advance(600); h.scheduled('fire_task_schedule', timer);
+  assert.equal(h.rows('task_dispatch').length, 0);
+  mod.remove_task_schedule(h.ctx, { schedule_key: timer.schedule_key, worker_id: 'studio-goals-acme' });
+  assert.equal(h.rows('task_schedule').length, 0);
+});
+
+test('a pending run blocks removal until Studio resolves it', () => {
+  const h = harness(); mod.create_task_schedule(h.ctx, schedule(h));
+  h.advance(600); h.scheduled('fire_task_schedule', h.rows('task_schedule_timer')[0]);
+  mod.cancel_task_schedule(h.ctx, { schedule_key: 'sched-0123456789abcdef', worker_id: 'studio-goals-acme', reason: 'Done' });
+  assert.throws(() => mod.remove_task_schedule(h.ctx, { schedule_key: 'sched-0123456789abcdef', worker_id: 'studio-goals-acme' }), /still waiting/);
+  mod.resolve_task_dispatch(h.ctx, { dispatch_key: 'sched-0123456789abcdef-r1', worker_id: 'studio-goals-acme',
+    status: 'blocked', task_id: '', reason: 'Model release changed' });
+  mod.remove_task_schedule(h.ctx, { schedule_key: 'sched-0123456789abcdef', worker_id: 'studio-goals-acme' });
+  assert.equal(h.rows('task_dispatch').length, 0);
+});
+
+test('durable Studio storage requires the fenced schedule reducers', () => {
+  const h = harness();
+  h.ctx.db.studio_state.insert({ id: 0, revision: 1, payload: '', last_operation: '' });
+  h.ctx.db.studio_lease.insert({ id: 0, holder: 'req-1', expires_us: h.ctx.timestamp.microsSinceUnixEpoch + 60n * 1_000_000n, last_operation: '' });
+  assert.throws(() => mod.create_task_schedule(h.ctx, schedule(h)), /fenced request/);
+  assert.throws(() => mod.studio_create_task_schedule(h.ctx, { holder: 'req-2', ...schedule(h) }), /lease/);
+  mod.studio_create_task_schedule(h.ctx, { holder: 'req-1', ...schedule(h) });
+  assert.equal(h.rows('task_schedule').length, 1);
+  assert.throws(() => mod.set_task_deadline(h.ctx, { task_id: 'goal-0123456789abcdef', worker_id: 'w', deadline_micros: 1n }), /attention deadline/);
 });

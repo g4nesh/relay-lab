@@ -28,12 +28,15 @@
   }));
   const team = [{id: "demo-manager", name: "Demo manager", username: "manager-example", role: "manager", active: true}, {id: "demo-operator", name: "Demo operator", username: "operator-example", role: "employee", active: true}];
   const jobs = ["Workspace health", "Telemetry rollup", "History cleanup"].map((label, i) => ({job_id: `demo-job-${i}`, label, enabled: true, schedule: i === 2 ? "daily" : "hourly", next_run_at: timestamp + 3600, last_run_at: timestamp - 1800}));
+  const scheduleRuns = [2, 1].map((run) => ({run, due_at: timestamp - (3 - run) * 3600, fired_at: timestamp - (3 - run) * 3600, status: "created", task_id: run === 2 ? "demo-fold-handoff" : "demo-complete", reason: "Objective created"}));
+  const schedules = [{key: "sched-00000000000de301", title: "Fold the returns bin every hour", objective: workspace.objective, target: "both", timeout_seconds: 1800, created_by: "demo-operator", status: "active", reason: "", repeat_minutes: 60, max_runs: 8, fired_runs: 2, skipped_runs: 0, first_due_at: timestamp - 7200, next_due_at: timestamp + 3600, last_fired_at: timestamp - 3600, created_at: timestamp - 7260, runs: scheduleRuns, timer: "SpacetimeDB scheduled reducer"}];
   const routes = {
     "/api/bootstrap": bootstrap, "/api/workspace": workspace,
     "/api/models": {models, release_ready: true}, "/api/tasks": {tasks}, "/api/workers": {workers},
     "/api/team": {users: team}, "/api/requests": {requests: []},
     "/api/audit": {events: [{action: "model.release", actor: "Demo manager", subject: "Illustrative SmolVLA configuration", created_at: timestamp - 3600, reason: "Sample approval record; no model was deployed."}]},
     "/api/health": {database: {available: false}, sample_available: false},
+    "/api/schedules": {available: true, backend: "SpacetimeDB scheduled reducers", schedules, repeat_minutes: [5, 15, 30, 60, 360, 1440], max_runs: 20, pump_error: null},
     "/api/coordination": {enabled: true, available: true, realtime: {state: "demo"}, jobs, presence: workers, rollups: [], attention: [{status: "open", kind: "obstacle", subject_id: "demo-obstacle", message: "Example: left approach obstructed; both arms waiting", created_at: timestamp}]},
     "/api/analytics": {generated_at: timestamp, demo: true, provenance, governance: {models: {total: 2, released: 2, draft: 0, retired: 0}}, operations: {modes: []}, definitions: {demo: provenance, task_status: "Sample task states illustrate running, blocked and complete workflows.", runtime_status: "Example connections, not authenticated live heartbeats.", performance: "No speed, latency, productivity or physical-success claim is made."}, sources: [{id: "public-demo-fixtures", status: "ILLUSTRATIVE", path: "/demo.js", grain: "Hand-authored example records"}]},
   };

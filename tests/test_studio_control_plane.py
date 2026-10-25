@@ -41,7 +41,7 @@ def test_isolated_import_and_startup_without_research_or_site_packages(tmp_path)
         "factory": "__init__ communication coordination embeddings spacetime",
         "studio": (
             "__init__ access analytics asgi deployment governance profiles server service "
-            "tasks telemetry workers coordination realtime"
+            "tasks telemetry workers coordination realtime schedules"
         ),
     }.items():
         (package / directory).mkdir()
