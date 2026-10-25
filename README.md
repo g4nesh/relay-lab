@@ -59,16 +59,14 @@ communication uses trained adapters between compatible model features. The gener
 customer worker exchanges structured reports; its handler decides how those reports
 enter the next model call.
 
-## Two repositories, one shared application
+## Repository contents
 
-| Repository | Contents | Use it for |
-| --- | --- | --- |
-| **Relay Lab** — this repository | Dashboard, backend, simulation environments, model adapters and recorded evidence | Research and shared application development |
-| [**Relay Studio**](https://github.com/g4nesh/relay-studio) — private | Dashboard, worker SDK, Spacetime module and deployment package | An independent customer installation |
+This repository contains the dashboard, backend, simulation environments, model
+adapters and recorded evidence for research and shared application development.
 
 The standalone package excludes training code, model weights, datasets and
 simulation runtimes. Shared changes follow the [repository synchronization guide](docs/studio-sync.md).
-Customer state and credentials stay outside both repositories.
+Customer state and credentials stay outside source control.
 
 ## Run locally
 
