@@ -1,0 +1,611 @@
+{
+ "seeds": [
+  0,
+  1,
+  2,
+  3,
+  4
+ ],
+ "epochs": 400,
+ "anchor_weight": 0.5,
+ "runs": {
+  "pairwise": [
+   {
+    "task": {
+     "left": 1.0,
+     "right": 1.0
+    },
+    "swap": {
+     "left": 0.5,
+     "right": 0.5249999761581421
+    },
+    "obstacle_direction_cosine": 0.026936642825603485,
+    "plugin": {
+     "xvla_on_left_camera": {
+      "plugin_trained_arm": 1.0,
+      "plugin_other_arm": 0.5,
+      "existing_sender_zero_shot": 0.6000000238418579
+     },
+     "smolvla_on_right_camera": {
+      "plugin_trained_arm": 1.0,
+      "plugin_other_arm": 0.42500001192092896,
+      "existing_sender_zero_shot": 0.5
+     }
+    }
+   },
+   {
+    "task": {
+     "left": 1.0,
+     "right": 1.0
+    },
+    "swap": {
+     "left": 0.5,
+     "right": 0.5
+    },
+    "obstacle_direction_cosine": 0.15039676427841187,
+    "plugin": {
+     "xvla_on_left_camera": {
+      "plugin_trained_arm": 1.0,
+      "plugin_other_arm": 0.5,
+      "existing_sender_zero_shot": 0.5
+     },
+     "smolvla_on_right_camera": {
+      "plugin_trained_arm": 1.0,
+      "plugin_other_arm": 0.5,
+      "existing_sender_zero_shot": 0.5
+     }
+    }
+   },
+   {
+    "task": {
+     "left": 1.0,
+     "right": 1.0
+    },
+    "swap": {
+     "left": 0.5249999761581421,
+     "right": 0.5
+    },
+    "obstacle_direction_cosine": 0.16333530843257904,
+    "plugin": {
+     "xvla_on_left_camera": {
+      "plugin_trained_arm": 1.0,
+      "plugin_other_arm": 0.5,
+      "existing_sender_zero_shot": 0.574999988079071
+     },
+     "smolvla_on_right_camera": {
+      "plugin_trained_arm": 1.0,
+      "plugin_other_arm": 0.5,
+      "existing_sender_zero_shot": 0.5
+     }
+    }
+   },
+   {
+    "task": {
+     "left": 1.0,
+     "right": 1.0
+    },
+    "swap": {
+     "left": 0.4749999940395355,
+     "right": 0.4749999940395355
+    },
+    "obstacle_direction_cosine": -0.11194518208503723,
+    "plugin": {
+     "xvla_on_left_camera": {
+      "plugin_trained_arm": 1.0,
+      "plugin_other_arm": 0.4000000059604645,
+      "existing_sender_zero_shot": 0.5
+     },
+     "smolvla_on_right_camera": {
+      "plugin_trained_arm": 1.0,
+      "plugin_other_arm": 0.5,
+      "existing_sender_zero_shot": 0.4749999940395355
+     }
+    }
+   },
+   {
+    "task": {
+     "left": 1.0,
+     "right": 1.0
+    },
+    "swap": {
+     "left": 0.5,
+     "right": 0.6000000238418579
+    },
+    "obstacle_direction_cosine": 0.021652283146977425,
+    "plugin": {
+     "xvla_on_left_camera": {
+      "plugin_trained_arm": 1.0,
+      "plugin_other_arm": 0.5249999761581421,
+      "existing_sender_zero_shot": 0.625
+     },
+     "smolvla_on_right_camera": {
+      "plugin_trained_arm": 1.0,
+      "plugin_other_arm": 0.44999998807907104,
+      "existing_sender_zero_shot": 0.5
+     }
+    }
+   }
+  ],
+  "shared_receiver_only": [
+   {
+    "task": {
+     "left": 1.0,
+     "right": 1.0
+    },
+    "swap": {
+     "left": 0.5,
+     "right": 0.550000011920929
+    },
+    "obstacle_direction_cosine": 0.14634227752685547,
+    "plugin": {
+     "xvla_on_left_camera": {
+      "plugin_trained_arm": 1.0,
+      "plugin_other_arm": 0.5,
+      "existing_sender_zero_shot": 0.699999988079071
+     },
+     "smolvla_on_right_camera": {
+      "plugin_trained_arm": 1.0,
+      "plugin_other_arm": 0.550000011920929,
+      "existing_sender_zero_shot": 0.5
+     }
+    }
+   },
+   {
+    "task": {
+     "left": 1.0,
+     "right": 1.0
+    },
+    "swap": {
+     "left": 0.0,
+     "right": 0.375
+    },
+    "obstacle_direction_cosine": -0.3834925889968872,
+    "plugin": {
+     "xvla_on_left_camera": {
+      "plugin_trained_arm": 1.0,
+      "plugin_other_arm": 0.0,
+      "existing_sender_zero_shot": 0.20000000298023224
+     },
+     "smolvla_on_right_camera": {
+      "plugin_trained_arm": 1.0,
+      "plugin_other_arm": 0.22499999403953552,
+      "existing_sender_zero_shot": 0.15000000596046448
+     }
+    }
+   },
+   {
+    "task": {
+     "left": 1.0,
+     "right": 1.0
+    },
+    "swap": {
+     "left": 0.5,
+     "right": 0.44999998807907104
+    },
+    "obstacle_direction_cosine": 0.045588620007038116,
+    "plugin": {
+     "xvla_on_left_camera": {
+      "plugin_trained_arm": 1.0,
+      "plugin_other_arm": 0.5,
+      "existing_sender_zero_shot": 0.375
+     },
+     "smolvla_on_right_camera": {
+      "plugin_trained_arm": 1.0,
+      "plugin_other_arm": 0.42500001192092896,
+      "existing_sender_zero_shot": 0.5
+     }
+    }
+   },
+   {
+    "task": {
+     "left": 1.0,
+     "right": 1.0
+    },
+    "swap": {
+     "left": 0.625,
+     "right": 0.9750000238418579
+    },
+    "obstacle_direction_cosine": 0.21536804735660553,
+    "plugin": {
+     "xvla_on_left_camera": {
+      "plugin_trained_arm": 1.0,
+      "plugin_other_arm": 0.75,
+      "existing_sender_zero_shot": 0.9750000238418579
+     },
+     "smolvla_on_right_camera": {
+      "plugin_trained_arm": 1.0,
+      "plugin_other_arm": 1.0,
+      "existing_sender_zero_shot": 0.5
+     }
+    }
+   },
+   {
+    "task": {
+     "left": 1.0,
+     "right": 1.0
+    },
+    "swap": {
+     "left": 0.574999988079071,
+     "right": 0.550000011920929
+    },
+    "obstacle_direction_cosine": 0.01070051733404398,
+    "plugin": {
+     "xvla_on_left_camera": {
+      "plugin_trained_arm": 1.0,
+      "plugin_other_arm": 0.5,
+      "existing_sender_zero_shot": 0.5
+     },
+     "smolvla_on_right_camera": {
+      "plugin_trained_arm": 1.0,
+      "plugin_other_arm": 0.5,
+      "existing_sender_zero_shot": 0.5
+     }
+    }
+   }
+  ],
+  "anchor_only": [
+   {
+    "task": {
+     "left": 1.0,
+     "right": 1.0
+    },
+    "swap": {
+     "left": 0.8999999761581421,
+     "right": 0.5
+    },
+    "obstacle_direction_cosine": 0.38984084129333496,
+    "plugin": {
+     "xvla_on_left_camera": {
+      "plugin_trained_arm": 1.0,
+      "plugin_other_arm": 0.8500000238418579,
+      "existing_sender_zero_shot": 0.5
+     },
+     "smolvla_on_right_camera": {
+      "plugin_trained_arm": 1.0,
+      "plugin_other_arm": 0.5,
+      "existing_sender_zero_shot": 0.8999999761581421
+     }
+    }
+   },
+   {
+    "task": {
+     "left": 1.0,
+     "right": 1.0
+    },
+    "swap": {
+     "left": 0.9750000238418579,
+     "right": 0.5
+    },
+    "obstacle_direction_cosine": 0.41889524459838867,
+    "plugin": {
+     "xvla_on_left_camera": {
+      "plugin_trained_arm": 1.0,
+      "plugin_other_arm": 0.949999988079071,
+      "existing_sender_zero_shot": 0.5
+     },
+     "smolvla_on_right_camera": {
+      "plugin_trained_arm": 1.0,
+      "plugin_other_arm": 0.5,
+      "existing_sender_zero_shot": 0.800000011920929
+     }
+    }
+   },
+   {
+    "task": {
+     "left": 1.0,
+     "right": 1.0
+    },
+    "swap": {
+     "left": 1.0,
+     "right": 0.75
+    },
+    "obstacle_direction_cosine": 0.4299520254135132,
+    "plugin": {
+     "xvla_on_left_camera": {
+      "plugin_trained_arm": 1.0,
+      "plugin_other_arm": 1.0,
+      "existing_sender_zero_shot": 0.9750000238418579
+     },
+     "smolvla_on_right_camera": {
+      "plugin_trained_arm": 1.0,
+      "plugin_other_arm": 0.8500000238418579,
+      "existing_sender_zero_shot": 1.0
+     }
+    }
+   },
+   {
+    "task": {
+     "left": 1.0,
+     "right": 1.0
+    },
+    "swap": {
+     "left": 0.800000011920929,
+     "right": 0.5
+    },
+    "obstacle_direction_cosine": 0.35808444023132324,
+    "plugin": {
+     "xvla_on_left_camera": {
+      "plugin_trained_arm": 1.0,
+      "plugin_other_arm": 0.800000011920929,
+      "existing_sender_zero_shot": 0.5249999761581421
+     },
+     "smolvla_on_right_camera": {
+      "plugin_trained_arm": 1.0,
+      "plugin_other_arm": 0.5,
+      "existing_sender_zero_shot": 0.800000011920929
+     }
+    }
+   },
+   {
+    "task": {
+     "left": 1.0,
+     "right": 1.0
+    },
+    "swap": {
+     "left": 1.0,
+     "right": 0.5
+    },
+    "obstacle_direction_cosine": 0.448947936296463,
+    "plugin": {
+     "xvla_on_left_camera": {
+      "plugin_trained_arm": 1.0,
+      "plugin_other_arm": 0.925000011920929,
+      "existing_sender_zero_shot": 0.550000011920929
+     },
+     "smolvla_on_right_camera": {
+      "plugin_trained_arm": 1.0,
+      "plugin_other_arm": 0.5,
+      "existing_sender_zero_shot": 0.800000011920929
+     }
+    }
+   }
+  ],
+  "shared": [
+   {
+    "task": {
+     "left": 1.0,
+     "right": 1.0
+    },
+    "swap": {
+     "left": 1.0,
+     "right": 1.0
+    },
+    "obstacle_direction_cosine": 0.4165096879005432,
+    "plugin": {
+     "xvla_on_left_camera": {
+      "plugin_trained_arm": 1.0,
+      "plugin_other_arm": 1.0,
+      "existing_sender_zero_shot": 1.0
+     },
+     "smolvla_on_right_camera": {
+      "plugin_trained_arm": 1.0,
+      "plugin_other_arm": 1.0,
+      "existing_sender_zero_shot": 1.0
+     }
+    }
+   },
+   {
+    "task": {
+     "left": 1.0,
+     "right": 1.0
+    },
+    "swap": {
+     "left": 1.0,
+     "right": 1.0
+    },
+    "obstacle_direction_cosine": 0.4986180067062378,
+    "plugin": {
+     "xvla_on_left_camera": {
+      "plugin_trained_arm": 1.0,
+      "plugin_other_arm": 1.0,
+      "existing_sender_zero_shot": 1.0
+     },
+     "smolvla_on_right_camera": {
+      "plugin_trained_arm": 1.0,
+      "plugin_other_arm": 0.9750000238418579,
+      "existing_sender_zero_shot": 0.8500000238418579
+     }
+    }
+   },
+   {
+    "task": {
+     "left": 1.0,
+     "right": 1.0
+    },
+    "swap": {
+     "left": 1.0,
+     "right": 0.8500000238418579
+    },
+    "obstacle_direction_cosine": 0.4614327549934387,
+    "plugin": {
+     "xvla_on_left_camera": {
+      "plugin_trained_arm": 1.0,
+      "plugin_other_arm": 1.0,
+      "existing_sender_zero_shot": 0.9750000238418579
+     },
+     "smolvla_on_right_camera": {
+      "plugin_trained_arm": 1.0,
+      "plugin_other_arm": 0.8500000238418579,
+      "existing_sender_zero_shot": 1.0
+     }
+    }
+   },
+   {
+    "task": {
+     "left": 1.0,
+     "right": 1.0
+    },
+    "swap": {
+     "left": 1.0,
+     "right": 1.0
+    },
+    "obstacle_direction_cosine": 0.48598358035087585,
+    "plugin": {
+     "xvla_on_left_camera": {
+      "plugin_trained_arm": 1.0,
+      "plugin_other_arm": 1.0,
+      "existing_sender_zero_shot": 1.0
+     },
+     "smolvla_on_right_camera": {
+      "plugin_trained_arm": 1.0,
+      "plugin_other_arm": 0.8500000238418579,
+      "existing_sender_zero_shot": 0.949999988079071
+     }
+    }
+   },
+   {
+    "task": {
+     "left": 1.0,
+     "right": 1.0
+    },
+    "swap": {
+     "left": 1.0,
+     "right": 1.0
+    },
+    "obstacle_direction_cosine": 0.48272252082824707,
+    "plugin": {
+     "xvla_on_left_camera": {
+      "plugin_trained_arm": 1.0,
+      "plugin_other_arm": 1.0,
+      "existing_sender_zero_shot": 1.0
+     },
+     "smolvla_on_right_camera": {
+      "plugin_trained_arm": 1.0,
+      "plugin_other_arm": 1.0,
+      "existing_sender_zero_shot": 0.875
+     }
+    }
+   }
+  ]
+ },
+ "summary": {
+  "pairwise": {
+   "task": {
+    "mean": 1.0,
+    "min": 1.0,
+    "max": 1.0
+   },
+   "swap": {
+    "mean": 0.5099999964237213,
+    "min": 0.4749999940395355,
+    "max": 0.550000011920929
+   },
+   "obstacle_direction_cosine": {
+    "mean": 0.05007516331970692,
+    "min": -0.11194518208503723,
+    "max": 0.16333530843257904
+   },
+   "plugin_trained_arm": {
+    "mean": 1.0,
+    "min": 1.0,
+    "max": 1.0
+   },
+   "plugin_other_arm": {
+    "mean": 0.4799999982118607,
+    "min": 0.45000000298023224,
+    "max": 0.5
+   },
+   "existing_sender_zero_shot": {
+    "mean": 0.5275000005960464,
+    "min": 0.48749999701976776,
+    "max": 0.5625
+   }
+  },
+  "shared_receiver_only": {
+   "task": {
+    "mean": 1.0,
+    "min": 1.0,
+    "max": 1.0
+   },
+   "swap": {
+    "mean": 0.5100000023841857,
+    "min": 0.1875,
+    "max": 0.800000011920929
+   },
+   "obstacle_direction_cosine": {
+    "mean": 0.006901374645531177,
+    "min": -0.3834925889968872,
+    "max": 0.21536804735660553
+   },
+   "plugin_trained_arm": {
+    "mean": 1.0,
+    "min": 1.0,
+    "max": 1.0
+   },
+   "plugin_other_arm": {
+    "mean": 0.49500000178813935,
+    "min": 0.11249999701976776,
+    "max": 0.875
+   },
+   "existing_sender_zero_shot": {
+    "mean": 0.49000000208616257,
+    "min": 0.17500000447034836,
+    "max": 0.737500011920929
+   }
+  },
+  "anchor_only": {
+   "task": {
+    "mean": 1.0,
+    "min": 1.0,
+    "max": 1.0
+   },
+   "swap": {
+    "mean": 0.7425000011920929,
+    "min": 0.6500000059604645,
+    "max": 0.875
+   },
+   "obstacle_direction_cosine": {
+    "mean": 0.40914409756660464,
+    "min": 0.35808444023132324,
+    "max": 0.448947936296463
+   },
+   "plugin_trained_arm": {
+    "mean": 1.0,
+    "min": 1.0,
+    "max": 1.0
+   },
+   "plugin_other_arm": {
+    "mean": 0.7375000059604645,
+    "min": 0.6500000059604645,
+    "max": 0.925000011920929
+   },
+   "existing_sender_zero_shot": {
+    "mean": 0.7350000023841858,
+    "min": 0.6500000059604645,
+    "max": 0.987500011920929
+   }
+  },
+  "shared": {
+   "task": {
+    "mean": 1.0,
+    "min": 1.0,
+    "max": 1.0
+   },
+   "swap": {
+    "mean": 0.9850000023841858,
+    "min": 0.925000011920929,
+    "max": 1.0
+   },
+   "obstacle_direction_cosine": {
+    "mean": 0.46905331015586854,
+    "min": 0.4165096879005432,
+    "max": 0.4986180067062378
+   },
+   "plugin_trained_arm": {
+    "mean": 1.0,
+    "min": 1.0,
+    "max": 1.0
+   },
+   "plugin_other_arm": {
+    "mean": 0.9675000071525574,
+    "min": 0.925000011920929,
+    "max": 1.0
+   },
+   "existing_sender_zero_shot": {
+    "mean": 0.9650000035762787,
+    "min": 0.925000011920929,
+    "max": 1.0
+   }
+  }
+ }
+}
