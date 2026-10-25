@@ -1,0 +1,41 @@
+{
+  "schema": "relay.studio.analytics-verification.v1",
+  "checked_at": 1792900038.8452082,
+  "http": {
+    "employee_analytics": 200,
+    "manager_analytics": 200,
+    "estimate_requires_csrf": true,
+    "revoked_sessions_denied": true
+  },
+  "live": {
+    "backend": "actual local SpacetimeDB",
+    "input": "captured frozen VLA features",
+    "inference": "actual learned adapter",
+    "new_exchanges": 3,
+    "duplicate_retries": 3,
+    "telemetry_rows": 3,
+    "readback_verified": true,
+    "survives_restart": true,
+    "hardware_execution": false
+  },
+  "ui": {
+    "preview": "isolated QA accounts and registry",
+    "cohort_channel_condition_filters": true,
+    "scenario_calculation": true,
+    "scenario_edit_invalidates_previous_result": true,
+    "evidence_dialog": true,
+    "filtered_json_export_clicked": true,
+    "logout_clears_analytics": true,
+    "browser_console_errors": 0,
+    "viewport_tested": "1280x720"
+  },
+  "checks": {
+    "pytest_passed": 243,
+    "ruff": "passed",
+    "javascript_syntax": "passed"
+  },
+  "limits": [
+    "Browser export success toast verified.",
+    "No production workload, real hardware or timed human-team integration study was performed."
+  ]
+}

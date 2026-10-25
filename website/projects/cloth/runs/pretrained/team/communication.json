@@ -1,0 +1,1019 @@
+{
+  "config": {
+    "schema": "relay.cloth.communication.v2",
+    "mode": "hybrid",
+    "model": {
+      "kind": "standardized-pca-v1",
+      "space_id": "cloth-local-pca-8-v2",
+      "checkpoint_sha256": "fd6cc849059e65b1a64fedc668abb1e79fb8c2d05a2cad467e01d1d736022661",
+      "dimension": 8,
+      "source_dimension": 23,
+      "training": {
+        "combined_input_sha256": "b22ee4c7d9e6f38f5da186124ffd6b9096b1500b3a5a8761eec98cf7ca91ec13",
+        "evaluation_seeds_used": false,
+        "feature_sha256": "f6bca9e20bcbbba4fc2bbbd56ba945a2e6521bfd9002a961a8e7f2b21139aead",
+        "migration": {
+          "already_current": 0,
+          "discarded_unknown_attachment": 16,
+          "inferred_targets_from_phase": false,
+          "input_rows": 160,
+          "retained_rows": 144
+        },
+        "representation": "standardized PCA of measured local features; not a VLA hidden state",
+        "samples": 632,
+        "source": "original local MuJoCo measurements, calibration and complete training trajectory",
+        "split": "training",
+        "training_seeds": [
+          10000,
+          10001,
+          10002,
+          10003,
+          10004
+        ]
+      }
+    },
+    "network": {
+      "seed": 77,
+      "min_delay_ticks": 1,
+      "max_delay_ticks": 3,
+      "drop_probability": 0,
+      "ttl_ticks": 24
+    },
+    "features": [
+      "ee_x",
+      "ee_y",
+      "ee_z",
+      "hem_x",
+      "hem_y",
+      "hem_z",
+      "sleeve_x",
+      "sleeve_y",
+      "sleeve_z",
+      "shoulder_x",
+      "shoulder_y",
+      "shoulder_z",
+      "grasped",
+      "obstacle_x",
+      "obstacle_y",
+      "obstacle_z",
+      "obstacle_radius",
+      "obstacle_active",
+      "hem_visible",
+      "sleeve_visible",
+      "shoulder_visible",
+      "grasp_sleeve",
+      "grasp_hem"
+    ],
+    "hybrid_fields": [
+      "grasped",
+      "obstacle_x",
+      "obstacle_y",
+      "obstacle_z",
+      "obstacle_radius",
+      "obstacle_active",
+      "hem_visible",
+      "sleeve_visible",
+      "shoulder_visible",
+      "grasp_sleeve",
+      "grasp_hem"
+    ]
+  },
+  "events": [
+    {
+      "kind": "published",
+      "tick": 0,
+      "packet": {
+        "checkpoint_sha256": "fd6cc849059e65b1a64fedc668abb1e79fb8c2d05a2cad467e01d1d736022661",
+        "content": {
+          "text": "{\"grasp_hem\":0.0,\"grasp_sleeve\":0.0,\"grasped\":0.0,\"hem_visible\":1.0,\"obstacle_active\":0.0,\"obstacle_radius\":0.0,\"obstacle_x\":0.0,\"obstacle_y\":0.0,\"obstacle_z\":0.0,\"shoulder_visible\":1.0,\"sleeve_visible\":1.0}",
+          "vector": [
+            -0.5728753805160522,
+            -2.24429988861084,
+            -2.07238507270813,
+            -1.5638989210128784,
+            0.6999211311340332,
+            1.7054295539855957,
+            0.7466715574264526,
+            0.3794950246810913
+          ]
+        },
+        "deliver_tick": 2,
+        "dropped": false,
+        "emitted_tick": 0,
+        "expires_tick": 24,
+        "mode": "hybrid",
+        "observation_tick": 0,
+        "packet_id": "left-0",
+        "recipient": "right",
+        "run_id": "cloth-pretrained-7707b7eeb252",
+        "schema": "relay.cloth.communication.v2",
+        "sender": "left",
+        "source_sha256": "d4604642156d4a6ae4c8ab54a34dc49aa3407cfc29709bc975885e6db94681fc",
+        "space_id": "cloth-local-pca-8-v2"
+      }
+    },
+    {
+      "kind": "published",
+      "tick": 0,
+      "packet": {
+        "checkpoint_sha256": "fd6cc849059e65b1a64fedc668abb1e79fb8c2d05a2cad467e01d1d736022661",
+        "content": {
+          "text": "{\"grasp_hem\":0.0,\"grasp_sleeve\":0.0,\"grasped\":0.0,\"hem_visible\":1.0,\"obstacle_active\":0.0,\"obstacle_radius\":0.0,\"obstacle_x\":0.0,\"obstacle_y\":0.0,\"obstacle_z\":0.0,\"shoulder_visible\":1.0,\"sleeve_visible\":1.0}",
+          "vector": [
+            -1.7538381814956665,
+            2.2189695835113525,
+            -1.9225096702575684,
+            -1.0826542377471924,
+            0.7352861166000366,
+            1.1525192260742188,
+            -0.008891128934919834,
+            -0.7746225595474243
+          ]
+        },
+        "deliver_tick": 2,
+        "dropped": false,
+        "emitted_tick": 0,
+        "expires_tick": 24,
+        "mode": "hybrid",
+        "observation_tick": 0,
+        "packet_id": "right-0",
+        "recipient": "left",
+        "run_id": "cloth-pretrained-7707b7eeb252",
+        "schema": "relay.cloth.communication.v2",
+        "sender": "right",
+        "source_sha256": "5d6c03f8bc7a0cb9cba4901ad2e7a93a3563b446c382a5d05f62bce4b5b4d42a",
+        "space_id": "cloth-local-pca-8-v2"
+      }
+    },
+    {
+      "kind": "delivered",
+      "tick": 2,
+      "packet_id": "left-0",
+      "observation_tick": 0
+    },
+    {
+      "kind": "delivered",
+      "tick": 2,
+      "packet_id": "right-0",
+      "observation_tick": 0
+    },
+    {
+      "kind": "published",
+      "tick": 4,
+      "packet": {
+        "checkpoint_sha256": "fd6cc849059e65b1a64fedc668abb1e79fb8c2d05a2cad467e01d1d736022661",
+        "content": {
+          "text": "{\"grasp_hem\":0.0,\"grasp_sleeve\":0.0,\"grasped\":0.0,\"hem_visible\":1.0,\"obstacle_active\":0.0,\"obstacle_radius\":0.0,\"obstacle_x\":0.0,\"obstacle_y\":0.0,\"obstacle_z\":0.0,\"shoulder_visible\":1.0,\"sleeve_visible\":1.0}",
+          "vector": [
+            -0.5533528923988342,
+            -2.2484731674194336,
+            -2.0408103466033936,
+            -1.5594305992126465,
+            0.6091053485870361,
+            1.6419167518615723,
+            0.7724964022636414,
+            0.38584932684898376
+          ]
+        },
+        "deliver_tick": 7,
+        "dropped": false,
+        "emitted_tick": 4,
+        "expires_tick": 28,
+        "mode": "hybrid",
+        "observation_tick": 4,
+        "packet_id": "left-4",
+        "recipient": "right",
+        "run_id": "cloth-pretrained-7707b7eeb252",
+        "schema": "relay.cloth.communication.v2",
+        "sender": "left",
+        "source_sha256": "5c26be72246886c054c44d44226da7f3090b11ee794fa39e233e89db6297a34f",
+        "space_id": "cloth-local-pca-8-v2"
+      }
+    },
+    {
+      "kind": "published",
+      "tick": 4,
+      "packet": {
+        "checkpoint_sha256": "fd6cc849059e65b1a64fedc668abb1e79fb8c2d05a2cad467e01d1d736022661",
+        "content": {
+          "text": "{\"grasp_hem\":0.0,\"grasp_sleeve\":0.0,\"grasped\":0.0,\"hem_visible\":1.0,\"obstacle_active\":0.0,\"obstacle_radius\":0.0,\"obstacle_x\":0.0,\"obstacle_y\":0.0,\"obstacle_z\":0.0,\"shoulder_visible\":1.0,\"sleeve_visible\":1.0}",
+          "vector": [
+            -1.7438665628433228,
+            2.20829439163208,
+            -1.9071241617202759,
+            -1.0815021991729736,
+            0.7358675599098206,
+            1.150969386100769,
+            -0.04125325754284859,
+            -0.7251306176185608
+          ]
+        },
+        "deliver_tick": 7,
+        "dropped": false,
+        "emitted_tick": 4,
+        "expires_tick": 28,
+        "mode": "hybrid",
+        "observation_tick": 4,
+        "packet_id": "right-4",
+        "recipient": "left",
+        "run_id": "cloth-pretrained-7707b7eeb252",
+        "schema": "relay.cloth.communication.v2",
+        "sender": "right",
+        "source_sha256": "5dc62d7b00fae6c5eccedab9fee42e969a7c44ad7a7637dd535e95ada4c01d82",
+        "space_id": "cloth-local-pca-8-v2"
+      }
+    },
+    {
+      "kind": "delivered",
+      "tick": 7,
+      "packet_id": "left-4",
+      "observation_tick": 4
+    },
+    {
+      "kind": "delivered",
+      "tick": 7,
+      "packet_id": "right-4",
+      "observation_tick": 4
+    },
+    {
+      "kind": "published",
+      "tick": 8,
+      "packet": {
+        "checkpoint_sha256": "fd6cc849059e65b1a64fedc668abb1e79fb8c2d05a2cad467e01d1d736022661",
+        "content": {
+          "text": "{\"grasp_hem\":0.0,\"grasp_sleeve\":0.0,\"grasped\":0.0,\"hem_visible\":1.0,\"obstacle_active\":0.0,\"obstacle_radius\":0.0,\"obstacle_x\":0.0,\"obstacle_y\":0.0,\"obstacle_z\":0.0,\"shoulder_visible\":1.0,\"sleeve_visible\":1.0}",
+          "vector": [
+            -0.5340932607650757,
+            -2.2479588985443115,
+            -2.006617784500122,
+            -1.5543864965438843,
+            0.5111588835716248,
+            1.5733585357666016,
+            0.799267590045929,
+            0.3909514248371124
+          ]
+        },
+        "deliver_tick": 11,
+        "dropped": false,
+        "emitted_tick": 8,
+        "expires_tick": 32,
+        "mode": "hybrid",
+        "observation_tick": 8,
+        "packet_id": "left-8",
+        "recipient": "right",
+        "run_id": "cloth-pretrained-7707b7eeb252",
+        "schema": "relay.cloth.communication.v2",
+        "sender": "left",
+        "source_sha256": "a0228a8ab74af3e1074582505c56440b691b224311fd26fd684f4a1e8a45410e",
+        "space_id": "cloth-local-pca-8-v2"
+      }
+    },
+    {
+      "kind": "published",
+      "tick": 8,
+      "packet": {
+        "checkpoint_sha256": "fd6cc849059e65b1a64fedc668abb1e79fb8c2d05a2cad467e01d1d736022661",
+        "content": {
+          "text": "{\"grasp_hem\":0.0,\"grasp_sleeve\":0.0,\"grasped\":0.0,\"hem_visible\":1.0,\"obstacle_active\":0.0,\"obstacle_radius\":0.0,\"obstacle_x\":0.0,\"obstacle_y\":0.0,\"obstacle_z\":0.0,\"shoulder_visible\":1.0,\"sleeve_visible\":1.0}",
+          "vector": [
+            -1.7337062358856201,
+            2.1974518299102783,
+            -1.8915303945541382,
+            -1.0803264379501343,
+            0.7357643246650696,
+            1.1489601135253906,
+            -0.07338516414165497,
+            -0.6755461692810059
+          ]
+        },
+        "deliver_tick": 10,
+        "dropped": false,
+        "emitted_tick": 8,
+        "expires_tick": 32,
+        "mode": "hybrid",
+        "observation_tick": 8,
+        "packet_id": "right-8",
+        "recipient": "left",
+        "run_id": "cloth-pretrained-7707b7eeb252",
+        "schema": "relay.cloth.communication.v2",
+        "sender": "right",
+        "source_sha256": "95b0a6ed415263d51af69ffa67cbfb1c16175b3c0960c958a3cab0e6b0950b05",
+        "space_id": "cloth-local-pca-8-v2"
+      }
+    },
+    {
+      "kind": "delivered",
+      "tick": 10,
+      "packet_id": "right-8",
+      "observation_tick": 8
+    },
+    {
+      "kind": "delivered",
+      "tick": 11,
+      "packet_id": "left-8",
+      "observation_tick": 8
+    },
+    {
+      "kind": "published",
+      "tick": 12,
+      "packet": {
+        "checkpoint_sha256": "fd6cc849059e65b1a64fedc668abb1e79fb8c2d05a2cad467e01d1d736022661",
+        "content": {
+          "text": "{\"grasp_hem\":0.0,\"grasp_sleeve\":0.0,\"grasped\":0.0,\"hem_visible\":1.0,\"obstacle_active\":0.0,\"obstacle_radius\":0.0,\"obstacle_x\":0.0,\"obstacle_y\":0.0,\"obstacle_z\":0.0,\"shoulder_visible\":1.0,\"sleeve_visible\":1.0}",
+          "vector": [
+            -0.5150554776191711,
+            -2.2473976612091064,
+            -1.9730191230773926,
+            -1.5493950843811035,
+            0.4127330482006073,
+            1.504567265510559,
+            0.8278037309646606,
+            0.39388227462768555
+          ]
+        },
+        "deliver_tick": 13,
+        "dropped": false,
+        "emitted_tick": 12,
+        "expires_tick": 36,
+        "mode": "hybrid",
+        "observation_tick": 12,
+        "packet_id": "left-12",
+        "recipient": "right",
+        "run_id": "cloth-pretrained-7707b7eeb252",
+        "schema": "relay.cloth.communication.v2",
+        "sender": "left",
+        "source_sha256": "92942fc275a478e4e4de24ac47de498b90ee4ae5c44405d1d230711c4ec00f61",
+        "space_id": "cloth-local-pca-8-v2"
+      }
+    },
+    {
+      "kind": "published",
+      "tick": 12,
+      "packet": {
+        "checkpoint_sha256": "fd6cc849059e65b1a64fedc668abb1e79fb8c2d05a2cad467e01d1d736022661",
+        "content": {
+          "text": "{\"grasp_hem\":0.0,\"grasp_sleeve\":0.0,\"grasped\":0.0,\"hem_visible\":1.0,\"obstacle_active\":0.0,\"obstacle_radius\":0.0,\"obstacle_x\":0.0,\"obstacle_y\":0.0,\"obstacle_z\":0.0,\"shoulder_visible\":1.0,\"sleeve_visible\":1.0}",
+          "vector": [
+            -1.723402738571167,
+            2.1861636638641357,
+            -1.8760465383529663,
+            -1.079174280166626,
+            0.7352948188781738,
+            1.1467305421829224,
+            -0.10484807938337326,
+            -0.6264129877090454
+          ]
+        },
+        "deliver_tick": 14,
+        "dropped": false,
+        "emitted_tick": 12,
+        "expires_tick": 36,
+        "mode": "hybrid",
+        "observation_tick": 12,
+        "packet_id": "right-12",
+        "recipient": "left",
+        "run_id": "cloth-pretrained-7707b7eeb252",
+        "schema": "relay.cloth.communication.v2",
+        "sender": "right",
+        "source_sha256": "76853080ea15b830b325070d15ff4197fb457fbdf3d5e226b4eddf86e649feda",
+        "space_id": "cloth-local-pca-8-v2"
+      }
+    },
+    {
+      "kind": "delivered",
+      "tick": 13,
+      "packet_id": "left-12",
+      "observation_tick": 12
+    },
+    {
+      "kind": "delivered",
+      "tick": 14,
+      "packet_id": "right-12",
+      "observation_tick": 12
+    },
+    {
+      "kind": "published",
+      "tick": 16,
+      "packet": {
+        "checkpoint_sha256": "fd6cc849059e65b1a64fedc668abb1e79fb8c2d05a2cad467e01d1d736022661",
+        "content": {
+          "text": "{\"grasp_hem\":0.0,\"grasp_sleeve\":0.0,\"grasped\":0.0,\"hem_visible\":1.0,\"obstacle_active\":1.0,\"obstacle_radius\":0.065,\"obstacle_x\":-0.6076,\"obstacle_y\":-0.04,\"obstacle_z\":0.18,\"shoulder_visible\":1.0,\"sleeve_visible\":1.0}",
+          "vector": [
+            4.460175514221191,
+            -2.205976963043213,
+            -4.013940334320068,
+            0.0678497701883316,
+            0.004173372872173786,
+            1.7035361528396606,
+            -1.6877315044403076,
+            -1.9809255599975586
+          ]
+        },
+        "deliver_tick": 19,
+        "dropped": false,
+        "emitted_tick": 16,
+        "expires_tick": 40,
+        "mode": "hybrid",
+        "observation_tick": 16,
+        "packet_id": "left-16",
+        "recipient": "right",
+        "run_id": "cloth-pretrained-7707b7eeb252",
+        "schema": "relay.cloth.communication.v2",
+        "sender": "left",
+        "source_sha256": "57fefd2bc5186ac991d73a2af11bc8c401d3c63945505a70dbf42bd86947789b",
+        "space_id": "cloth-local-pca-8-v2"
+      }
+    },
+    {
+      "kind": "published",
+      "tick": 16,
+      "packet": {
+        "checkpoint_sha256": "fd6cc849059e65b1a64fedc668abb1e79fb8c2d05a2cad467e01d1d736022661",
+        "content": {
+          "text": "{\"grasp_hem\":0.0,\"grasp_sleeve\":0.0,\"grasped\":0.0,\"hem_visible\":1.0,\"obstacle_active\":0.0,\"obstacle_radius\":0.0,\"obstacle_x\":0.0,\"obstacle_y\":0.0,\"obstacle_z\":0.0,\"shoulder_visible\":1.0,\"sleeve_visible\":1.0}",
+          "vector": [
+            -1.7130980491638184,
+            2.1746668815612793,
+            -1.8607250452041626,
+            -1.0780483484268188,
+            0.7349879741668701,
+            1.1446267366409302,
+            -0.13609866797924042,
+            -0.5774986147880554
+          ]
+        },
+        "deliver_tick": 19,
+        "dropped": false,
+        "emitted_tick": 16,
+        "expires_tick": 40,
+        "mode": "hybrid",
+        "observation_tick": 16,
+        "packet_id": "right-16",
+        "recipient": "left",
+        "run_id": "cloth-pretrained-7707b7eeb252",
+        "schema": "relay.cloth.communication.v2",
+        "sender": "right",
+        "source_sha256": "9f64df375e27d7f1d995c1dfd4961a286352398ccc58463347905a008afca455",
+        "space_id": "cloth-local-pca-8-v2"
+      }
+    },
+    {
+      "kind": "delivered",
+      "tick": 19,
+      "packet_id": "left-16",
+      "observation_tick": 16
+    },
+    {
+      "kind": "delivered",
+      "tick": 19,
+      "packet_id": "right-16",
+      "observation_tick": 16
+    },
+    {
+      "kind": "published",
+      "tick": 20,
+      "packet": {
+        "checkpoint_sha256": "fd6cc849059e65b1a64fedc668abb1e79fb8c2d05a2cad467e01d1d736022661",
+        "content": {
+          "text": "{\"grasp_hem\":0.0,\"grasp_sleeve\":0.0,\"grasped\":0.0,\"hem_visible\":1.0,\"obstacle_active\":1.0,\"obstacle_radius\":0.065,\"obstacle_x\":-0.5920000000000001,\"obstacle_y\":-0.04,\"obstacle_z\":0.18,\"shoulder_visible\":1.0,\"sleeve_visible\":1.0}",
+          "vector": [
+            4.477684020996094,
+            -2.1864089965820312,
+            -3.9798219203948975,
+            0.07795427739620209,
+            -0.0635218694806099,
+            1.6179580688476562,
+            -1.6031826734542847,
+            -1.9327603578567505
+          ]
+        },
+        "deliver_tick": 22,
+        "dropped": false,
+        "emitted_tick": 20,
+        "expires_tick": 44,
+        "mode": "hybrid",
+        "observation_tick": 20,
+        "packet_id": "left-20",
+        "recipient": "right",
+        "run_id": "cloth-pretrained-7707b7eeb252",
+        "schema": "relay.cloth.communication.v2",
+        "sender": "left",
+        "source_sha256": "72e9692cc511cb8c2a3dff45b0c974d0f0de277ab5bc9b69113c9c980201db99",
+        "space_id": "cloth-local-pca-8-v2"
+      }
+    },
+    {
+      "kind": "published",
+      "tick": 20,
+      "packet": {
+        "checkpoint_sha256": "fd6cc849059e65b1a64fedc668abb1e79fb8c2d05a2cad467e01d1d736022661",
+        "content": {
+          "text": "{\"grasp_hem\":0.0,\"grasp_sleeve\":0.0,\"grasped\":0.0,\"hem_visible\":1.0,\"obstacle_active\":0.0,\"obstacle_radius\":0.0,\"obstacle_x\":0.0,\"obstacle_y\":0.0,\"obstacle_z\":0.0,\"shoulder_visible\":1.0,\"sleeve_visible\":1.0}",
+          "vector": [
+            -1.7026128768920898,
+            2.162855386734009,
+            -1.8453443050384521,
+            -1.0769165754318237,
+            0.7339746952056885,
+            1.142051100730896,
+            -0.16670310497283936,
+            -0.5289483070373535
+          ]
+        },
+        "deliver_tick": 22,
+        "dropped": false,
+        "emitted_tick": 20,
+        "expires_tick": 44,
+        "mode": "hybrid",
+        "observation_tick": 20,
+        "packet_id": "right-20",
+        "recipient": "left",
+        "run_id": "cloth-pretrained-7707b7eeb252",
+        "schema": "relay.cloth.communication.v2",
+        "sender": "right",
+        "source_sha256": "cf2e486ce066690a006a01add523a897acc8683f41c3b5a0553133c659b8d8ed",
+        "space_id": "cloth-local-pca-8-v2"
+      }
+    },
+    {
+      "kind": "delivered",
+      "tick": 22,
+      "packet_id": "left-20",
+      "observation_tick": 20
+    },
+    {
+      "kind": "delivered",
+      "tick": 22,
+      "packet_id": "right-20",
+      "observation_tick": 20
+    },
+    {
+      "kind": "published",
+      "tick": 24,
+      "packet": {
+        "checkpoint_sha256": "fd6cc849059e65b1a64fedc668abb1e79fb8c2d05a2cad467e01d1d736022661",
+        "content": {
+          "text": "{\"grasp_hem\":0.0,\"grasp_sleeve\":0.0,\"grasped\":0.0,\"hem_visible\":1.0,\"obstacle_active\":1.0,\"obstacle_radius\":0.065,\"obstacle_x\":-0.6544000000000001,\"obstacle_y\":-0.04,\"obstacle_z\":0.18,\"shoulder_visible\":1.0,\"sleeve_visible\":1.0}",
+          "vector": [
+            4.500755310058594,
+            -2.2716832160949707,
+            -3.961408853530884,
+            0.06058325618505478,
+            -0.27599236369132996,
+            1.6239475011825562,
+            -1.7779982089996338,
+            -2.1357123851776123
+          ]
+        },
+        "deliver_tick": 26,
+        "dropped": false,
+        "emitted_tick": 24,
+        "expires_tick": 48,
+        "mode": "hybrid",
+        "observation_tick": 24,
+        "packet_id": "left-24",
+        "recipient": "right",
+        "run_id": "cloth-pretrained-7707b7eeb252",
+        "schema": "relay.cloth.communication.v2",
+        "sender": "left",
+        "source_sha256": "c29c6d563d99a4a4fdb5d06932e7a02efe97662a61b29a520d880b379338449a",
+        "space_id": "cloth-local-pca-8-v2"
+      }
+    },
+    {
+      "kind": "published",
+      "tick": 24,
+      "packet": {
+        "checkpoint_sha256": "fd6cc849059e65b1a64fedc668abb1e79fb8c2d05a2cad467e01d1d736022661",
+        "content": {
+          "text": "{\"grasp_hem\":0.0,\"grasp_sleeve\":0.0,\"grasped\":0.0,\"hem_visible\":1.0,\"obstacle_active\":0.0,\"obstacle_radius\":0.0,\"obstacle_x\":0.0,\"obstacle_y\":0.0,\"obstacle_z\":0.0,\"shoulder_visible\":1.0,\"sleeve_visible\":1.0}",
+          "vector": [
+            -1.6920050382614136,
+            2.150681257247925,
+            -1.8300433158874512,
+            -1.075801134109497,
+            0.7325993776321411,
+            1.1392484903335571,
+            -0.1967073678970337,
+            -0.48081421852111816
+          ]
+        },
+        "deliver_tick": 26,
+        "dropped": false,
+        "emitted_tick": 24,
+        "expires_tick": 48,
+        "mode": "hybrid",
+        "observation_tick": 24,
+        "packet_id": "right-24",
+        "recipient": "left",
+        "run_id": "cloth-pretrained-7707b7eeb252",
+        "schema": "relay.cloth.communication.v2",
+        "sender": "right",
+        "source_sha256": "8adbb119e51fbc9d10a8a97eb493bbf1a82d57a10d233e8c690d416218a213db",
+        "space_id": "cloth-local-pca-8-v2"
+      }
+    },
+    {
+      "kind": "delivered",
+      "tick": 26,
+      "packet_id": "left-24",
+      "observation_tick": 24
+    },
+    {
+      "kind": "delivered",
+      "tick": 26,
+      "packet_id": "right-24",
+      "observation_tick": 24
+    },
+    {
+      "kind": "published",
+      "tick": 28,
+      "packet": {
+        "checkpoint_sha256": "fd6cc849059e65b1a64fedc668abb1e79fb8c2d05a2cad467e01d1d736022661",
+        "content": {
+          "text": "{\"grasp_hem\":0.0,\"grasp_sleeve\":0.0,\"grasped\":0.0,\"hem_visible\":1.0,\"obstacle_active\":0.0,\"obstacle_radius\":0.0,\"obstacle_x\":0.0,\"obstacle_y\":0.0,\"obstacle_z\":0.0,\"shoulder_visible\":1.0,\"sleeve_visible\":1.0}",
+          "vector": [
+            -0.43969935178756714,
+            -2.2526416778564453,
+            -1.846521019935608,
+            -1.530666708946228,
+            0.02627980150282383,
+            1.2352429628372192,
+            0.952690601348877,
+            0.3930739164352417
+          ]
+        },
+        "deliver_tick": 29,
+        "dropped": false,
+        "emitted_tick": 28,
+        "expires_tick": 52,
+        "mode": "hybrid",
+        "observation_tick": 28,
+        "packet_id": "left-28",
+        "recipient": "right",
+        "run_id": "cloth-pretrained-7707b7eeb252",
+        "schema": "relay.cloth.communication.v2",
+        "sender": "left",
+        "source_sha256": "4fda465fd9ed1e4b975f397561ed9d5c1231505fd9aefee5bc110d21b2edf03d",
+        "space_id": "cloth-local-pca-8-v2"
+      }
+    },
+    {
+      "kind": "published",
+      "tick": 28,
+      "packet": {
+        "checkpoint_sha256": "fd6cc849059e65b1a64fedc668abb1e79fb8c2d05a2cad467e01d1d736022661",
+        "content": {
+          "text": "{\"grasp_hem\":0.0,\"grasp_sleeve\":0.0,\"grasped\":0.0,\"hem_visible\":1.0,\"obstacle_active\":0.0,\"obstacle_radius\":0.0,\"obstacle_x\":0.0,\"obstacle_y\":0.0,\"obstacle_z\":0.0,\"shoulder_visible\":1.0,\"sleeve_visible\":1.0}",
+          "vector": [
+            -1.6805596351623535,
+            2.1374542713165283,
+            -1.81417715549469,
+            -1.0746132135391235,
+            0.7274842262268066,
+            1.1339306831359863,
+            -0.2239239513874054,
+            -0.43414831161499023
+          ]
+        },
+        "deliver_tick": 29,
+        "dropped": false,
+        "emitted_tick": 28,
+        "expires_tick": 52,
+        "mode": "hybrid",
+        "observation_tick": 28,
+        "packet_id": "right-28",
+        "recipient": "left",
+        "run_id": "cloth-pretrained-7707b7eeb252",
+        "schema": "relay.cloth.communication.v2",
+        "sender": "right",
+        "source_sha256": "aaa61005077687b3ecc96175b9ca53e3fec72ac1d902963b65087807a4c4f6e1",
+        "space_id": "cloth-local-pca-8-v2"
+      }
+    },
+    {
+      "kind": "delivered",
+      "tick": 29,
+      "packet_id": "left-28",
+      "observation_tick": 28
+    },
+    {
+      "kind": "delivered",
+      "tick": 29,
+      "packet_id": "right-28",
+      "observation_tick": 28
+    },
+    {
+      "kind": "published",
+      "tick": 32,
+      "packet": {
+        "checkpoint_sha256": "fd6cc849059e65b1a64fedc668abb1e79fb8c2d05a2cad467e01d1d736022661",
+        "content": {
+          "text": "{\"grasp_hem\":0.0,\"grasp_sleeve\":0.0,\"grasped\":0.0,\"hem_visible\":1.0,\"obstacle_active\":0.0,\"obstacle_radius\":0.0,\"obstacle_x\":0.0,\"obstacle_y\":0.0,\"obstacle_z\":0.0,\"shoulder_visible\":1.0,\"sleeve_visible\":1.0}",
+          "vector": [
+            -0.4202938377857208,
+            -2.2536685466766357,
+            -1.8133292198181152,
+            -1.525787591934204,
+            -0.07130155712366104,
+            1.1670533418655396,
+            0.9814717769622803,
+            0.39632999897003174
+          ]
+        },
+        "deliver_tick": 34,
+        "dropped": false,
+        "emitted_tick": 32,
+        "expires_tick": 56,
+        "mode": "hybrid",
+        "observation_tick": 32,
+        "packet_id": "left-32",
+        "recipient": "right",
+        "run_id": "cloth-pretrained-7707b7eeb252",
+        "schema": "relay.cloth.communication.v2",
+        "sender": "left",
+        "source_sha256": "2e0504f3a677d054c2ac30b59c148db665ded8ebc8b39b7f61236ad583cd227b",
+        "space_id": "cloth-local-pca-8-v2"
+      }
+    },
+    {
+      "kind": "published",
+      "tick": 32,
+      "packet": {
+        "checkpoint_sha256": "fd6cc849059e65b1a64fedc668abb1e79fb8c2d05a2cad467e01d1d736022661",
+        "content": {
+          "text": "{\"grasp_hem\":0.0,\"grasp_sleeve\":0.0,\"grasped\":0.0,\"hem_visible\":1.0,\"obstacle_active\":0.0,\"obstacle_radius\":0.0,\"obstacle_x\":0.0,\"obstacle_y\":0.0,\"obstacle_z\":0.0,\"shoulder_visible\":1.0,\"sleeve_visible\":1.0}",
+          "vector": [
+            -1.6691317558288574,
+            2.124253749847412,
+            -1.7983182668685913,
+            -1.073424220085144,
+            0.722425639629364,
+            1.128646969795227,
+            -0.25118669867515564,
+            -0.3874630033969879
+          ]
+        },
+        "deliver_tick": 33,
+        "dropped": false,
+        "emitted_tick": 32,
+        "expires_tick": 56,
+        "mode": "hybrid",
+        "observation_tick": 32,
+        "packet_id": "right-32",
+        "recipient": "left",
+        "run_id": "cloth-pretrained-7707b7eeb252",
+        "schema": "relay.cloth.communication.v2",
+        "sender": "right",
+        "source_sha256": "e5d6ebeea82ebe2b099ebd9497c1d7af3f443b3a50361b157a2d5aff26b0053f",
+        "space_id": "cloth-local-pca-8-v2"
+      }
+    },
+    {
+      "kind": "delivered",
+      "tick": 33,
+      "packet_id": "right-32",
+      "observation_tick": 32
+    },
+    {
+      "kind": "delivered",
+      "tick": 34,
+      "packet_id": "left-32",
+      "observation_tick": 32
+    },
+    {
+      "kind": "published",
+      "tick": 36,
+      "packet": {
+        "checkpoint_sha256": "fd6cc849059e65b1a64fedc668abb1e79fb8c2d05a2cad467e01d1d736022661",
+        "content": {
+          "text": "{\"grasp_hem\":0.0,\"grasp_sleeve\":0.0,\"grasped\":0.0,\"hem_visible\":1.0,\"obstacle_active\":0.0,\"obstacle_radius\":0.0,\"obstacle_x\":0.0,\"obstacle_y\":0.0,\"obstacle_z\":0.0,\"shoulder_visible\":1.0,\"sleeve_visible\":1.0}",
+          "vector": [
+            -0.4007619321346283,
+            -2.254713296890259,
+            -1.779835820198059,
+            -1.5208752155303955,
+            -0.16892464458942413,
+            1.098792314529419,
+            1.0096452236175537,
+            0.40041986107826233
+          ]
+        },
+        "deliver_tick": 37,
+        "dropped": false,
+        "emitted_tick": 36,
+        "expires_tick": 60,
+        "mode": "hybrid",
+        "observation_tick": 36,
+        "packet_id": "left-36",
+        "recipient": "right",
+        "run_id": "cloth-pretrained-7707b7eeb252",
+        "schema": "relay.cloth.communication.v2",
+        "sender": "left",
+        "source_sha256": "ea9581409521731e347ff73332a81aaf45b7178f02278be5ae5b113a439810c8",
+        "space_id": "cloth-local-pca-8-v2"
+      }
+    },
+    {
+      "kind": "published",
+      "tick": 36,
+      "packet": {
+        "checkpoint_sha256": "fd6cc849059e65b1a64fedc668abb1e79fb8c2d05a2cad467e01d1d736022661",
+        "content": {
+          "text": "{\"grasp_hem\":0.0,\"grasp_sleeve\":0.0,\"grasped\":0.0,\"hem_visible\":1.0,\"obstacle_active\":1.0,\"obstacle_radius\":0.065,\"obstacle_x\":0.6076,\"obstacle_y\":-0.04,\"obstacle_z\":0.18,\"shoulder_visible\":1.0,\"sleeve_visible\":1.0}",
+          "vector": [
+            3.2150537967681885,
+            3.759528875350952,
+            -3.6240057945251465,
+            0.9653981328010559,
+            2.689696788787842,
+            -0.01610104739665985,
+            1.2196506261825562,
+            1.1969904899597168
+          ]
+        },
+        "deliver_tick": 37,
+        "dropped": false,
+        "emitted_tick": 36,
+        "expires_tick": 60,
+        "mode": "hybrid",
+        "observation_tick": 36,
+        "packet_id": "right-36",
+        "recipient": "left",
+        "run_id": "cloth-pretrained-7707b7eeb252",
+        "schema": "relay.cloth.communication.v2",
+        "sender": "right",
+        "source_sha256": "e19b0bf737fe912bb0663f9694f5ee562c5c14b50262c5ed635fb728bbeecd4c",
+        "space_id": "cloth-local-pca-8-v2"
+      }
+    },
+    {
+      "kind": "delivered",
+      "tick": 37,
+      "packet_id": "left-36",
+      "observation_tick": 36
+    },
+    {
+      "kind": "delivered",
+      "tick": 37,
+      "packet_id": "right-36",
+      "observation_tick": 36
+    },
+    {
+      "kind": "published",
+      "tick": 40,
+      "packet": {
+        "checkpoint_sha256": "fd6cc849059e65b1a64fedc668abb1e79fb8c2d05a2cad467e01d1d736022661",
+        "content": {
+          "text": "{\"grasp_hem\":0.0,\"grasp_sleeve\":0.0,\"grasped\":0.0,\"hem_visible\":1.0,\"obstacle_active\":0.0,\"obstacle_radius\":0.0,\"obstacle_x\":0.0,\"obstacle_y\":0.0,\"obstacle_z\":0.0,\"shoulder_visible\":1.0,\"sleeve_visible\":1.0}",
+          "vector": [
+            -0.3809069097042084,
+            -2.2577872276306152,
+            -1.7470568418502808,
+            -1.51615571975708,
+            -0.26419904828071594,
+            1.032177448272705,
+            1.0372461080551147,
+            0.40557655692100525
+          ]
+        },
+        "deliver_tick": 43,
+        "dropped": false,
+        "emitted_tick": 40,
+        "expires_tick": 64,
+        "mode": "hybrid",
+        "observation_tick": 40,
+        "packet_id": "left-40",
+        "recipient": "right",
+        "run_id": "cloth-pretrained-7707b7eeb252",
+        "schema": "relay.cloth.communication.v2",
+        "sender": "left",
+        "source_sha256": "544d029b587f4d1c9b999b5a83085d3552635c77bc5d4ea39ac0abf0b45fe739",
+        "space_id": "cloth-local-pca-8-v2"
+      }
+    },
+    {
+      "kind": "published",
+      "tick": 40,
+      "packet": {
+        "checkpoint_sha256": "fd6cc849059e65b1a64fedc668abb1e79fb8c2d05a2cad467e01d1d736022661",
+        "content": {
+          "text": "{\"grasp_hem\":0.0,\"grasp_sleeve\":0.0,\"grasped\":0.0,\"hem_visible\":1.0,\"obstacle_active\":1.0,\"obstacle_radius\":0.065,\"obstacle_x\":0.6544000000000001,\"obstacle_y\":-0.04,\"obstacle_z\":0.18,\"shoulder_visible\":1.0,\"sleeve_visible\":1.0}",
+          "vector": [
+            3.223562240600586,
+            3.8068907260894775,
+            -3.599806547164917,
+            0.9828596711158752,
+            2.771787643432617,
+            -0.07597992569208145,
+            1.3504074811935425,
+            1.3925280570983887
+          ]
+        },
+        "deliver_tick": 42,
+        "dropped": false,
+        "emitted_tick": 40,
+        "expires_tick": 64,
+        "mode": "hybrid",
+        "observation_tick": 40,
+        "packet_id": "right-40",
+        "recipient": "left",
+        "run_id": "cloth-pretrained-7707b7eeb252",
+        "schema": "relay.cloth.communication.v2",
+        "sender": "right",
+        "source_sha256": "2cbaac9ab00e8c9065dae5fdd439d6207e5c8c5377a110e514296c8bf7273637",
+        "space_id": "cloth-local-pca-8-v2"
+      }
+    },
+    {
+      "kind": "delivered",
+      "tick": 42,
+      "packet_id": "right-40",
+      "observation_tick": 40
+    },
+    {
+      "kind": "delivered",
+      "tick": 43,
+      "packet_id": "left-40",
+      "observation_tick": 40
+    },
+    {
+      "kind": "published",
+      "tick": 44,
+      "packet": {
+        "checkpoint_sha256": "fd6cc849059e65b1a64fedc668abb1e79fb8c2d05a2cad467e01d1d736022661",
+        "content": {
+          "text": "{\"grasp_hem\":0.0,\"grasp_sleeve\":0.0,\"grasped\":0.0,\"hem_visible\":1.0,\"obstacle_active\":0.0,\"obstacle_radius\":0.0,\"obstacle_x\":0.0,\"obstacle_y\":0.0,\"obstacle_z\":0.0,\"shoulder_visible\":1.0,\"sleeve_visible\":1.0}",
+          "vector": [
+            -0.36076459288597107,
+            -2.2587649822235107,
+            -1.7118115425109863,
+            -1.5110632181167603,
+            -0.3609977066516876,
+            0.964208722114563,
+            1.060762643814087,
+            0.4154546856880188
+          ]
+        },
+        "deliver_tick": 47,
+        "dropped": false,
+        "emitted_tick": 44,
+        "expires_tick": 68,
+        "mode": "hybrid",
+        "observation_tick": 44,
+        "packet_id": "left-44",
+        "recipient": "right",
+        "run_id": "cloth-pretrained-7707b7eeb252",
+        "schema": "relay.cloth.communication.v2",
+        "sender": "left",
+        "source_sha256": "60544faf4ce5f83c211c9cb0ff3f6751c87e6fe9eb2a66951a5a2def0784e763",
+        "space_id": "cloth-local-pca-8-v2"
+      }
+    },
+    {
+      "kind": "published",
+      "tick": 44,
+      "packet": {
+        "checkpoint_sha256": "fd6cc849059e65b1a64fedc668abb1e79fb8c2d05a2cad467e01d1d736022661",
+        "content": {
+          "text": "{\"grasp_hem\":0.0,\"grasp_sleeve\":0.0,\"grasped\":0.0,\"hem_visible\":1.0,\"obstacle_active\":0.0,\"obstacle_radius\":0.0,\"obstacle_x\":0.0,\"obstacle_y\":0.0,\"obstacle_z\":0.0,\"shoulder_visible\":1.0,\"sleeve_visible\":1.0}",
+          "vector": [
+            -1.6341198682785034,
+            2.0842204093933105,
+            -1.7498953342437744,
+            -1.069719672203064,
+            0.7032657265663147,
+            1.110063910484314,
+            -0.33063578605651855,
+            -0.24857784807682037
+          ]
+        },
+        "deliver_tick": 45,
+        "dropped": false,
+        "emitted_tick": 44,
+        "expires_tick": 68,
+        "mode": "hybrid",
+        "observation_tick": 44,
+        "packet_id": "right-44",
+        "recipient": "left",
+        "run_id": "cloth-pretrained-7707b7eeb252",
+        "schema": "relay.cloth.communication.v2",
+        "sender": "right",
+        "source_sha256": "bc2f99f6eee53db54df7b9df1d445d14f4267a4f8dae1008c1296f5f40b98e7c",
+        "space_id": "cloth-local-pca-8-v2"
+      }
+    },
+    {
+      "kind": "delivered",
+      "tick": 45,
+      "packet_id": "right-44",
+      "observation_tick": 44
+    },
+    {
+      "kind": "delivered",
+      "tick": 47,
+      "packet_id": "left-44",
+      "observation_tick": 44
+    }
+  ]
+}

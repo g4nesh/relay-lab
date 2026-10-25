@@ -121,7 +121,7 @@ class LocalLLM:
         self._stderr = tempfile.TemporaryFile()  # noqa: SIM115 - lifetime matches the worker
         try:
             self._process = subprocess.Popen(
-                [str(self.python), "-u", str(Path(__file__).resolve()), "--worker"],
+                [str(self.python), "-P", "-u", str(Path(__file__).resolve()), "--worker"],
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=self._stderr,

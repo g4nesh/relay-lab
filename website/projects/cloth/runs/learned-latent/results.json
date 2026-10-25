@@ -1,0 +1,161 @@
+{
+  "kind": "trained-mixed-vla-message-diagnostic",
+  "heading": "Learned messages",
+  "static": [
+    {
+      "mode": "none",
+      "hold_accuracy": 0.6666666865348816,
+      "hidden_peer_accuracy": 0.5,
+      "mean_action_error_mm": 4.6807708740234375,
+      "zero_peer_accuracy": 0.6666666865348816,
+      "shuffled_peer_accuracy": 0.6666666865348816
+    },
+    {
+      "mode": "structured_text",
+      "hold_accuracy": 1.0,
+      "hidden_peer_accuracy": 1.0,
+      "mean_action_error_mm": 1.0873859524726868,
+      "zero_peer_accuracy": 0.6666666865348816,
+      "shuffled_peer_accuracy": 0.5000000149011612
+    },
+    {
+      "mode": "embeddings",
+      "hold_accuracy": 1.0,
+      "hidden_peer_accuracy": 1.0,
+      "mean_action_error_mm": 0.890489786863327,
+      "zero_peer_accuracy": 0.6666666865348816,
+      "shuffled_peer_accuracy": 0.5000000149011612
+    },
+    {
+      "mode": "hybrid",
+      "hold_accuracy": 1.0,
+      "hidden_peer_accuracy": 1.0,
+      "mean_action_error_mm": 0.9552817046642303,
+      "zero_peer_accuracy": 0.6666666865348816,
+      "shuffled_peer_accuracy": 0.5000000149011612
+    }
+  ],
+  "transport": [
+    {
+      "mode": "none",
+      "scenario": "one_tick",
+      "status": "completed",
+      "hold_accuracy": 0.6666666666666666,
+      "hazard_hold_rate": 0.8625,
+      "clear_go_rate": 0.275,
+      "posthoc_hidden_peer_accuracy": 0.5,
+      "posthoc_hidden_peer_count": 320,
+      "mean_packet_bytes": 0
+    },
+    {
+      "mode": "structured_text",
+      "scenario": "one_tick",
+      "status": "completed",
+      "hold_accuracy": 0.8729166666666667,
+      "hazard_hold_rate": 0.875,
+      "clear_go_rate": 0.86875,
+      "posthoc_hidden_peer_accuracy": 0.809375,
+      "posthoc_hidden_peer_count": 320,
+      "mean_packet_bytes": 1112.7458333333334
+    },
+    {
+      "mode": "embeddings",
+      "scenario": "one_tick",
+      "status": "completed",
+      "hold_accuracy": 0.8729166666666667,
+      "hazard_hold_rate": 0.875,
+      "clear_go_rate": 0.86875,
+      "posthoc_hidden_peer_accuracy": 0.809375,
+      "posthoc_hidden_peer_count": 320,
+      "mean_packet_bytes": 1667.0375
+    },
+    {
+      "mode": "hybrid",
+      "scenario": "one_tick",
+      "status": "completed",
+      "hold_accuracy": 0.8729166666666667,
+      "hazard_hold_rate": 0.875,
+      "clear_go_rate": 0.86875,
+      "posthoc_hidden_peer_accuracy": 0.809375,
+      "posthoc_hidden_peer_count": 320,
+      "mean_packet_bytes": 1916.6708333333333
+    },
+    {
+      "mode": "none",
+      "scenario": "delayed_dropped",
+      "status": "completed",
+      "hold_accuracy": 0.6666666666666666,
+      "hazard_hold_rate": 0.8625,
+      "clear_go_rate": 0.275,
+      "posthoc_hidden_peer_accuracy": 0.5,
+      "posthoc_hidden_peer_count": 320,
+      "mean_packet_bytes": 0
+    },
+    {
+      "mode": "structured_text",
+      "scenario": "delayed_dropped",
+      "status": "completed",
+      "hold_accuracy": 0.6625,
+      "hazard_hold_rate": 0.690625,
+      "clear_go_rate": 0.60625,
+      "posthoc_hidden_peer_accuracy": 0.49375,
+      "posthoc_hidden_peer_count": 320,
+      "mean_packet_bytes": 1112.6020833333334
+    },
+    {
+      "mode": "embeddings",
+      "scenario": "delayed_dropped",
+      "status": "completed",
+      "hold_accuracy": 0.6625,
+      "hazard_hold_rate": 0.690625,
+      "clear_go_rate": 0.60625,
+      "posthoc_hidden_peer_accuracy": 0.49375,
+      "posthoc_hidden_peer_count": 320,
+      "mean_packet_bytes": 1666.89375
+    },
+    {
+      "mode": "hybrid",
+      "scenario": "delayed_dropped",
+      "status": "completed",
+      "hold_accuracy": 0.6625,
+      "hazard_hold_rate": 0.690625,
+      "clear_go_rate": 0.60625,
+      "posthoc_hidden_peer_accuracy": 0.49375,
+      "posthoc_hidden_peer_count": 320,
+      "mean_packet_bytes": 1916.5270833333334
+    }
+  ],
+  "notes": [
+    "The short live trial missed 12 of 14 required obstacle holds. Inference, message delivery and physical actuation ran, but the fresh-scene diagnostic does not establish reliable live coordination.",
+    "Two original training episodes, one development episode, and one held-out episode. The held-out set has 20 physical states with three private-obstacle conditions; adjacent and counterfactual samples are correlated.",
+    "Hidden-peer accuracy uses only locally clear views. Clear and peer-obstructed inputs are identical for the receiving arm, making the labels balanced and requiring peer information to distinguish them.",
+    "Both actual frozen backbones feed learned 64D encoders. State-assisted replacement heads were trained jointly; the native VLA action heads were not used.",
+    "The transport comparison replays changing observations on frozen physical states. It does not integrate actions. Delays/drops use the same seeded schedule across formats, with exact SpacetimeDB readback.",
+    "These adapters were trained on fresh messages only. The unused age input is initialized to zero; missing/expired messages trigger an explicit hold. Neither mechanism establishes learned stale-message recovery.",
+    "Structured text carries exact simulator measurements, whereas latent messages carry learned visual/language information. This is a system comparison with different information sources, not a matched-content bandwidth claim."
+  ],
+  "live": {
+    "status": "execution_completed_coordination_failed",
+    "calls_per_arm": 12,
+    "ticks": 48,
+    "grasp_count": 0,
+    "full_task_success": false,
+    "video": "learned-latent/live/overview.mp4",
+    "hold_audit": {
+      "kind": "posthoc-live-hold-diagnostic",
+      "hazard_decisions": 14,
+      "missed_hazard_holds": 12,
+      "clear_decisions": 10,
+      "unnecessary_holds": 2,
+      "criterion": "Same teaching criterion: if either local observation reports an obstacle, both arms should hold."
+    }
+  },
+  "sources": {
+    "training_and_static_results": "learned-latent/models/evaluation.json",
+    "transport_results": "learned-latent/transport/manifest.json",
+    "live_trial": "learned-latent/live/report.json",
+    "original_dataset": "learned-latent/dataset/metadata.json",
+    "CoLA": "https://arxiv.org/html/2610.15337v1",
+    "VLA_Fabric": "https://arxiv.org/html/2610.23018v1"
+  }
+}

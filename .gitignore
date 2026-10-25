@@ -57,3 +57,7 @@ worker-token
 !.env.example
 node_modules/
 spacetimedb/dist/
+
+# Published replay fixtures are website assets, not generated local runs.
+!website/projects/cloth/runs/
+!website/projects/cloth/runs/**

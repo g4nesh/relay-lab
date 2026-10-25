@@ -390,3 +390,9 @@ Credentials, environments, downloaded model caches and new generated runs are
 ignored by Git. Only the small reference checkpoint and original simulator
 dataset are included; other training outputs remain ignored. The archived Fetch sources are excluded from the
 installed package and active test suite.
+
+## Complete website + Studio
+
+The complete website is in [`website/`](website/). Run it with the working Studio
+using `PYTHONPATH=src .venv/bin/python scripts/serve_workspace.py` after backend and
+SpacetimeDB setup. See [local workspace instructions](docs/website-workspace.md).

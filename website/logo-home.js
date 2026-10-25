@@ -1,0 +1,2 @@
+// Relay branding always returns to the public-facing website entry point.
+for(const image of document.querySelectorAll('img[src*="relay-logo"]')){image.style.cursor='pointer';image.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();location.assign('/')});if(!image.closest('a[href="/"]')){image.tabIndex=0;image.setAttribute('role','link');image.setAttribute('aria-label','Relay website homepage');image.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();location.assign('/')}})}}

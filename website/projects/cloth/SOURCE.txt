@@ -1,0 +1,3 @@
+Source: https://github.com/g4nesh/relay-lab
+Commit: 22b05fd9d60d3afc938ad2b4cf41a1f41fd4144d
+Read-only cloth replay frontend and recorded artifacts. Server routes adapted for static hosting. Trace gzip files expanded for portable JSON loading.

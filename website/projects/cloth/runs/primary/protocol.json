@@ -1,0 +1,39 @@
+{
+  "schema": "relay.cloth.experiment.v1",
+  "seeds": [
+    101,
+    102
+  ],
+  "scenarios": [
+    "clear",
+    "delayed"
+  ],
+  "modes": [
+    "embeddings",
+    "structured_text",
+    "hybrid"
+  ],
+  "max_ticks": 1800,
+  "coordination": "spacetime",
+  "planner": "rules",
+  "planned_runs": 12,
+  "training_excluded": "All experiment seeds are held out from model and codec fitting.",
+  "seed_partitions": {
+    "development": [
+      0,
+      99
+    ],
+    "evaluation": [
+      100,
+      9999
+    ],
+    "training": [
+      10000,
+      4294967295
+    ]
+  },
+  "task": "Fold sleeves inward, then fold hem toward shoulders; independent geometric scoring.",
+  "fairness": "Same seeds, initial cloth, sensor boundaries, models, scaffolding, obstacle schedule, message schedule and action budget.",
+  "baseline": "Structured text carries full precision local measurements; hybrid adds exact safety fields to a learned feature bottleneck.",
+  "interpretation": "Small task-specific, state-assisted simulation experiment; no foundation-VLA, photorealism or real-fabric transfer claim."
+}

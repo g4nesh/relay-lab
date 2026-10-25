@@ -1,0 +1,30 @@
+{
+  "runs": [
+    {
+      "id": "delayed-101-none",
+      "label": "No private communication \u00b7 delayed \u00b7 seed 101",
+      "mode": "none",
+      "scenario": "delayed",
+      "seed": 101,
+      "summary_url": "/projects/cloth/runs/diagnostics/delayed-101-none/summary.json",
+      "trace_url": "/projects/cloth/runs/diagnostics/delayed-101-none/trace.json",
+      "video_url": "/projects/cloth/runs/diagnostics/delayed-101-none/overview.mp4",
+      "poster_url": "/projects/cloth/runs/diagnostics/delayed-101-none/poster.png",
+      "left_video_url": "/projects/cloth/runs/diagnostics/delayed-101-none/left.mp4",
+      "right_video_url": "/projects/cloth/runs/diagnostics/delayed-101-none/right.mp4"
+    },
+    {
+      "id": "delayed-102-none",
+      "label": "No private communication \u00b7 delayed \u00b7 seed 102",
+      "mode": "none",
+      "scenario": "delayed",
+      "seed": 102,
+      "summary_url": "/projects/cloth/runs/diagnostics/delayed-102-none/summary.json",
+      "trace_url": "/projects/cloth/runs/diagnostics/delayed-102-none/trace.json",
+      "video_url": "/projects/cloth/runs/diagnostics/delayed-102-none/overview.mp4",
+      "poster_url": "/projects/cloth/runs/diagnostics/delayed-102-none/poster.png",
+      "left_video_url": "/projects/cloth/runs/diagnostics/delayed-102-none/left.mp4",
+      "right_video_url": "/projects/cloth/runs/diagnostics/delayed-102-none/right.mp4"
+    }
+  ]
+}

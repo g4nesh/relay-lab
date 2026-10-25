@@ -1,0 +1,19 @@
+{
+  "kind": "independent_mujoco_action_reexecution",
+  "source_run_id": "cloth-1ae35b3c7c144c5b",
+  "source_artifact_sha256": {
+    "summary.json": "a3a7e0e834a3439a45e1529bae53b83f96eecd9da7b15b54f25bb5f2f6d88757",
+    "final.json": "4a01e673cb0e8e480d0e11260c277146e40e6310a3d6ad48e0a246e5dbc4bce4",
+    "events.jsonl.gz": "3e67bb5ee00a4c65f9407345ac175457610a9f1a47dac5c9d735dfd833ea02a0"
+  },
+  "reexecutes_neural_models": false,
+  "reexecutes_communication": false,
+  "verified": true,
+  "steps": 1126,
+  "maximum_robot_state_error": 0.0,
+  "video_fps": null,
+  "final_vertices_bitwise_equal": true,
+  "same_final_metrics": true,
+  "same_fixture_state": true,
+  "same_tick_count": true
+}

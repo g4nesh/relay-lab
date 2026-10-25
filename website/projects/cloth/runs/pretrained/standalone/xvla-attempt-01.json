@@ -1,0 +1,14 @@
+{
+  "model": "xvla",
+  "agent": "right",
+  "seed": 77,
+  "probe": "bounded unadapted model-to-simulator integration",
+  "requested_calls": 4,
+  "full_task_evaluation": false,
+  "scripted_fallback": false,
+  "other_arm": "holds its initial pose",
+  "status": "failed",
+  "error_type": "IncompleteSnapshotError",
+  "error": "The cached snapshot for 'lerobot/xvla-folding' (revision 'c87d6e8fcf47fb19d6aac8b67d35dd20d74bbc8d', commit c87d6e8fcf47fb19d6aac8b67d35dd20d74bbc8d) is incomplete: 1 file(s) are missing (.gitattributes). Outgoing traffic is disabled ('local_files_only=True'). Re-run the download with network access to complete the snapshot.",
+  "elapsed_seconds": 4.236077459063381
+}

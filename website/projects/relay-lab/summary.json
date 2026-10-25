@@ -1,0 +1,216 @@
+{
+  "seed": 7,
+  "max_steps": 600,
+  "communication": true,
+  "message_latency": 1,
+  "policy": "relay-vla",
+  "video": true,
+  "picker_url": null,
+  "packer_url": null,
+  "device": "auto",
+  "action_horizon": 5,
+  "denoising_steps": 10,
+  "transport": "local",
+  "task_id": "fb3a7c60-2df7-44ef-b330-2ffa51346dec",
+  "order": [
+    "coral",
+    "gold",
+    "mint"
+  ],
+  "feedback": true,
+  "coordination": "spacetime",
+  "planner": "llm",
+  "checkpoint": null,
+  "llm_python": null,
+  "success": true,
+  "termination": "success",
+  "steps": 222,
+  "packed": [
+    "coral",
+    "gold",
+    "mint"
+  ],
+  "messages": {
+    "attempted": 0,
+    "sent": 0,
+    "delivered": 0,
+    "dropped": 0
+  },
+  "execution_events": {
+    "started": 12,
+    "holding": 6,
+    "completed": 12,
+    "transfer_ready": 3
+  },
+  "transport_info": {
+    "kind": "local",
+    "external_services": false
+  },
+  "duration_seconds": 30.062,
+  "initial_state": {
+    "tick": 0,
+    "seed": 7,
+    "success": false,
+    "order": [
+      "coral",
+      "gold",
+      "mint"
+    ],
+    "packed": [
+      null,
+      null,
+      null
+    ],
+    "objects": {
+      "coral": [
+        -0.5898925411597523,
+        -0.00719394862291068,
+        0.029986646423229717
+      ],
+      "mint": [
+        -0.4865520759653749,
+        0.21218961608808987,
+        0.029986646423229717
+      ],
+      "gold": [
+        -0.4884357497287959,
+        -0.21930550076401545,
+        0.029986646423229693
+      ]
+    },
+    "object_holders": {
+      "coral": null,
+      "mint": null,
+      "gold": null
+    },
+    "robots": {
+      "picker": {
+        "position": [
+          -0.54,
+          0.0,
+          0.3
+        ],
+        "holding": null
+      },
+      "packer": {
+        "position": [
+          0.48,
+          0.0,
+          0.3
+        ],
+        "holding": null
+      }
+    },
+    "targets": {
+      "relay": [
+        0.0,
+        0.0,
+        0.035
+      ],
+      "slot_0": [
+        0.48,
+        -0.22,
+        0.035
+      ],
+      "slot_1": [
+        0.48,
+        0.0,
+        0.035
+      ],
+      "slot_2": [
+        0.48,
+        0.22,
+        0.035
+      ]
+    }
+  },
+  "control_dt": 0.1,
+  "model": {
+    "policy": "relay-vla",
+    "model_id": "relay-lab/compact-vla-v1",
+    "checkpoint": "${PROJECT_ROOT}/checkpoints/relay-vla/policy.pt",
+    "checkpoint_sha256": "7b13dbba5c0e64b491d5a8f3e63984b0e2d458cb2ea08714eb91a1f5c5b19c38",
+    "parameters": 36532,
+    "device": "cpu",
+    "training": {
+      "seed": 17,
+      "dataset": "${PROJECT_ROOT}/datasets/relay-vla/original.npz",
+      "scene_seed_start": 2000,
+      "scenes": 400,
+      "pixel_steps": 1500,
+      "control_steps": 10000,
+      "teacher": "original synthetic RGB segmentation/calibration and reactive expert action labels; no demonstration dataset downloaded",
+      "language_training_accuracy": 1.0,
+      "calibration_mean_error_metres": [
+        0.006118074142056644,
+        0.027313729539890665
+      ],
+      "training_seconds": 20.544692875118926
+    },
+    "inference_calls": 444,
+    "total_inference_seconds": 0.10695050354115665,
+    "inputs": [
+      "local front RGB",
+      "end-effector position",
+      "instruction text"
+    ],
+    "limitations": [
+      "A task-specific learned controller, not SmolVLA or a general-purpose foundation VLA.",
+      "Vision is calibrated to Relay Lab's fixed cameras; a new scene requires retraining.",
+      "The visually estimated goal is retained for one instruction to avoid gripper occlusion."
+    ]
+  },
+  "task": {
+    "kind": "relay",
+    "goal": "Pack all three parcels into their assigned tray slots using the shared relay."
+  },
+  "coordination_info": {
+    "backend": "spacetimedb",
+    "server": "http://127.0.0.1:3000",
+    "database": "relay-lab",
+    "protocol": "authenticated HTTP reducers and SQL readback",
+    "durability": "confirmed=true",
+    "task": {
+      "task_id": "fb3a7c60-2df7-44ef-b330-2ffa51346dec",
+      "intent": "Pack all three parcels into their assigned tray slots using the shared relay.",
+      "spec_json": "{\"kind\":\"relay\",\"order\":[\"coral\",\"gold\",\"mint\"]}",
+      "max_steps": 600,
+      "status": "succeeded",
+      "phase": "terminal",
+      "next_tick": 222,
+      "worker_id": "0b59ed51-1c46-4c3b-8474-97bbcda97a8c",
+      "last_feedback_tick": 221,
+      "reason": "",
+      "outcome_json": "{\"order\":[\"coral\",\"gold\",\"mint\"],\"packed\":[\"coral\",\"gold\",\"mint\"],\"success\":true,\"tick\":222}",
+      "created_at": [
+        1792836669016628
+      ],
+      "updated_at": [
+        1792836699006700
+      ]
+    }
+  },
+  "orchestrator": "Local Qwen LLM mediator",
+  "mediator": {
+    "kind": "local_llm_mediator",
+    "decisions": 15,
+    "generation_calls": 15,
+    "latency_seconds": 13.044262,
+    "mean_generation_seconds": 0.869617,
+    "stall_ticks": 60,
+    "failure_cooldown": 15,
+    "fallback": false
+  },
+  "judge": "Deterministic simulator evidence; no judge-model inference",
+  "versions": {
+    "relay-lab": "0.1.0",
+    "mujoco": "3.17.0",
+    "python": "3.13.14"
+  },
+  "limitations": [
+    "Task planner: llm; action-policy mode: relay-vla.",
+    "Kinematic Cartesian grippers; grasp attachment uses an idealized proximity rule.",
+    "Task planners receive structured simulator observations; learned actions use local RGB.",
+    "Private-order diagnostic task; not a RoboPoly evaluation or a novelty claim."
+  ]
+}

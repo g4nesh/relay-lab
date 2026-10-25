@@ -1,0 +1,46 @@
+{
+  "title": "Two arms. One changing task.",
+  "description": "Measured MuJoCo cloth folding with partial observations, moving obstacles and delayed communication.",
+  "runs": [
+    {
+      "id": "delayed-103-embeddings",
+      "label": "embeddings \u00b7 delayed \u00b7 seed 103",
+      "mode": "embeddings",
+      "scenario": "delayed",
+      "seed": 103,
+      "summary_url": "/projects/cloth/runs/qwen/delayed-103-embeddings/summary.json",
+      "trace_url": "/projects/cloth/runs/qwen/delayed-103-embeddings/trace.json",
+      "video_url": "/projects/cloth/runs/qwen/delayed-103-embeddings/overview.mp4",
+      "poster_url": "/projects/cloth/runs/qwen/delayed-103-embeddings/poster.png",
+      "left_video_url": "/projects/cloth/runs/qwen/delayed-103-embeddings/left.mp4",
+      "right_video_url": "/projects/cloth/runs/qwen/delayed-103-embeddings/right.mp4"
+    },
+    {
+      "id": "delayed-103-structured_text",
+      "label": "structured text \u00b7 delayed \u00b7 seed 103",
+      "mode": "structured_text",
+      "scenario": "delayed",
+      "seed": 103,
+      "summary_url": "/projects/cloth/runs/qwen/delayed-103-structured_text/summary.json",
+      "trace_url": "/projects/cloth/runs/qwen/delayed-103-structured_text/trace.json",
+      "video_url": "/projects/cloth/runs/qwen/delayed-103-structured_text/overview.mp4",
+      "poster_url": "/projects/cloth/runs/qwen/delayed-103-structured_text/poster.png",
+      "left_video_url": "/projects/cloth/runs/qwen/delayed-103-structured_text/left.mp4",
+      "right_video_url": "/projects/cloth/runs/qwen/delayed-103-structured_text/right.mp4"
+    },
+    {
+      "id": "delayed-103-hybrid",
+      "label": "hybrid \u00b7 delayed \u00b7 seed 103",
+      "mode": "hybrid",
+      "scenario": "delayed",
+      "seed": 103,
+      "summary_url": "/projects/cloth/runs/qwen/delayed-103-hybrid/summary.json",
+      "trace_url": "/projects/cloth/runs/qwen/delayed-103-hybrid/trace.json",
+      "video_url": "/projects/cloth/runs/qwen/delayed-103-hybrid/overview.mp4",
+      "poster_url": "/projects/cloth/runs/qwen/delayed-103-hybrid/poster.png",
+      "left_video_url": "/projects/cloth/runs/qwen/delayed-103-hybrid/left.mp4",
+      "right_video_url": "/projects/cloth/runs/qwen/delayed-103-hybrid/right.mp4"
+    }
+  ],
+  "comparison_url": "/projects/cloth/runs/qwen/comparison.json"
+}

@@ -1,0 +1,11 @@
+{
+  "goal_id": "goal-af03d106ce530134",
+  "task_status": "cancelled",
+  "run_status": "cancelled",
+  "cleanup_pending": false,
+  "success": false,
+  "stopped_tick": 454,
+  "fixture_active": true,
+  "managed_credentials_revoked": true,
+  "scope": "Cooperative simulation cancellation; no hardware emergency-stop claim."
+}

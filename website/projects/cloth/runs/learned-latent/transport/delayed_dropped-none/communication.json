@@ -1,0 +1,68 @@
+{
+  "config": {
+    "schema": "relay.cloth.learned-latent.v1",
+    "mode": "none",
+    "model": {
+      "kind": "cross-vla-adapter-v1",
+      "space_id": "cross-vla-323543f17fdeb41333c97d31",
+      "checkpoint_sha256": "323543f17fdeb41333c97d3147c51a800fc36218e8f899d91f51aa36cb2a3ee3",
+      "dimension": 64,
+      "source_dimensions": {
+        "left": 960,
+        "right": 1024
+      },
+      "source_extractor_ids": {
+        "left": "c826c80bbf2f66e5d398e6234dca37a937a3359656989b00a417efc72aff9f7b",
+        "right": "413fb1d4cbdf97bac2c275edf347c5c0e20b18d271e0aa6a19c850aaff88d812"
+      },
+      "native_action_heads_used": false,
+      "parameters": 324874
+    },
+    "network": {
+      "seed": 104,
+      "min_delay_ticks": 2,
+      "max_delay_ticks": 18,
+      "drop_probability": 0.15,
+      "ttl_ticks": 24
+    },
+    "features": [
+      "ee_x",
+      "ee_y",
+      "ee_z",
+      "hem_x",
+      "hem_y",
+      "hem_z",
+      "sleeve_x",
+      "sleeve_y",
+      "sleeve_z",
+      "shoulder_x",
+      "shoulder_y",
+      "shoulder_z",
+      "grasped",
+      "obstacle_x",
+      "obstacle_y",
+      "obstacle_z",
+      "obstacle_radius",
+      "obstacle_active",
+      "hem_visible",
+      "sleeve_visible",
+      "shoulder_visible",
+      "grasp_sleeve",
+      "grasp_hem"
+    ],
+    "hybrid_fields": [
+      "grasped",
+      "obstacle_x",
+      "obstacle_y",
+      "obstacle_z",
+      "obstacle_radius",
+      "obstacle_active",
+      "hem_visible",
+      "sleeve_visible",
+      "shoulder_visible",
+      "grasp_sleeve",
+      "grasp_hem"
+    ]
+  },
+  "events": []
+}

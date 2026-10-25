@@ -1,0 +1,13 @@
+{
+  "repository": "https://github.com/g4nesh/relay-lab",
+  "commit": "f13087a3f32151e95657905950189666a918ee60",
+  "live_hosted_api": false,
+  "features": [
+    "task assignment",
+    "worker API",
+    "simulation launcher",
+    "customer deployment",
+    "local profiles"
+  ],
+  "mode": "Hosted recorded inspection; Python runtime required for live actions"
+}

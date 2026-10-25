@@ -1,0 +1,43 @@
+{
+  "verified_at": "2026-10-24",
+  "transport": "Authenticated Studio HTTP + private SpacetimeDB",
+  "task_id": "goal-1375ef441417644c",
+  "title": "SmolVLA objective delivery",
+  "objective": "Predict one action chunk for holding the left arm in its current position. Do not execute the actions.",
+  "status": "succeeded",
+  "revision": 2,
+  "assignment": {
+    "name": "Left arm",
+    "agent_id": "left",
+    "execution_kind": "observation",
+    "progress": 100,
+    "summary": "SmolVLA received the assigned objective and returned a finite 50\u00d77 action chunk in 1.64s. No actions were executed; this completes the inference probe only.",
+    "evidence": [
+      "Checkpoint: HuggingFaceVLA/smolvla_libero@6721902bc4d61e50a3bfdb11dfb4cb626f05d102",
+      "Local evidence SHA-256: 48b1ae69b6bc50da1808685ab4c9d0763a8cc34d62940cc5ab7f94ac99aed445",
+      "Fresh local MuJoCo observations; simulator tick unchanged; executed actions: 0."
+    ]
+  },
+  "readback_verified": true,
+  "success_basis": "agent_reported",
+  "verified_physical_outcome": false,
+  "actual_model_inference": true,
+  "policy_chunk_shape": [
+    50,
+    7
+  ],
+  "executed_actions": 0,
+  "tests": [
+    "Exact objective delivered to real SmolVLA",
+    "Worker claimed pinned released model",
+    "Fresh local MuJoCo front/wrist observations",
+    "Finite50x7 policy chunk",
+    "HTTP report persisted and read back from Spacetime",
+    "Local journal completed one handler invocation"
+  ],
+  "limitations": [
+    "Inference-only reference adapter; no physical task completion",
+    "Customer runtime must implement supported observation and execution contracts",
+    "Coordination task reports are structured; latent probes remain a separate workflow"
+  ]
+}
