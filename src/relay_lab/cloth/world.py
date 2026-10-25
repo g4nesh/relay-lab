@@ -17,6 +17,7 @@ import mujoco
 import numpy as np
 from PIL import Image, ImageDraw
 
+from . import presentation
 from .scene import AGENTS, build_scene, cotton_texture
 
 
@@ -77,8 +78,9 @@ class ClothWorld:
         )
         self.xml, self.rest_vertices, self.triangles, self.landmarks = build_scene()
         self.model = mujoco.MjModel.from_xml_string(
-            self.xml, assets={"cotton.png": cotton_texture()}
+            self.xml, assets={"cotton.png": cotton_texture(), **presentation.studio_assets()}
         )
+        self._studio = presentation.StudioOverlay(self.model)
         self.data = mujoco.MjData(self.model)
         self._renderers = {}
         self._closed = False
@@ -511,14 +513,46 @@ class ClothWorld:
         }
 
     def render(self, camera: str = "overview", width: int = 960, height: int = 720):
+        """Render a camera. Arm cameras are the unmodified policy observation path;
+        presentation cameras use the studio look in ``presentation.py``."""
         if self._closed:
             raise RuntimeError("world is closed")
+        if camera in presentation.PRESENTATION_CAMERAS:
+            return self._render_studio(camera, width, height)
         key = width, height
         if key not in self._renderers:
             self._renderers[key] = mujoco.Renderer(self.model, height=height, width=width)
         renderer = self._renderers[key]
         renderer.update_scene(self.data, camera=camera)
         return renderer.render().copy()
+
+    def _render_studio(self, camera, width, height):
+        scale = max(
+            1,
+            min(
+                presentation.SUPERSAMPLE,
+                self.model.vis.global_.offwidth // width,
+                self.model.vis.global_.offheight // height,
+            ),
+        )
+        key = "studio", width * scale, height * scale
+        if key not in self._renderers:
+            self._renderers[key] = mujoco.Renderer(
+                self.model, height=height * scale, width=width * scale
+            )
+        renderer = self._renderers[key]
+        with self._studio.applied():
+            renderer.update_scene(
+                self.data, camera=camera, scene_option=presentation.studio_scene_option()
+            )
+            presentation.configure_studio_scene(renderer.scene)
+            rgb = renderer.render().copy()
+            renderer.enable_depth_rendering()
+            try:
+                depth = renderer.render().copy()
+            finally:
+                renderer.disable_depth_rendering()
+        return presentation.grade(rgb, depth, (width, height))
 
     def close(self):
         for renderer in self._renderers.values():
