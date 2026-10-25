@@ -1,7 +1,8 @@
 """A reviewed local two-arm simulation, executed once with two scoped connections.
 
 This controller runs one shared MuJoCo world. It does not dispatch arbitrary
-registered weights, contact hardware, or claim that foundation VLAs fold cloth.
+registered weights or contact hardware. Native VLA runs additionally require a
+complete audit mapping every executed command to the recorded model output.
 """
 
 from __future__ import annotations
@@ -22,6 +23,7 @@ from .simulation_recipe import (
     CHECKPOINT_PATHS,
     CODEC_HASH,
     CODEC_PATH,
+    MAX_STATE_BYTES,
     OBJECTIVE,
     PINNED_HASHES,
     RECIPE_ID,
@@ -56,6 +58,18 @@ def _write(path, value):
 
 def verify_replay(root, source, should_stop):
     """Re-execute recorded actions, without repeating policies or Qwen inference."""
+    source = Path(source)
+    summary = json.loads((source / "summary.json").read_text())
+    native_audit = None
+    if any(model.get("foundation_vla") for model in summary.get("models", {}).values()):
+        from relay_lab.cloth.native_audit import audit_native_run
+
+        if should_stop():
+            raise SimulationStopped("Native command audit cancelled")
+        native_audit = audit_native_run(source)
+        _write(source / "native-audit.json", native_audit)
+        if not native_audit["verified"]:
+            raise ValueError("Native VLA commands failed provenance verification")
     spec = importlib.util.spec_from_file_location(
         "relay_simulation_replay", Path(root) / "scripts" / "replay_cloth_actions.py"
     )
@@ -72,7 +86,30 @@ def verify_replay(root, source, should_stop):
             return super().step(actions)
 
     module.ClothWorld = CancellableReplayWorld
-    return module.replay(Path(source), Path(source) / "verification", video=False)
+    result = module.replay(source, source / "verification", video=False)
+    if native_audit is not None:
+        current_hashes = {
+            name: hashlib.sha256((source / name).read_bytes()).hexdigest()
+            for name in ("summary.json", "final.json", "events.jsonl.gz")
+        }
+        same_inputs = (
+            native_audit.get("source_sha256")
+            == result.get("source_artifact_sha256")
+            == current_hashes
+        )
+        result["native_commands"] = {
+            "verified": same_inputs,
+            "same_source_artifacts": same_inputs,
+            "counts": native_audit["counts"],
+            "audit_sha256": hashlib.sha256((source / "native-audit.json").read_bytes()).hexdigest(),
+            "reexecutes_neural_models": False,
+        }
+        if not same_inputs:
+            result.update(verified=False, error="Native audit and physics replay inputs differ")
+        _write(source / "verification" / "verification.json", result)
+        if not same_inputs:
+            raise ValueError("Native audit and physics replay inputs differ")
+    return result
 
 
 class TeamRuntime:
@@ -118,7 +155,7 @@ class TeamRuntime:
         self.workers = {}
         path = self.directory / "journal.json"
         if path.exists():
-            if path.is_symlink() or path.stat().st_size > 256 * 1024:
+            if path.is_symlink() or path.stat().st_size > MAX_STATE_BYTES:
                 self.close()
                 raise ValueError("Invalid paired simulation journal")
             self.state = json.loads(path.read_text())
@@ -186,7 +223,7 @@ class TeamRuntime:
         for arm in ARMS:
             self.clients[arm].request(
                 "/api/agent/heartbeat",
-                {"controller_label": "Task-trained cloth controller · Qwen + Spacetime"},
+                {"controller_label": "Native SmolVLA cloth runtime · Qwen + Spacetime"},
             )
             task = self.current(arm)
             self.check_task(task)
@@ -347,9 +384,10 @@ class TeamRuntime:
             self.state["phase"] = "executing"
             self.save()
             if self.runner is None:
-                from relay_lab.cloth.runtime import ClothConfig, run_cloth
+                from relay_lab.cloth.native_runtime import run_smol_pair
+                from relay_lab.cloth.runtime import ClothConfig
 
-                self.runner = run_cloth
+                self.runner = run_smol_pair
                 config = ClothConfig(**{**recipe_config(), "codec": str(self.root / CODEC_PATH)})
             else:
                 config = recipe_config()
@@ -376,6 +414,8 @@ class TeamRuntime:
                 and summary.get("success") is True
                 and summary.get("metrics", {}).get("success") is True
                 and verification.get("verified") is True
+                and verification.get("final_metrics", {}).get("success") is True
+                and verification.get("final_metrics") == summary.get("metrics")
             )
             self.state.update(
                 phase="reporting", summary=summary, verification=verification,
@@ -413,9 +453,21 @@ class TeamRuntime:
     def finish_reports(self):
         status = self.state["final_status"]
         summary = self.state["summary"]
+        models = summary.get("models", {})
+        native_pair = set(models) == set(ARMS) and all(
+            model.get("foundation_vla") and model.get("native_action_head_executed")
+            for model in models.values()
+        )
+        provenance = (
+            "Both pretrained VLA backbones and their task-adapted native action networks executed."
+            if native_pair
+            else "Mixed controller run; this is not verified two-VLA control."
+            if any(model.get("foundation_vla") for model in models.values())
+            else "Original task-trained state-assisted cloth controllers; not foundation VLAs."
+        )
         evidence = [
             f"Measured MuJoCo simulation, {summary.get('ticks', 0)} physics ticks.",
-            "Original task-trained state-assisted cloth controllers; not foundation VLAs.",
+            provenance,
             "Independent action replay verified identical final geometry and metrics."
             if self.state["verification"].get("verified") else "Independent verification did not pass.",
             "Simulation evidence only; no physical hardware outcome is attested.",

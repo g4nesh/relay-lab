@@ -1,0 +1,39 @@
+{
+  "schema": "relay.native-cloth-pair.v1",
+  "recipe": "two-smolvla-cloth-v1",
+  "status": "verified_development_demo",
+  "architecture": "Two independent SmolVLA instances; separate arm adaptations",
+  "base_model": "HuggingFaceVLA/smolvla_libero",
+  "base_revision": "6721902bc4d61e50a3bfdb11dfb4cb626f05d102",
+  "base_weight_sha256": "71d9563c8295284acba8fc2d5c19de000d6fe9ba58a406832af7ef3d221ed52f",
+  "adapter_sha256": {
+    "left": "ad47dc42e1caf24477ab6a8551156ce6d08c3f8782c29ee7cb81e25006674371",
+    "right": "c72f368f1e25365659017649ff5afbadc0aa08caf8004669a3ae83b8b19f3e02"
+  },
+  "demo_config": {
+    "seed": 10007,
+    "mode": "structured_text",
+    "scenario": "delayed",
+    "coordination": "spacetime",
+    "planner": "llm",
+    "max_ticks": 1800,
+    "video": true,
+    "codec": "checkpoints/cloth-policies/communication.json"
+  },
+  "native_denoising_steps": 1,
+  "action_horizon": 1,
+  "action_repeat": 4,
+  "native_noise_seed": 2718,
+  "training_scene_demonstration": true,
+  "heldout_benchmark": false,
+  "hardware_validated": false,
+  "base_weights_bundled": false,
+  "physical_success": true,
+  "result": "One dashboard-launched native SmolVLA pair completed the training-scene fold; native command audit and fresh MuJoCo replay passed.",
+  "reports": {
+    "left": "left-training.json",
+    "right": "right-training.json"
+  },
+  "demo_evidence": "demo-result.json",
+  "demo_evidence_sha256": "e46099a89efda8986ebfde358bfec1d9e7517a1ff8991417be5df9447ffd977c"
+}

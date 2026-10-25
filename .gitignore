@@ -47,6 +47,14 @@ checkpoints/cloth-policies/*
 !checkpoints/cloth-policies/communication*.json
 !checkpoints/cloth-policies/communication*.npy
 !checkpoints/cloth-policies/training/
+!checkpoints/cloth-native/
+checkpoints/cloth-native/*
+!checkpoints/cloth-native/left.pt
+!checkpoints/cloth-native/right.pt
+!checkpoints/cloth-native/*.json
+!checkpoints/cloth-native/README.md
+!checkpoints/cloth-native/LICENSE
+!checkpoints/cloth-native/NOTICE
 .relay-lab/
 .relay-agent/
 .agent-venv/

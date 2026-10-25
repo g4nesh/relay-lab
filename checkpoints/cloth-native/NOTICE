@@ -1,0 +1,45 @@
+Relay Lab native SmolVLA adaptation artifacts
+
+Upstream model:
+  HuggingFaceVLA/smolvla_libero
+  Revision: 6721902bc4d61e50a3bfdb11dfb4cb626f05d102
+  https://huggingface.co/HuggingFaceVLA/smolvla_libero/tree/6721902bc4d61e50a3bfdb11dfb4cb626f05d102
+  Upstream model-card license: Apache-2.0
+  Upstream base model identified by that card: lerobot/smolvla_base
+
+Upstream implementation:
+  LeRobot, Hugging Face
+  https://github.com/huggingface/lerobot
+  Local implementation distribution used for this adaptation: LeRobot 0.6.1
+
+Retained upstream attribution:
+  Copyright 2024 The Hugging Face team. All rights reserved.
+    (LeRobot distribution LICENSE)
+  Copyright 2025 HuggingFace Inc. team. All rights reserved.
+    (LeRobot policies/smolvla/modeling_smolvla.py)
+
+Relay Lab modifications:
+  The adaptation files contain parameter tensors for original SmolVLA modules,
+  fitted for the project's simulated cloth workcell. Depending on the recorded
+  adapter format, these include the native state projection, action-input and
+  action-time projections, action-output projection, and final action-expert
+  feed-forward and normalization modules. They do not add a replacement action
+  network. Per-arm normalization, action-frame metadata, and inference settings
+  accompany the tensors. The adapter metadata identifies the exact saved module
+  scope and training provenance; this notice does not assert task performance.
+
+Distribution scope:
+  This directory distributes adaptation artifacts, not the complete pretrained
+  model or its full vision/language backbone weights. The pinned upstream model
+  must be obtained separately. Some original native parameter tensors are
+  retained alongside modified tensors so the adapter can be installed exactly.
+
+License source:
+  LICENSE is an unmodified copy of the LICENSE bundled with the installed
+  lerobot 0.6.1 Python distribution (lerobot-0.6.1.dist-info/licenses/LICENSE).
+  It includes the Apache License, Version 2.0, and the upstream distribution's
+  additional third-party notices, preserved in full. The pinned upstream model
+  card also declares Apache-2.0. No new upstream copyright statement is inferred.
+
+This notice identifies origin and modifications; it does not imply endorsement
+by Hugging Face or the upstream contributors and does not modify the licenses.

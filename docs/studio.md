@@ -42,7 +42,7 @@ private `.relay-lab/studio/setup-code` file; no default password is created.
 ## Complete a local two-arm simulation task
 
 The checked-in [completed task evidence](../examples/studio/task-completion/task-report.json)
-records a fresh dashboard-launched run: both agent reports were confirmed at
+records the earlier task-trained-controller baseline: both agent reports were confirmed at
 Spacetime revision 36, with 1,126 physics steps, 2,252 neural actions, 32 Qwen
 phase reviews and 564 packets across 282 durable frames. The
 [recording](../examples/studio/task-completion/overview.mp4),
@@ -53,13 +53,13 @@ with zero recorded robot-state error. This is one fixed-seed simulation result,
 not a reliability benchmark or hardware validation.
 
 The **Two-arm simulation** card on Tasks launches a fresh MuJoCo cloth-folding
-run. It joins the dashboard objective, both approved controllers, Qwen phase
+run with two independently adapted native SmolVLA instances. It joins the dashboard objective, both approved policies, Qwen phase
 review, Spacetime coordination, agent reports, and measured simulator evidence.
 It is available only in the local installation with the required controller
 checkpoints, simulator dependencies, Qwen runtime and Spacetime connection.
 Hosted workspaces continue using outbound customer runtimes.
 
-Use the repository's `learned` Python environment and existing isolated
+Use an Apple Silicon macOS host, the repository's `vla` Python environment and existing isolated
 `.venv-llm` installation described in the README. The pinned Qwen weights must
 already be present in the local Hugging Face cache; prepare that runtime through
 the documented Qwen setup before launching the recipe. The recipe runs with
@@ -67,6 +67,9 @@ the documented Qwen setup before launching the recipe. The recipe runs with
 tracked `scripts/replay_cloth_actions.py` verification runner. Readiness checks
 local prerequisites; launch performs the live Spacetime preflight. A readiness
 badge alone is not evidence of successful model generation or task completion.
+The native base model and VLM assets must also be cached at the exact revisions
+in [the native control guide](native-vla-cloth.md). The small arm adaptations are
+bundled under `checkpoints/cloth-native`; the complete foundation weights are not.
 
 1. Select a Manager profile and open **Tasks**. The recipe distinguishes runtime
    availability from model-release readiness. Missing dependencies or failed
@@ -75,11 +78,12 @@ badge alone is not evidence of successful model generation or task completion.
    **replaces the active workspace pair and communication configuration**. It
    retains prior model records and task history. It does not approve the models.
 3. In **Models & channels**, review and explicitly release both exact model
-   configurations. The left controller is a task-trained CNN; the right is a
-   separate task-trained attention architecture. Both use RGB, local landmark
-   measurements, proprioception and a fixed phase vocabulary.
+   configurations. Both are pinned pretrained SmolVLA instances with distinct
+   arm adaptations and normalization. They use their own RGB, measured pose and
+   phase instruction; cloth landmark coordinates are excluded from model inputs.
 4. Return to Tasks and choose **Run folding task**. The recipe uses a fixed
-   objective, criteria, seed and configuration. A launch request has a persistent
+   objective, criteria, seed and configuration. Seed 10007 is an adaptation scene,
+   so this is a development demonstration, not a held-out benchmark. A launch request has a persistent
    request identity; if its response is uncertain, **Retry same launch** retains
    that identity instead of intentionally creating another run.
 5. Open the resulting task to follow each arm's reported progress and the
@@ -93,7 +97,9 @@ badge alone is not evidence of successful model generation or task completion.
 After the controller rollout, **Verifying action replay** means the recorded
 actions are being re-executed in a fresh simulator world and compared with the
 saved final geometry and metrics. This is a consistency check of that rollout,
-not a second neural-policy run. Completion waits for the verification outcome.
+not a second neural-policy run. Completion requires successful replayed geometry,
+exact agreement with the recorded metrics, and the native command provenance
+audit. Reproducing a failed trajectory is not a successful task.
 
 One local team runtime owns the shared MuJoCo world and two separate policy
 contexts; these are not two independent simulations. **Cancel task** uses the
@@ -101,7 +107,7 @@ normal revision-checked cancellation flow. The runtime must observe cancellation
 or lost authorization before advancing its next authorized step; cancellation is
 cooperative and does not imply an emergency stop for arbitrary customer hardware.
 
-The successful baseline uses original **task-trained, state-assisted neural
+The historical successful baseline uses original **task-trained, state-assisted neural
 controllers**, not the native SmolVLA/X-VLA policies or the learned 64D adapter
 experiment. Qwen reviews phase transitions; Spacetime stores coordination and
 task reports. The result distinguishes a measured simulation outcome from
@@ -268,9 +274,10 @@ A successful exchange confirms communication, not a grasp or completed task.
 The prior live learned-controller trial missed 12 of 14 required obstacle holds,
 with zero grasps and no fold. Fresh-message diagnostic performance does not
 establish delay robustness. Studio does not add automatic strategy selection,
-universal latent alignment, or a foundation-VLA folding controller. The local
-task-trained simulation recipe above is a separate path with its own model
-provenance and measured results.
+universal latent alignment, or automatic model loading for arbitrary registrations.
+The native SmolVLA simulation recipe above is a separate path with pinned model
+provenance and measured results; the learned communication experiment does not
+establish that recipe's task success.
 
 ## Local bridge API
 

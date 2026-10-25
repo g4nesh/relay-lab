@@ -264,12 +264,15 @@ def run_cloth(
     *,
     checkpoint_paths: Mapping[str, str | Path] | None = None,
     expected_checkpoint_hashes: Mapping[str, str] | None = None,
+    policy_factory: Callable | None = None,
     should_stop: Callable[[], bool] | None = None,
     on_progress: Callable[[dict], None] | None = None,
 ):
     """Run one shared world with optional authorization and reporting hooks.
 
     Hooks are application callbacks, never part of the replay configuration.
+    A trusted local policy factory can load a foundation VLA from the verified
+    adapter snapshot. It is never accepted from a dashboard/API request.
     Progress is emitted at startup, phase transitions and final cleanup; this is
     bounded by the controller's phase count, not the number of physics ticks.
     Callback failures stop execution and retain the partial evidence. Cancellation
@@ -278,7 +281,10 @@ def run_cloth(
     from .policies import DEFAULT_DIRECTORY, ClothPolicy
     from .world import ClothWorld
 
-    for name, callback in (("should_stop", should_stop), ("on_progress", on_progress)):
+    for name, callback in (
+        ("should_stop", should_stop), ("on_progress", on_progress),
+        ("policy_factory", policy_factory),
+    ):
         if callback is not None and not callable(callback):
             raise TypeError(f"{name} must be callable")
     if checkpoint_paths is not None and (
@@ -303,6 +309,7 @@ def run_cloth(
     writers, frames, events = {}, [], []
     error, status = None, "starting"
     policies, controllers, initial, initial_hash, first_rgb_hash = {}, {}, None, None, {}
+    terminal_settle_ticks = 0
     started = time.perf_counter()
     progress_available = on_progress is not None
 
@@ -353,7 +360,11 @@ def run_cloth(
         initial_hash = hashlib.sha256(
             np.asarray(initial["vertices"], dtype=np.float64).tobytes()
         ).hexdigest()
-        policies = {a: ClothPolicy(a, output / "models" / f"{a}.pt") for a in AGENTS}
+        factory = policy_factory or ClothPolicy
+        for a in AGENTS:
+            check_cancelled()
+            policies[a] = factory(a, output / "models" / f"{a}.pt")
+        check_cancelled()
         codec.save(output / "models" / "communication.json")
         controllers = {a: LocalPhaseController(a, world.PHASES) for a in AGENTS}
         judge = PhaseJudge(config.planner)
@@ -412,11 +423,22 @@ def run_cloth(
                 beliefs = {a: channel.receive(a, tick) for a in AGENTS}
                 decisions, actions = {}, {}
                 for a in AGENTS:
+                    check_cancelled()
                     decisions[a] = controllers[a].decision(
                         observations[a], beliefs[a], communication=config.mode != "none"
                     )
+                    # The phase guards may use local landmark measurements;
+                    # foundation policies receive only their camera/proprioception.
+                    policy_observation = observations[a]
+                    if policies[a].model_info.get("foundation_vla"):
+                        policy_observation = {
+                            key: observations[a][key] for key in (
+                                "agent", "tick", "rgb", "ee_position", "ee_rotation",
+                                "gripper_closed", "grasped",
+                            )
+                        }
                     actions[a] = policies[a].act(
-                        observations[a],
+                        policy_observation,
                         controllers[a].phase,
                         clearance=decisions[a]["clearance"],
                         hold=decisions[a]["hold"] or controllers[a].done,
@@ -509,8 +531,17 @@ def run_cloth(
                     progress(snapshot["metrics"])
                     check_cancelled()
                 if all(c.done for c in controllers.values()):
-                    status = "succeeded" if world.metrics()["success"] else "rejected"
-                    break
+                    if world.metrics()["success"]:
+                        status = "succeeded"
+                        break
+                    # Sequence completion does not establish physical rest.
+                    # Keep both arms stationary via the existing coordinator
+                    # hold, allowing actual dynamics to settle without changing
+                    # the success criteria or releasing anything artificially.
+                    terminal_settle_ticks += 1
+                    if terminal_settle_ticks >= 100:
+                        status = "rejected"
+                        break
             else:
                 status = "exhausted"
     except ClothCancelled as exc:
@@ -574,6 +605,7 @@ def run_cloth(
             "metrics": metrics,
             "physics": final.get("physics_config", {}),
             "fixture_active": final.get("fixture_active"),
+            "terminal_settle_ticks": terminal_settle_ticks,
             "models": {a: p.model_info for a, p in policies.items()},
             "communication": channel.metrics if channel else {},
             "planner": {"mode": config.planner, "calls": judge.calls if judge else 0},
@@ -583,7 +615,16 @@ def run_cloth(
                 "Single-layer T-shirt-shaped flex sheet; material parameters are not calibrated to real fabric.",
                 "Distance-gated physical vertex clamps approximate grasping; not frictional finger grasp validation.",
                 "An explicit vacuum-table fixture stabilizes the upper garment during folding; released before final scoring.",
-                "Task-trained policies use local landmark state as well as RGB; not foundation-model control.",
+                (
+                    "Foundation VLAs use local RGB, own measured pose and phase language; their native action heads are task-adapted."
+                    if policies and all(p.model_info.get("foundation_vla") for p in policies.values())
+                    else (
+                        "Controller identities are listed individually; this mixed run is not a two-foundation-VLA demonstration."
+                        if any(p.model_info.get("foundation_vla") for p in policies.values())
+                        else "Task-trained policies use local landmark state as well as RGB; not foundation-model control."
+                    )
+                ),
+                "An explicit phase scaffold and measured grasp/obstacle guards remain outside the policies; Qwen reviews phase progression.",
                 "Shared learned representations encode measured local features, not foundation-VLA hidden states.",
                 "Synthetic message delays advance with simulation; wall-clock database/inference calls pause the worker.",
             ],

@@ -1,0 +1,218 @@
+{
+  "schema": "relay.native-cloth-demo-result.v1",
+  "date": "2026-10-25",
+  "task_id": "goal-b91c739583c58561",
+  "source_run_id": "cloth-2dfed647b6fb4cfd",
+  "success": true,
+  "training_scene_demonstration": true,
+  "heldout_benchmark": false,
+  "live_neural_rollouts": 1,
+  "config": {
+    "seed": 10007,
+    "mode": "structured_text",
+    "scenario": "delayed",
+    "coordination": "spacetime",
+    "planner": "llm",
+    "max_ticks": 1800,
+    "publish_every": 4,
+    "video_every": 4,
+    "video": true,
+    "fixture": true,
+    "codec": "checkpoints/cloth-policies/communication.json"
+  },
+  "ticks": 1164,
+  "wall_seconds": 1506.4872829171363,
+  "simulated_seconds": 46.56,
+  "models": {
+    "left": {
+      "model_id": "HuggingFaceVLA/smolvla_libero",
+      "revision": "6721902bc4d61e50a3bfdb11dfb4cb626f05d102",
+      "parameters": 604934176,
+      "foundation_vla": true,
+      "native_action_head_executed": true,
+      "native_action_head_adapted": true,
+      "checkpoint_sha256": "ad47dc42e1caf24477ab6a8551156ce6d08c3f8782c29ee7cb81e25006674371",
+      "base_weight_sha256": "71d9563c8295284acba8fc2d5c19de000d6fe9ba58a406832af7ef3d221ed52f",
+      "inference_calls": 231,
+      "inference_seconds": 385.87414366938174,
+      "action_horizon": 1,
+      "action_repeat_steps": 4
+    },
+    "right": {
+      "model_id": "HuggingFaceVLA/smolvla_libero",
+      "revision": "6721902bc4d61e50a3bfdb11dfb4cb626f05d102",
+      "parameters": 604934176,
+      "foundation_vla": true,
+      "native_action_head_executed": true,
+      "native_action_head_adapted": true,
+      "checkpoint_sha256": "c72f368f1e25365659017649ff5afbadc0aa08caf8004669a3ae83b8b19f3e02",
+      "base_weight_sha256": "71d9563c8295284acba8fc2d5c19de000d6fe9ba58a406832af7ef3d221ed52f",
+      "inference_calls": 241,
+      "inference_seconds": 337.7609068371821,
+      "action_horizon": 1,
+      "action_repeat_steps": 4
+    }
+  },
+  "planner": {
+    "mode": "llm",
+    "calls": 32,
+    "model_id": "Qwen/Qwen3-1.7B-MLX-4bit",
+    "revision": "21457c6f51ed54a7c16e988c0844db973815c137"
+  },
+  "communication": {
+    "published": 582,
+    "delivered": 343,
+    "dropped": 84,
+    "out_of_order": 153,
+    "retrievals": 2328,
+    "durable_commit_ms": {
+      "count": 291,
+      "mean": 55.191925822843594,
+      "p95": 294.25587551668286
+    },
+    "backend": {
+      "kind": "spacetimedb",
+      "durable": true,
+      "run_id": "cloth-2dfed647b6fb4cfd",
+      "index": "private B-tree run/frame and packet identity; no ANN",
+      "protocol": "owner-authenticated idempotent commit + durability ACK + exact readback",
+      "trusted_worker": true,
+      "physics": "single-process simulator"
+    }
+  },
+  "metrics": {
+    "success": true,
+    "physics_valid": true,
+    "peak_cloth_speed_m_s": 4.5830658762181375,
+    "peak_edge_strain": 0.5822758350264026,
+    "footprint": {
+      "projected_area_m2": 0.1256103515625,
+      "target_coverage": 0.6630074264656785,
+      "inside_target_fraction": 0.9880952380952381,
+      "span_x_m": 0.4114832787957984,
+      "span_y_m": 0.35976918738634245
+    },
+    "fold_geometry_ok": true,
+    "hem_alignment_m": {
+      "left": 0.06921961748614533,
+      "right": 0.048329847557522614
+    },
+    "sleeve_overhang_m": {
+      "left": 0.0,
+      "right": 0.0
+    },
+    "max_height_m": 0.055365662021343374,
+    "max_speed_m_s": 0.03561762073829923,
+    "stable_ticks": 36,
+    "on_table": true,
+    "finite": true
+  },
+  "native_audit": {
+    "kind": "native_vla_command_consistency",
+    "verified": true,
+    "ticks": 1164,
+    "counts": {
+      "left": {
+        "inferences": 231,
+        "native_commands": 882,
+        "holds": 282
+      },
+      "right": {
+        "inferences": 241,
+        "native_commands": 932,
+        "holds": 232
+      }
+    },
+    "model_families": {
+      "left": "smol",
+      "right": "smol"
+    },
+    "issues": [],
+    "reported_task_success": true,
+    "reexecutes_neural_models": false,
+    "reexecutes_physics": false,
+    "limitations": "Checks recorded native commands and immutable adapter identities; independent physics replay and new model inference are separate evidence.",
+    "model_snapshot_sha256": {
+      "left_adapter_sha256": "ad47dc42e1caf24477ab6a8551156ce6d08c3f8782c29ee7cb81e25006674371",
+      "right_adapter_sha256": "c72f368f1e25365659017649ff5afbadc0aa08caf8004669a3ae83b8b19f3e02"
+    },
+    "source_sha256": {
+      "summary.json": "ef144f81a81944a582c0321bf06c1cb5caeb07c8853b2c43ddfc7a6350adb0d8",
+      "events.jsonl.gz": "39a0ecd75063a6db0b74b1add987dc49327c5178094628efb9e11b6cb54c9dd8",
+      "final.json": "c936ef9da0962723978c9e3a7ed3671fe20c1e2ce9fa51534b0d3b4337955793"
+    }
+  },
+  "physics_replay": {
+    "kind": "independent_mujoco_action_reexecution",
+    "source_run_id": "cloth-2dfed647b6fb4cfd",
+    "source_artifact_sha256": {
+      "summary.json": "ef144f81a81944a582c0321bf06c1cb5caeb07c8853b2c43ddfc7a6350adb0d8",
+      "final.json": "c936ef9da0962723978c9e3a7ed3671fe20c1e2ce9fa51534b0d3b4337955793",
+      "events.jsonl.gz": "39a0ecd75063a6db0b74b1add987dc49327c5178094628efb9e11b6cb54c9dd8"
+    },
+    "reexecutes_neural_models": false,
+    "reexecutes_communication": false,
+    "verified": true,
+    "steps": 1164,
+    "maximum_robot_state_error": 0.0,
+    "video_fps": null,
+    "final_metrics": {
+      "success": true,
+      "physics_valid": true,
+      "peak_cloth_speed_m_s": 4.5830658762181375,
+      "peak_edge_strain": 0.5822758350264026,
+      "footprint": {
+        "projected_area_m2": 0.1256103515625,
+        "target_coverage": 0.6630074264656785,
+        "inside_target_fraction": 0.9880952380952381,
+        "span_x_m": 0.4114832787957984,
+        "span_y_m": 0.35976918738634245
+      },
+      "fold_geometry_ok": true,
+      "hem_alignment_m": {
+        "left": 0.06921961748614533,
+        "right": 0.048329847557522614
+      },
+      "sleeve_overhang_m": {
+        "left": 0.0,
+        "right": 0.0
+      },
+      "max_height_m": 0.055365662021343374,
+      "max_speed_m_s": 0.03561762073829923,
+      "stable_ticks": 36,
+      "on_table": true,
+      "finite": true
+    },
+    "final_vertices_bitwise_equal": true,
+    "same_final_metrics": true,
+    "same_fixture_state": true,
+    "same_tick_count": true,
+    "native_commands": {
+      "verified": true,
+      "same_source_artifacts": true,
+      "counts": {
+        "left": {
+          "inferences": 231,
+          "native_commands": 882,
+          "holds": 282
+        },
+        "right": {
+          "inferences": 241,
+          "native_commands": 932,
+          "holds": 232
+        }
+      },
+      "audit_sha256": "70efcde16ef3071c05453d0f3c9149836c0b817b776bf39f0346fe318f0bda20",
+      "reexecutes_neural_models": false
+    }
+  },
+  "limitations": [
+    "Seed 10007 was used in adaptation. This is one development demonstration, not a held-out success-rate benchmark.",
+    "Native final modules are task-adapted; the full frozen vision/language backbone and adapted native action network execute. This is not zero-shot folding.",
+    "Qwen reviews a predefined phase sequence; structured peer reports and explicit coordination holds remain.",
+    "The right arm released its sleeve early. The eventual measured fold passed; this run does not establish robust grasp retention.",
+    "Single-layer MuJoCo cloth, ideal marked-tab clamps, and a temporary vacuum fixture. No hardware validation.",
+    "The second pass replays recorded commands and physics; it does not repeat neural inference.",
+    "Complete raw local run artifacts are retained in the dashboard workspace, not bundled here."
+  ]
+}

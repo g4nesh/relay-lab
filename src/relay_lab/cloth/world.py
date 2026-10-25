@@ -318,6 +318,8 @@ class ClothWorld:
             "tick": self.tick,
             "agent": agent,
             "ee_position": self.ee(agent).tolist(),
+            "ee_rotation": self.data.site_xmat[self._sites[agent]].reshape(3, 3).tolist(),
+            "gripper_closed": bool(self._grip[agent]),
             "grasped": self.holding[agent] is not None,
             "grasp_target": (
                 "none"

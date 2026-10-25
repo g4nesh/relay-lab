@@ -7,9 +7,11 @@ Hosted workspaces continue to dispatch to customer-operated agent hosts.
 from __future__ import annotations
 
 import fcntl
+import hashlib
 import importlib.util
 import json
 import os
+import platform
 import re
 import subprocess
 import sys
@@ -21,9 +23,12 @@ from relay_lab.llm import MODEL_ID, MODEL_REVISION
 
 from .simulation_recipe import (
     CHECKPOINT_PATHS,
+    MAX_STATE_BYTES,
     OBJECTIVE,
+    PROVENANCE,
     RECIPE_ID,
     SUCCESS_CRITERIA,
+    native_model_assets,
     recipe_workspace,
 )
 from .tasks import TaskConflict, _request, _signature
@@ -37,8 +42,10 @@ ARTIFACTS = {
     "final.png": ("final.png", "image/png"),
     "summary.json": ("summary.json", "application/json"),
     "verification.json": ("verification/verification.json", "application/json"),
+    "native-audit.json": ("native-audit.json", "application/json"),
 }
 MAX_ARTIFACT_BYTES = 32 * 1024**2
+MISSING_RECEIPT_REASON = "Worker exited without a completion receipt; inspect its private log."
 
 
 def _write(path, value):
@@ -89,6 +96,7 @@ class SimulationService:
                     )
                 elif manifest.get("cleanup_pending"):
                     self._cleanup(manifest, manifest["cleanup_reason"])
+                self._recover_missing_receipt(manifest)
         self.monitor = threading.Thread(target=self._watch, daemon=True, name="simulation-reaper")
         self.monitor.start()
 
@@ -102,11 +110,17 @@ class SimulationService:
 
     def _manifests(self):
         values = []
-        for path in sorted(self.storage.glob("goal-*/manifest.json"))[:100]:
+        for path in self.storage.glob("goal-*/manifest.json"):
             value = _read(path, 16 * 1024)
             if value and value.get("registry_id") == self.registry.registry_id:
                 values.append(value)
-        return sorted(values, key=lambda value: value["created_at"], reverse=True)
+        ordered = sorted(values, key=lambda value: value["created_at"], reverse=True)
+        # Goal IDs are hashes, not timestamps. Never let a history limit hide a
+        # live world or an outstanding credential/task shutdown from the reaper.
+        return [
+            value for index, value in enumerate(ordered)
+            if index < 100 or value["status"] in ACTIVE or value.get("cleanup_pending")
+        ]
 
     def prerequisites(self):
         if self.hosted:
@@ -127,6 +141,23 @@ class SimulationService:
             if not (self.studio.root / relative).is_file():
                 missing.append(str(relative))
         cache = Path(os.environ.get("HF_HOME", self.studio.root / ".cache/huggingface"))
+        families = {agent["family"] for agent in recipe_workspace()["agents"]}
+        native = bool(families) and families <= {"smolvla", "xvla"}
+        if native:
+            if platform.system() != "Darwin" or platform.machine() != "arm64":
+                missing.append("an Apple Silicon macOS simulation host for the pinned MPS adapters and Qwen")
+            missing.extend(
+                name for name in ("lerobot", "transformers", "safetensors")
+                if importlib.util.find_spec(name) is None
+            )
+            if "xvla" in families:
+                sidecar = self.studio.root / Path(CHECKPOINT_PATHS["right"]).parent / "native_decoder.safetensors"
+                if not sidecar.is_file():
+                    missing.append("the approved X-VLA native adapter weights")
+            for model_id, revision, files in native_model_assets(families):
+                directory = cache / "hub" / ("models--" + model_id.replace("/", "--")) / "snapshots" / revision
+                if not all((directory / filename).is_file() for filename in files):
+                    missing.append(f"the pinned {model_id} offline model assets")
         snapshot = (
             cache
             / "hub"
@@ -161,12 +192,12 @@ class SimulationService:
 
     def _public(self, manifest):
         directory = self._directory(manifest["goal_id"])
-        result = _read(directory / "state/result.json")
+        result = _read(directory / "state/result.json", MAX_STATE_BYTES)
         progress = _read(directory / "state/progress.json", 32 * 1024)
         value = {key: manifest[key] for key in ("goal_id", "status", "created_at")}
         value.update(
             task_id=manifest["goal_id"],
-            recipe_id=RECIPE_ID,
+            recipe_id=manifest.get("recipe_id") or (result or {}).get("recipe_id", "two-arm-cloth"),
             progress=progress,
             result=None,
             artifacts={},
@@ -227,7 +258,7 @@ class SimulationService:
                     "objective": OBJECTIVE,
                     "success_criteria": SUCCESS_CRITERIA,
                     "workspace": recipe_workspace(),
-                    "provenance": "Original task-trained, state-assisted CNN and attention controllers. Qwen phase review; SpacetimeDB coordination. Measured simulation, not foundation-VLA or hardware validation.",
+                    "provenance": PROVENANCE,
                 },
                 "active": next((run for run in runs if run["status"] in ACTIVE), None),
                 "runs": runs,
@@ -298,6 +329,7 @@ class SimulationService:
             (directory / "state").mkdir(mode=0o700, exist_ok=True)
             manifest = {
                 "goal_id": goal_id,
+                "recipe_id": RECIPE_ID,
                 "registry_id": self.registry.registry_id,
                 "created_at": time.time(),
                 "status": "starting",
@@ -412,7 +444,7 @@ class SimulationService:
                 continue
             directory = self._directory(goal_id)
             manifest = _read(directory / "manifest.json")
-            result = _read(directory / "state/result.json")
+            result = _read(directory / "state/result.json", MAX_STATE_BYTES)
             state = (result or {}).get("status", "failed")
             manifest["status"] = (
                 state if state in {"succeeded", "failed", "cancelled", "interrupted"} else "failed"
@@ -425,14 +457,119 @@ class SimulationService:
             ):
                 manifest["status"] = "failed"
             if not result:
-                manifest["reason"] = (
-                    "Worker exited without a completion receipt; inspect its private log."
-                )
+                manifest["reason"] = MISSING_RECEIPT_REASON
             _write(directory / "manifest.json", manifest)
             self._cleanup(
                 manifest, "Simulation process exited; any unfinished assignment is stopped."
             )
             del self.processes[goal_id]
+
+    def _recover_missing_receipt(self, manifest):
+        """Repair the old receipt-size bug from completed, bound native evidence.
+
+        This never resumes physics or changes an agent's report. Both successful
+        reports must already exist in this workspace's authoritative task state.
+        Other failed, cancelled, interrupted, or still-running jobs stay as-is.
+        """
+        if (
+            manifest.get("status") != "failed"
+            or manifest.get("reason") != MISSING_RECEIPT_REASON
+            or manifest.get("cleanup_pending")
+        ):
+            return False
+        directory = self._directory(manifest["goal_id"])
+        captured = {}
+
+        def read_bytes(path, maximum):
+            if path.is_symlink() or any(
+                parent.is_symlink() for parent in path.parents if parent.is_relative_to(directory)
+            ):
+                raise ValueError("Invalid receipt evidence path")
+            with path.open("rb") as stream:
+                content = stream.read(maximum + 1)
+            if not 0 < len(content) <= maximum:
+                raise ValueError("Receipt evidence exceeds its bound")
+            return content
+
+        def capture(path, maximum=MAX_STATE_BYTES):
+            if path not in captured:
+                captured[path] = (read_bytes(path, maximum), maximum)
+            return captured[path][0]
+
+        try:
+            content = capture(directory / "state/result.json")
+            if len(content) <= 256 * 1024:
+                return False
+            result = json.loads(content)
+            summary = result["summary"]
+            verification = result["verification"]
+            root = directory / "rollout"
+            if not (
+                result["task_id"] == manifest["goal_id"]
+                and result["recipe_id"] == manifest.get("recipe_id")
+                and result["status"] == "succeeded" and result["success"] is True
+                and summary["status"] == "succeeded" and summary["success"] is True
+                and summary["metrics"]["success"] is True
+                and summary["metrics"]["physics_valid"] is True
+                and verification["verified"] is True
+                and verification["final_metrics"] == summary["metrics"]
+                and verification["native_commands"]["verified"] is True
+                and verification["native_commands"]["same_source_artifacts"] is True
+                and summary == json.loads(capture(root / "summary.json"))
+                and verification == json.loads(capture(root / "verification/verification.json"))
+            ):
+                return False
+            audit_bytes = capture(root / "native-audit.json")
+            audit = json.loads(audit_bytes)
+            if (
+                audit.get("verified") is not True
+                or hashlib.sha256(audit_bytes).hexdigest()
+                != verification["native_commands"]["audit_sha256"]
+            ):
+                return False
+            hashes = {
+                name: hashlib.sha256(capture(root / name, MAX_ARTIFACT_BYTES)).hexdigest()
+                for name in ("summary.json", "final.json", "events.jsonl.gz")
+            }
+            if not (hashes == audit["source_sha256"] == verification["source_artifact_sha256"]):
+                return False
+            if json.loads(capture(root / "final.json"))["metrics"] != summary["metrics"]:
+                return False
+            with self.tasks.lock:
+                _, snapshot = self.tasks._load(manifest["goal_id"])
+                goal = snapshot["state"]["goal"]
+                if (
+                    snapshot["phase"] != "ready" or goal["status"] != "succeeded"
+                    or set(goal["assignments"]) != {"left", "right"}
+                    or len(set(manifest["workers"])) != 2
+                    or {a["worker_id"] for a in goal["assignments"].values()} != set(manifest["workers"])
+                    or any(a["status"] != "succeeded" or a["execution_kind"] != "simulation"
+                           for a in goal["assignments"].values())
+                ):
+                    return False
+                for arm in ("left", "right"):
+                    digest = hashlib.sha256(capture(root / f"models/{arm}.pt", MAX_ARTIFACT_BYTES)).hexdigest()
+                    if not (
+                        digest == audit["model_snapshot_sha256"][f"{arm}_adapter_sha256"]
+                        == summary["models"][arm]["checkpoint_sha256"]
+                        == goal["assignments"][arm]["spec"]["source"]["revision"]
+                    ):
+                        return False
+            # Never combine parsed objects with a different set of on-disk bytes.
+            if any(read_bytes(path, maximum) != content
+                   for path, (content, maximum) in captured.items()):
+                return False
+            if _read(directory / "manifest.json", 16 * 1024) != manifest:
+                return False
+        except Exception:  # noqa: BLE001 - unavailable evidence never promotes a failed run
+            return False
+        manifest["receipt_recovery"] = {
+            "previous_status": manifest["status"], "previous_reason": manifest["reason"],
+            "recovered_at": time.time(), "basis": "bound native replay and both durable agent reports",
+        }
+        manifest.update(status="succeeded", reason="Completion confirmed from the recorded run and both agent reports.")
+        _write(directory / "manifest.json", manifest)
+        return True
 
     def _watch(self):
         while not self.closed.wait(1):

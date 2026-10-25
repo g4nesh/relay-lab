@@ -207,8 +207,10 @@ def test_cancellation_after_qwen_preserves_executed_tick_without_releasing_fixtu
 
 def test_cancellation_during_inference_is_checked_before_step(rig, monkeypatch):
     original = policies.ClothPolicy.act
+    calls = []
 
     def predict_then_cancel(self, *args, **kwargs):
+        calls.append(self.agent)
         action = original(self, *args, **kwargs)
         rig.stop = True
         return action
@@ -217,7 +219,20 @@ def test_cancellation_during_inference_is_checked_before_step(rig, monkeypatch):
     result = run(rig, should_stop=lambda: rig.stop)
     assert result["status"] == "cancelled"
     assert result["ticks"] == 0 and not rig.steps
+    assert calls == ["left"]
     assert rig.worlds[0].fixture_active and rig.worlds[0].closed
+
+
+def test_cancellation_during_model_load_never_loads_second_arm(rig):
+    def factory(arm, snapshot):
+        result = policies.ClothPolicy(arm, snapshot)
+        rig.stop = True
+        return result
+
+    result = run(rig, should_stop=lambda: rig.stop, policy_factory=factory)
+    assert result["status"] == "cancelled" and result["ticks"] == 0
+    assert [arm for arm, _, _ in rig.loads] == ["left"]
+    assert not rig.steps and rig.worlds[0].closed
 
 
 def test_progress_is_bounded_and_includes_terminal_measured_result(rig):
@@ -268,6 +283,30 @@ def test_default_checkpoints_remain_supported(rig):
     assert {a: m["checkpoint_sha256"] for a, m in result["models"].items()} == rig.hashes
 
 
+def test_sequence_completion_waits_for_actual_measured_settling(rig, monkeypatch):
+    holds = []
+    original_act = policies.ClothPolicy.act
+
+    def act(self, observation, phase, **options):
+        holds.append((observation["tick"], options["hold"]))
+        return original_act(self, observation, phase, **options)
+
+    monkeypatch.setattr(policies.ClothPolicy, "act", act)
+    monkeypatch.setattr(world.ClothWorld, "metrics", lambda self: {"success": self.tick >= 4})
+    result = run(rig)
+    assert result["success"] and result["ticks"] == 4
+    assert result["terminal_settle_ticks"] == 2
+    assert all(hold for tick, hold in holds if tick >= 2)
+
+
+def test_waiting_cannot_award_success_without_measured_geometry(rig, monkeypatch):
+    monkeypatch.setattr(world.ClothWorld, "metrics", lambda self: {"success": False})
+    result = run(rig)
+    assert not result["success"]
+    assert result["ticks"] == rig.config.max_ticks
+    assert result["status"] == "exhausted"
+
+
 @pytest.mark.parametrize(
     "options",
     [
@@ -275,9 +314,44 @@ def test_default_checkpoints_remain_supported(rig):
         {"expected_checkpoint_hashes": {"left": "0" * 64, "right": "invalid"}},
         {"on_progress": "not callable"},
         {"should_stop": True},
+        {"policy_factory": "untrusted remote name"},
     ],
 )
 def test_invalid_hook_contract_rejected_before_creating_output(rig, options):
     with pytest.raises((TypeError, ValueError)):
         runtime.run_cloth(rig.config, rig.output, **options)
     assert not rig.output.exists()
+
+
+def test_native_factory_receives_approved_snapshot_and_only_local_rgb_proprio(rig, monkeypatch):
+    original_observe = world.ClothWorld.observe
+    seen = []
+
+    def observe(self, arm, rgb=False):
+        return {
+            **original_observe(self, arm, rgb=rgb),
+            "ee_position": [0, 0, .2], "ee_rotation": np.eye(3).tolist(),
+            "gripper_closed": False, "grasped": False,
+            "landmarks": {"hidden_teacher_target": [1, 2, 3]},
+            "obstacle": {"active": True},
+        }
+
+    class Native:
+        def __init__(self, arm, snapshot):
+            assert snapshot.read_bytes() == ("trusted-" + arm).encode()
+            self.last_prediction = {"coordinator_hold": False}
+            self.model_info = {"foundation_vla": True, "native_action_head_executed": True}
+
+        def act(self, observation, *args, **kwargs):
+            seen.append(set(observation))
+            return {"target": [0, 0, .2], "grip": False}
+
+    monkeypatch.setattr(world.ClothWorld, "observe", observe)
+    result = run(rig, policy_factory=Native)
+    assert result["success"]
+    assert not rig.loads  # The small task controller was never constructed.
+    assert len(seen) == 4
+    assert all(keys == {
+        "agent", "tick", "rgb", "ee_position", "ee_rotation", "gripper_closed", "grasped"
+    } for keys in seen)
+    assert any("native action heads" in item for item in result["limitations"])

@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import gzip
 import hashlib
+import io
 import json
 from pathlib import Path
 
@@ -20,14 +21,19 @@ from relay_lab.cloth.world import ClothWorld
 def replay(source: Path, output: Path, *, video=True):
     source, output = Path(source), Path(output)
     output.mkdir(parents=True, exist_ok=False)
-    summary = json.loads((source / "summary.json").read_text())
-    expected = json.loads((source / "final.json").read_text())
+    # Replay exactly the bytes whose digests are reported, even if a source
+    # path is replaced while the independent world is running.
+    inputs = {
+        name: (source / name).read_bytes()
+        for name in ("summary.json", "final.json", "events.jsonl.gz")
+    }
+    summary = json.loads(inputs["summary.json"])
+    expected = json.loads(inputs["final.json"])
     report = {
         "kind": "independent_mujoco_action_reexecution",
         "source_run_id": summary["run_id"],
         "source_artifact_sha256": {
-            name: hashlib.sha256((source / name).read_bytes()).hexdigest()
-            for name in ("summary.json", "final.json", "events.jsonl.gz")
+            name: hashlib.sha256(content).hexdigest() for name, content in inputs.items()
         },
         "reexecutes_neural_models": False,
         "reexecutes_communication": False,
@@ -50,7 +56,7 @@ def replay(source: Path, output: Path, *, video=True):
             writer = imageio.get_writer(
                 str(output / "overview.mp4"), fps=25, codec="libx264", quality=8
             )
-        with gzip.open(source / "events.jsonl.gz", "rt") as stream:
+        with gzip.GzipFile(fileobj=io.BytesIO(inputs["events.jsonl.gz"]), mode="rb") as stream:
             for line in stream:
                 record = json.loads(line)
                 if world.tick != record["decision_tick"]:
@@ -76,6 +82,9 @@ def replay(source: Path, output: Path, *, video=True):
                 if writer:
                     writer.append_data(world.render(width=1280, height=800))
         final = world.snapshot()
+        # A failed trajectory can replay exactly. Expose measured geometry so
+        # callers cannot confuse reproducibility with successful folding.
+        report["final_metrics"] = final["metrics"]
         report["final_vertices_bitwise_equal"] = bool(
             np.array_equal(np.array(final["vertices"]), np.array(expected["vertices"]))
         )
