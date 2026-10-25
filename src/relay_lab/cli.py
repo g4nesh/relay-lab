@@ -12,6 +12,8 @@ def parser() -> argparse.ArgumentParser:
         description="Relay Lab: robot teams, local model coordination, and shared simulation state."
     )
     commands = result.add_subparsers(dest="command", required=True)
+    studio = commands.add_parser("studio", help="Open the two-model developer workspace")
+    studio.add_argument("--port", type=int, default=8770)
     run = commands.add_parser("run", help="Record one rollout with video and an HTML replay")
     run.add_argument("--seed", type=int, default=7)
     run.add_argument("--comm", choices=("on", "off"), default="on")
@@ -136,6 +138,11 @@ def main() -> None:
     argument_parser = parser()
     args = argument_parser.parse_args()
     try:
+        if args.command == "studio":
+            from .studio.server import serve_studio
+
+            serve_studio(port=args.port)
+            return
         if args.command == "cloth":
             from .cloth.server import serve_cloth
 
