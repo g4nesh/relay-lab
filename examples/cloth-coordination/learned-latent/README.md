@@ -112,7 +112,8 @@ in this directory. Dataset collection has 480 rows; each backbone cache contains
 .venv/bin/relay-lab cloth
 ```
 
-Open `http://127.0.0.1:8769/latent` for the evidence page. See the root README for
-fresh collection and extraction commands. `files.json` hashes the packaged
+Open `http://127.0.0.1:8769/latent` for the evidence page. See the
+[research quickstart](../../../docs/research-quickstart.md) for fresh collection
+and extraction commands. `files.json` hashes the packaged
 binary and JSON evidence; the report prose and preview image are not inputs to
 training or evaluation.
