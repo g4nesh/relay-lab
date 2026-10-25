@@ -15,10 +15,10 @@ our **MuJoCo research environments** for testing communication between robot pol
 [Connect an agent](docs/studio-agents.md) ·
 [Research results](#experiments-and-evidence)
 
-![Relay Studio showing a completed two-arm simulation task](examples/studio/task-completion/dashboard.png)
+![Current Relay Studio dashboard](examples/studio/dashboard-current.jpg)
 
-*Recorded dashboard run using the task-trained cloth controllers. The public demo
-uses illustrative data; the experiments below include their measured evidence.*
+*Current Relay Studio interface, captured from the public demo. Its example tasks
+and metrics are illustrative; measured experiment evidence is linked below.*
 
 ## What you can do
 
