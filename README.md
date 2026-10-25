@@ -6,6 +6,31 @@ with different local observations, moving obstacles, delayed messages, Qwen
 phase review and SpacetimeDB storage. Earlier factory and parcel workcells remain
 available as separate experiments.
 
+## What the results show
+
+| Result | Evidence |
+| --- | --- |
+| **Robots running different AI models can share what they see.** When only the peer's camera shows a hazard, learned 64-number messages between SmolVLA (960-D) and X-VLA (1024-D) raise correct hold decisions from **50% to 100%**. With the same trained model, zeroing the message drops it to 50%, and shuffling messages drops it to 25%. | [Learned messages](examples/cloth-coordination/learned-latent/README.md) |
+| **One shared message space lets new models plug in.** With a shared receiver and a training-time fact anchor, any receiver understands any sender (98.5%). A new model joins by training only its own encoder, and the other robot understands it with no retraining (**96.8% vs 48%** for pairwise adapters; 5 seeds). | [Standardized space](examples/cloth-coordination/shared-latent/README.md) |
+| **Private messages make the factory task work.** Matched runs completed **12/12 with messages vs 2/12 without**. | [Factory comparison](examples/factory-communication/README.md) |
+
+These are held-out, simulated results on small test sets: one cloth episode
+with 20 physical states, and 12 factory seeds. Learned messages are not shown to
+beat well-designed text: structured text also reached 100% and 12/12, with
+smaller packets.
+
+### Next milestones
+
+- **Delayed and missing messages.** With 2–18 tick delays and 15% dropped
+  packets, hold accuracy falls to 66.3%, about the same as no communication.
+  Training used only fresh messages; the next step trains on real earlier peer
+  observations.
+- **Live closed-loop folding.** The first live run with the learned heads
+  executed but made no grasps and missed 12 of 14 required holds. A completed
+  held-out fold is required before any manipulation-success claim.
+- **More model families.** The standardized space is tested with two VLA
+  families and two cameras; a third family is next.
+
 ## Customer tasks and private deployment
 
 The local Studio opens without a login screen; use **Switch account** to select
